@@ -32,10 +32,11 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Layout e visual do Painel](issues/10-visual-do-painel.md): trilho lateral de ícones + um Módulo por vez, ~440×600, Configurações no rodapé; escuro com acento verde-água e números monoespaçados; memória medida no 1º esqueleto Tauri
 - [Critério do repo destaque no Módulo GitHub](issues/12-criterio-repo-destaque.md): só seus commits na branch padrão (token do `gh`, sem `read:user`); mostra commits em 7 dias e total; última atividade = seu último commit; estado vazio sem substituto
 - [Fonte dos Limites de uso do Claude](issues/13-fonte-limites-claude.md): status line padrão (conectada por botão, encadeia a existente, reversível); `oauth/usage` opt-in desligado, 5 min, sem refresh de token; dado velho mostra idade e nunca assume 0% após reinício
+- [Modo do tráfego por processo](issues/14-trafego-por-processo.md): só sem privilégio (TCP, processos do usuário); top 5 por app com taxa ↓/↑ + linha "Outros"; coleta a cada 2 s só com o Módulo Rede visível
 
 ## Not yet specified
 
-- Intervalos de atualização (polling) de cada Módulo e comportamento quando o Painel está fechado (Rede já definida em [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md); Agentes em [Quais eventos de Sessão de agente geram notificação](issues/09-notificacoes-agentes.md)).
+- Intervalos de atualização (polling) de cada Módulo e comportamento quando o Painel está fechado (Rede já definida em [Modo do tráfego por processo](issues/14-trafego-por-processo.md) e em [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md); Agentes em [Quais eventos de Sessão de agente geram notificação](issues/09-notificacoes-agentes.md)).
 - Pipeline de release no GitHub Actions e estrutura pública do repo (README, licença).
 - Módulo Sistema: fontes de dados (provavelmente trivial; layout definido em [Layout e visual do Painel](issues/10-visual-do-painel.md)).
 - Futuro, ainda no horizonte: PRs aguardando revisão e status de CI.
@@ -49,3 +50,4 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - Qualquer backend hospedado ou serviço pago.
 - Alerta de Limite de uso a 80% e atalho global de teclado (usuário dispensou na v1).
 - Extensão do GNOME Shell para clique simples e Painel ancorado ao ícone: custo de manutenção a cada versão do GNOME e inexistente no AppImage ([ADR 0001](../../docs/adr/0001-indicador-sem-extensao-gnome.md); decidido em [Escolher a stack](issues/07-escolher-stack.md)).
+- Serviço eBPF privilegiado para tráfego por processo exato (UDP/QUIC, processos do sistema): exigiria capabilities, usuário dedicado e componente separado só no `.deb`; o modo sem privilégio basta para um top consumidores ([Modo do tráfego por processo](issues/14-trafego-por-processo.md)).
