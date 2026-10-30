@@ -13,7 +13,7 @@ A janela compacta que abre a partir do Indicador e exibe os Módulos.
 _Avoid_: Doca, popup, dashboard
 
 **Módulo**:
-Uma área do Painel dedicada a uma fonte de dados (IA, Agentes, GitHub, Trello, Rede).
+Uma área do Painel dedicada a uma fonte de dados (IA, Agentes, GitHub, Trello, Rede, Sistema).
 _Avoid_: Widget, aba, card
 
 **Configurações**:
