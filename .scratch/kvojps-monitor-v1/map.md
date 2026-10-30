@@ -37,8 +37,6 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 
 ## Not yet specified
 
-- Futuro, ainda no horizonte: PRs aguardando revisão e status de CI.
-
 ## Out of scope
 
 - Descoberta de dispositivos desconhecidos na rede local: varredura ativa, invasiva para a v1.
@@ -49,3 +47,4 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - Alerta de Limite de uso a 80% e atalho global de teclado (usuário dispensou na v1).
 - Extensão do GNOME Shell para clique simples e Painel ancorado ao ícone: custo de manutenção a cada versão do GNOME e inexistente no AppImage ([ADR 0001](../../docs/adr/0001-indicador-sem-extensao-gnome.md); decidido em [Escolher a stack](issues/07-escolher-stack.md)).
 - Serviço eBPF privilegiado para tráfego por processo exato (UDP/QUIC, processos do sistema): exigiria capabilities, usuário dedicado e componente separado só no `.deb`; o modo sem privilégio basta para um top consumidores ([Modo do tráfego por processo](issues/14-trafego-por-processo.md)).
+- PRs aguardando revisão e status de CI: ficam para depois da v1 (o Repo em destaque conta só commits, ver [Critério do repo destaque no Módulo GitHub](issues/12-criterio-repo-destaque.md)).
