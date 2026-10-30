@@ -34,6 +34,7 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Fonte dos Limites de uso do Claude](issues/13-fonte-limites-claude.md): status line padrão (conectada por botão, encadeia a existente, reversível); `oauth/usage` opt-in desligado, 5 min, sem refresh de token; dado velho mostra idade e nunca assume 0% após reinício
 - [Modo do tráfego por processo](issues/14-trafego-por-processo.md): só sem privilégio (TCP, processos do usuário); top 5 por app com taxa ↓/↑ + linha "Outros"; coleta a cada 2 s só com o Módulo Rede visível
 - [Fluxo de credenciais nas Configurações](issues/15-fluxo-de-credenciais.md): GitHub via `gh` em tempo de execução (fallback token clássico no keyring); Trello por key + token colados com passo a passo; IA detectada sozinha; boas-vindas única na 1ª abertura; valida antes de salvar; credencial inválida = faixa "Reconectar" sem notificação
+- [Cadência de atualização dos Módulos com o Painel fechado](issues/16-cadencia-de-atualizacao.md): Painel fechado em ritmo lento (Codex por push + 5 min, Claude por inotify, calendário 1 h, destaque 15 min, Trello 5 min), Módulo visível acelera (Trello 30 s, destaque 5 min); cache mostrado na hora, ↻ por Módulo, pausa sem rede, atualização escalonada no login/retomada, backoff até 15 min, snapshot em disco, mover card otimista
 
 ## Not yet specified
 
