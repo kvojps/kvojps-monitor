@@ -2,7 +2,7 @@
 
 Type: grilling
 Status: open
-Blocked by: 07, 08, 09, 10, 12, 13, 14
+Blocked by: 07, 08, 09, 10, 12, 13, 14, 15
 Map: [kvojps-monitor v1](../map.md)
 
 ## Question
