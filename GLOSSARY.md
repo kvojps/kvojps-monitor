@@ -31,3 +31,11 @@ _Avoid_: Limite de tokens, quota
 **Sessão de agente**:
 Uma execução local de um CLI de agente (Claude Code, Codex) nesta máquina, que está em andamento ou finalizada.
 _Avoid_: Sessão, agente, run
+
+**Segurança da rede**:
+A avaliação de riscos da conexão atual (criptografia, DNS, portal cativo, gateway), expressa como Sem alertas, Atenção ou Risco; nunca afirma que a rede é segura.
+_Avoid_: Saúde da rede, rede segura
+
+**Qualidade da rede**:
+O desempenho da conexão atual (latência, jitter, perda, velocidade), expresso como Boa, Regular ou Ruim junto dos números medidos.
+_Avoid_: Saúde da rede, status da rede

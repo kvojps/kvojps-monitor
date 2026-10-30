@@ -27,10 +27,11 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Como detectar Sessões de agente do Claude Code e do Codex e seu estado](issues/02-sessoes-de-agente.md): Claude via `claude agents --json` + hooks; Codex via SQLite + rollouts + hooks; hooks aditivos, adapters por fonte
 - [Trello no plano gratuito: ler quadro e mover card](issues/04-trello-api.md): viável no Free com key+token próprios do usuário; polling (sem webhook)
 - [Escolher a stack](issues/07-escolher-stack.md): Tauri v2 + Svelte 5; Indicador só de bandeja (`ksni`), sem extensão GNOME; processo único sem privilégio que empurra snapshots à UI; keyring obrigatório; `.deb` + AppImage em runner 24.04
+- [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md): dois eixos — Segurança (Sem alertas/Atenção/Risco) e Qualidade (Boa/Regular/Ruim com números); ping 5 s; velocidade sob demanda + teste leve ao conectar e a cada 6 h; notifica e marca o Indicador só em Risco
 
 ## Not yet specified
 
-- Intervalos de atualização (polling) de cada Módulo e comportamento quando o Painel está fechado.
+- Intervalos de atualização (polling) de cada Módulo e comportamento quando o Painel está fechado (Rede já definida em [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md)).
 - Pipeline de release no GitHub Actions e estrutura pública do repo (README, licença).
 - Módulo Sistema: fontes de dados e layout (provavelmente trivial; pode se resolver junto da stack/protótipo).
 - Futuro, ainda no horizonte: PRs aguardando revisão e status de CI.
