@@ -37,9 +37,6 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 
 ## Not yet specified
 
-- Intervalos de atualização (polling) de cada Módulo e comportamento quando o Painel está fechado (Rede já definida em [Modo do tráfego por processo](issues/14-trafego-por-processo.md) e em [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md); Agentes em [Quais eventos de Sessão de agente geram notificação](issues/09-notificacoes-agentes.md)).
-- Pipeline de release no GitHub Actions e estrutura pública do repo (README, licença).
-- Módulo Sistema: fontes de dados (provavelmente trivial; layout definido em [Layout e visual do Painel](issues/10-visual-do-painel.md)).
 - Futuro, ainda no horizonte: PRs aguardando revisão e status de CI.
 
 ## Out of scope
