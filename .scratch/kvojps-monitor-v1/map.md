@@ -30,6 +30,7 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md): dois eixos — Segurança (Sem alertas/Atenção/Risco) e Qualidade (Boa/Regular/Ruim com números); ping 5 s; velocidade sob demanda + teste leve ao conectar e a cada 6 h; notifica e marca o Indicador só em Risco
 - [Quais eventos de Sessão de agente geram notificação](issues/09-notificacoes-agentes.md): notificam Aguardando você, Com falha e Turno concluído ≥ 30 s; uma notificação por sessão, agrupada a partir de 3 em 10 s; ponto no Indicador enquanto algo aguarda; hooks opt-in, senão polling de 2 s no Claude
 - [Layout e visual do Painel](issues/10-visual-do-painel.md): trilho lateral de ícones + um Módulo por vez, ~440×600, Configurações no rodapé; escuro com acento verde-água e números monoespaçados; memória medida no 1º esqueleto Tauri
+- [Critério do repo destaque no Módulo GitHub](issues/12-criterio-repo-destaque.md): só seus commits na branch padrão (token do `gh`, sem `read:user`); mostra commits em 7 dias e total; última atividade = seu último commit; estado vazio sem substituto
 
 ## Not yet specified
 

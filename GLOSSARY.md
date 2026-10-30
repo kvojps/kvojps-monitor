@@ -43,3 +43,7 @@ _Avoid_: Saúde da rede, rede segura
 **Qualidade da rede**:
 O desempenho da conexão atual (latência, jitter, perda, velocidade), expresso como Boa, Regular ou Ruim junto dos números medidos.
 _Avoid_: Saúde da rede, status da rede
+
+**Repo em destaque**:
+O repositório com mais commits seus nos últimos 7 dias, exibido no Módulo GitHub.
+_Avoid_: Repo principal, top repo
