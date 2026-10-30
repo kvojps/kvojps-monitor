@@ -37,6 +37,7 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Cadência de atualização dos Módulos com o Painel fechado](issues/16-cadencia-de-atualizacao.md): Painel fechado em ritmo lento (Codex por push + 5 min, Claude por inotify, calendário 1 h, destaque 15 min, Trello 5 min), Módulo visível acelera (Trello 30 s, destaque 5 min); cache mostrado na hora, ↻ por Módulo, pausa sem rede, atualização escalonada no login/retomada, backoff até 15 min, snapshot em disco, mover card otimista
 - [Conteúdo e fontes do Módulo Sistema](issues/17-modulo-sistema.md): CPU total + mini‑gráfico 60 s + temperatura (hwmon), RAM por `MemAvailable` + swap se houver, todos os discos reais, bateria via UPower (oculta sem bateria); sem notificação, só cor de atenção; coleta só com o Módulo visível (2 s / 30 s / sinal)
 - [Pipeline de release e repo público](issues/18-release-e-repo-publico.md): repo público `Kvojps/kvojps-monitor`, MIT; tag `v*` gera release em rascunho (`.deb` + AppImage, `SHA256SUMS`, attestations, notas automáticas); SemVer a partir de `0.1.0` com checagem tag↔versão; CI de lint/testes; só aviso diário de nova versão; UI e README em pt-BR
+- [Consolidar a spec da v1](issues/11-consolidar-spec.md): spec única `ready-for-agent` em [Spec: kvojps-monitor v1](../kvojps-monitor/spec.md); seam de teste no núcleo (E/S injetável + fixtures gravadas) e UI por snapshots; `.scratch/` versionada até a v1 ficar pronta; Encerradas por 2 h, hooks via socket Unix, Painel fecha ao perder foco, logs só com metadados
 
 ## Not yet specified
 
