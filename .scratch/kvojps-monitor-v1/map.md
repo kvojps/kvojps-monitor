@@ -33,6 +33,7 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Critério do repo destaque no Módulo GitHub](issues/12-criterio-repo-destaque.md): só seus commits na branch padrão (token do `gh`, sem `read:user`); mostra commits em 7 dias e total; última atividade = seu último commit; estado vazio sem substituto
 - [Fonte dos Limites de uso do Claude](issues/13-fonte-limites-claude.md): status line padrão (conectada por botão, encadeia a existente, reversível); `oauth/usage` opt-in desligado, 5 min, sem refresh de token; dado velho mostra idade e nunca assume 0% após reinício
 - [Modo do tráfego por processo](issues/14-trafego-por-processo.md): só sem privilégio (TCP, processos do usuário); top 5 por app com taxa ↓/↑ + linha "Outros"; coleta a cada 2 s só com o Módulo Rede visível
+- [Fluxo de credenciais nas Configurações](issues/15-fluxo-de-credenciais.md): GitHub via `gh` em tempo de execução (fallback token clássico no keyring); Trello por key + token colados com passo a passo; IA detectada sozinha; boas-vindas única na 1ª abertura; valida antes de salvar; credencial inválida = faixa "Reconectar" sem notificação
 
 ## Not yet specified
 
