@@ -29,8 +29,12 @@ A cota de um Provedor de IA dentro de uma janela de tempo (ex.: janela de sessã
 _Avoid_: Limite de tokens, quota
 
 **Sessão de agente**:
-Uma execução local de um CLI de agente (Claude Code, Codex) nesta máquina, que está em andamento ou finalizada.
+Uma execução local de um CLI de agente (Claude Code, Codex) nesta máquina; a cada momento está em um dos Estados da sessão.
 _Avoid_: Sessão, agente, run
+
+**Estado da sessão**:
+A situação atual de uma Sessão de agente: Em andamento (o agente trabalha), Aguardando você (precisa de aprovação ou resposta para seguir), Turno concluído (terminou e a sessão segue aberta; inclui interrupção pelo usuário), Com falha (o turno terminou em erro) ou Encerrada (o processo saiu).
+_Avoid_: Finalizada, idle, status
 
 **Segurança da rede**:
 A avaliação de riscos da conexão atual (criptografia, DNS, portal cativo, gateway), expressa como Sem alertas, Atenção ou Risco; nunca afirma que a rede é segura.

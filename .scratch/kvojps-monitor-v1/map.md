@@ -28,10 +28,11 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Trello no plano gratuito: ler quadro e mover card](issues/04-trello-api.md): viável no Free com key+token próprios do usuário; polling (sem webhook)
 - [Escolher a stack](issues/07-escolher-stack.md): Tauri v2 + Svelte 5; Indicador só de bandeja (`ksni`), sem extensão GNOME; processo único sem privilégio que empurra snapshots à UI; keyring obrigatório; `.deb` + AppImage em runner 24.04
 - [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md): dois eixos — Segurança (Sem alertas/Atenção/Risco) e Qualidade (Boa/Regular/Ruim com números); ping 5 s; velocidade sob demanda + teste leve ao conectar e a cada 6 h; notifica e marca o Indicador só em Risco
+- [Quais eventos de Sessão de agente geram notificação](issues/09-notificacoes-agentes.md): notificam Aguardando você, Com falha e Turno concluído ≥ 30 s; uma notificação por sessão, agrupada a partir de 3 em 10 s; ponto no Indicador enquanto algo aguarda; hooks opt-in, senão polling de 2 s no Claude
 
 ## Not yet specified
 
-- Intervalos de atualização (polling) de cada Módulo e comportamento quando o Painel está fechado (Rede já definida em [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md)).
+- Intervalos de atualização (polling) de cada Módulo e comportamento quando o Painel está fechado (Rede já definida em [Definir rede saudável ou em risco e cadência do teste de velocidade](issues/08-saude-da-rede.md); Agentes em [Quais eventos de Sessão de agente geram notificação](issues/09-notificacoes-agentes.md)).
 - Pipeline de release no GitHub Actions e estrutura pública do repo (README, licença).
 - Módulo Sistema: fontes de dados e layout (provavelmente trivial; pode se resolver junto da stack/protótipo).
 - Futuro, ainda no horizonte: PRs aguardando revisão e status de CI.
