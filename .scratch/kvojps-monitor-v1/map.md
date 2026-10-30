@@ -31,6 +31,7 @@ Uma **spec da v1** do kvojps-monitor pronta para implementação: um app de band
 - [Quais eventos de Sessão de agente geram notificação](issues/09-notificacoes-agentes.md): notificam Aguardando você, Com falha e Turno concluído ≥ 30 s; uma notificação por sessão, agrupada a partir de 3 em 10 s; ponto no Indicador enquanto algo aguarda; hooks opt-in, senão polling de 2 s no Claude
 - [Layout e visual do Painel](issues/10-visual-do-painel.md): trilho lateral de ícones + um Módulo por vez, ~440×600, Configurações no rodapé; escuro com acento verde-água e números monoespaçados; memória medida no 1º esqueleto Tauri
 - [Critério do repo destaque no Módulo GitHub](issues/12-criterio-repo-destaque.md): só seus commits na branch padrão (token do `gh`, sem `read:user`); mostra commits em 7 dias e total; última atividade = seu último commit; estado vazio sem substituto
+- [Fonte dos Limites de uso do Claude](issues/13-fonte-limites-claude.md): status line padrão (conectada por botão, encadeia a existente, reversível); `oauth/usage` opt-in desligado, 5 min, sem refresh de token; dado velho mostra idade e nunca assume 0% após reinício
 
 ## Not yet specified
 
