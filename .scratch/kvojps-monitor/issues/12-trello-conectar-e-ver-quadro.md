@@ -4,7 +4,7 @@
 
 **Blocked by:** 11 (Token clássico do GitHub no keyring)
 
-**Status:** feito — pendente: substituir as fixtures provisórias por uma captura real (`src-tauri/fixtures/trello/capture.py`)
+**Status:** feito
 
 - [x] Key e token (`scope=read,write`, `expiration=never`) no keyring; sem captura via `return_url`
 - [x] Validação por `GET /1/members/me` + listagem de quadros antes de salvar
@@ -12,7 +12,7 @@
 - [x] Auth isolada no adapter (migração futura para OAuth 2.0)
 - [x] Sem credencial: Módulo visível com estado vazio e "Configurar"
 - [x] Desconectar apaga key e token do keyring
-- [ ] Testes do núcleo com respostas gravadas (fixtures provisórias no formato documentado; captura real pendente); testes de UI por fixtures (cheio, vazio, vencido, credencial inválida)
+- [x] Testes do núcleo com respostas gravadas; testes de UI por fixtures (cheio, vazio, vencido, credencial inválida)
 
 ## Integração com a persistência (ticket 09)
 
@@ -44,3 +44,4 @@ Integração futura autorizada pelo usuário no ticket 10: usar o estado compart
 - Correção: "Gerar token" passa pelo coletor, que guarda a key só em memória (`pendingKey` no snapshot; nunca em cache, log ou keyring) até conectar ou desconectar. As Configurações reabrem com a key preenchida e o Módulo vazio orienta a colar o token. O texto do passo 2 avisa que o painel fecha.
 - `cargo test` (150) e `npm test` (71) aprovados.
 - Relato: abrir o seletor de quadro encerrava o app com `Gdk-WARNING: Tried to unmap the parent of a popup`. O `<select>` do WebKitGTK abre um popup GTK que tira o foco; o Painel fecha ao perder o foco e destrói a janela com o popup aberto. Correção: quadros como grupo de opções (radio) dentro da página, sem popup nativo; teste garante que não há `<select>` nas Configurações do Trello.
+- Captura real gravada em 31/10/2026 (rodada num terminal interativo; o `!` do Claude Code não tem TTY). Anonimização estendida a `idOrganization` e `nodeId` das etiquetas, que vinham com IDs reais. Um segundo quadro aberto virou variação controlada nos testes, porque a conta tem só um. `cargo test` (150) e `npm test` (71) aprovados.

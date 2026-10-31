@@ -4,9 +4,9 @@
 
 Para capturar de novo, num terminal interativo (não pelo `!` do Claude Code, que não tem terminal e levaria o token para a conversa): `python3 src-tauri/fixtures/trello/capture.py`.
 
-**Estado atual:** `me.json`, `boards.json` e `lists.json` são provisórios, montados a partir do formato documentado da API (developer.atlassian.com) no mesmo formato que o script grava, até a primeira captura real substituí-los.
+Capturados em 31/10/2026 nesta máquina, com a conta do mantenedor: um quadro aberto, 8 listas (uma vazia) e 19 cards, com etiquetas em cores base e `_dark` e cards com entrega concluída, sem nenhuma data de entrega. `idOrganization` e `nodeId` das etiquetas também foram substituídos (o `nodeId` passou a apontar para o ID fictício da etiqueta).
 
-Os testes derivam vencido, concluído, etiquetas sem cor e cards futuros como variações controladas de `lists.json`, com relógio falso. 401/403, 5xx, 429 com `Retry-After` e falhas de transporte são simulados na porta HTTP, sem corpo de resposta.
+Os testes derivam datas de entrega (vencida, concluída, futura), etiquetas sem cor e um segundo quadro aberto (para trocar de quadro) como variações controladas da captura, com relógio falso. 401/403, 5xx, 429 com `Retry-After` e falhas de transporte são simulados na porta HTTP, sem corpo de resposta.
 
 As fixtures de UI em `src/lib/trello/fixtures/` são publicadas pelo núcleo e conferidas nos testes. Para regravá-las: `UPDATE_FIXTURES=1 cargo test --manifest-path src-tauri/Cargo.toml trello`.
 

@@ -44,8 +44,11 @@ def anonymize_lists(lists):
             card["shortUrl"] = f"https://trello.com/c/{card['id'][-8:]}"
             for label in card.get("labels", []):
                 label["id"] = alias(label["id"])
-                if "idBoard" in label:
-                    label["idBoard"] = alias(label["idBoard"])
+                for field in ("idBoard", "idOrganization"):
+                    if label.get(field):
+                        label[field] = alias(label[field])
+                if "nodeId" in label:
+                    label["nodeId"] = f"ari:cloud:trello::label/{label['id']}"
                 label["name"] = ""
     return lists
 

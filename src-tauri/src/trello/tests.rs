@@ -50,7 +50,7 @@ impl TrelloApi for Api {
         let route = path.split('?').next().unwrap();
         Ok(match route {
             "/members/me" => fixture("me"),
-            "/members/me/boards" => fixture("boards"),
+            "/members/me/boards" => open_boards(),
             _ if route.starts_with("/boards/") && route.ends_with("/lists") => self
                 .lists
                 .lock()
@@ -80,8 +80,19 @@ impl Keyring for Vault {
     }
 }
 
+/// The recorded account has one open board; a second one is a controlled variant
+/// so tests can switch boards.
+fn open_boards() -> Value {
+    let mut boards = fixture("boards");
+    boards
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"id":"0000000000000000000000b2","name":"Quadro extra"}));
+    boards
+}
+
 fn board_id(index: usize) -> String {
-    fixture("boards")[index]["id"].as_str().unwrap().into()
+    open_boards()[index]["id"].as_str().unwrap().into()
 }
 
 #[test]
@@ -103,7 +114,7 @@ fn connecting_validates_identity_and_open_boards_before_saving_key_and_token() {
     assert_eq!(data["account"], json!({"login":"exemplo"}));
     assert_eq!(
         data["boards"],
-        json!([{"id":board_id(0),"name":"Quadro 1"},{"id":board_id(1),"name":"Quadro 2"}])
+        json!([{"id":board_id(0),"name":"Quadro 1"},{"id":board_id(1),"name":"Quadro extra"}])
     );
     let text = data.to_string();
     assert!(!text.contains("private-token") && !text.contains("0123abcd"));
