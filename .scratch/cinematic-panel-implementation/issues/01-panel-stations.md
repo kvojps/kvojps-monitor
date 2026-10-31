@@ -4,15 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** implementado; verificação nativa pendente com o usuário
+**Status:** resolved
 
 - [x] Aplicar a base estática da linguagem visual aprovada, com tokens e tipografia legíveis, sem importar fixtures ou ações simuladas do protótipo. Preservar os componentes funcionais existentes até suas respectivas fatias.
 - [x] Exibir Capacidade (IA/Sistema), Execução (Agentes/Trello) e Observação (GitHub/Rede), com três colunas iguais acima de 850 px, estações empilhadas com dois Módulos lado a lado entre 651–850 px e uma coluna até 650 px. Desfazer alinhamento de alturas ao empilhar e permitir alcançar todos os Módulos em 560 px.
-- [ ] Abrir janela sem decoração em 95% da largura/altura da área útil respeitando escala e barras; preservar instância única, gestos do Indicador e posicionamento pelo compositor conforme ADR 0001. Registrar verificação nativa inicial e eventuais limitações.
+- [x] Abrir janela sem decoração em 95% da largura/altura da área útil respeitando escala e barras; preservar instância única, gestos do Indicador e posicionamento pelo compositor conforme ADR 0001. Registrar verificação nativa inicial e eventuais limitações.
 - [x] Navegação por nome rola e permite foco na seção; última âncora escolhida persiste entre execuções. Configurações é a única área separada, com “Voltar ao Painel” restaurando contexto. Escape e perda de foco ocultam em ambas as áreas.
 - [x] Cada Módulo identifica sua fonte e atualização; cache aparece prontamente sem bloqueio global. Atualizações preservam foco, seleção e rolagem.
 - [x] Migrar o contrato de visibilidade entre UI e núcleo para o conjunto de Módulos que intersectam a área efetivamente visível. Painel oculto ou Configurações reportam conjunto vazio; fora da rolagem não conta. Separar essa informação da última âncora escolhida.
-- [ ] Testar pelo seam existente múltiplos visíveis, rolagem, fechamento/reabertura e Configurações, preservando cadências, pausa offline, retomada escalonada e evitando coletas duplicadas por eventos de interseção. Preservar encaminhamento de notificação a Agentes para a fatia 03.
+- [x] Testar pelo seam existente múltiplos visíveis, rolagem, fechamento/reabertura e Configurações, preservando cadências, pausa offline, retomada escalonada e evitando coletas duplicadas por eventos de interseção. Preservar encaminhamento de notificação a Agentes para a fatia 03.
 - [x] Testar navegação, restauração e comandos com fixtures da UI; manter ações acessíveis por teclado e evitar expansores, cortes de informação e redução de texto para forçar simetria.
 - [x] Medir memória em repouso nesta primeira composição; se superar aproximadamente 150 MB, aplicar a regra da v1 de destruir a webview ao fechar, preservando restauração. Registrar condições para revalidação final.
 
@@ -28,3 +28,8 @@
 - **Pendências deste ticket:** (1) verificação nativa da janela, gestos, Escape/perda de foco e larguras 3 colunas/intermediária/560 px pelo usuário; (2) os testes de pausa offline e retomada escalonada seguem os existentes por coletor (cadência recebe só um booleano por Módulo, que não mudou); não há teste novo do despacho `visibility_changed` → coletores, que depende do `AppHandle` do Tauri.
 - **Memória (Painel aberto em repouso, ~35 s):** núcleo 116 MB, `WebKitWebProcess` 165 MB e `WebKitNetworkProcess` 17 MB de PSS (≈ 298 MB; `codex app-server`, filho da coleta de IA, à parte com 162 MB). A webview sozinha passa de 150 MB, então a regra da v1 vale: o Painel continua destruindo a webview ao fechar e restaurando a última âncora ao reabrir (comportamento existente, mantido). Revalidar no ticket 11 com o mesmo build, tema, dimensões e fixtures, após animações (09) e Módulos finais (02–08).
 - **Decisão do usuário (2026-10-31), divergência registrada:** ao ver o Painel com os componentes da v1 dentro das estações (“Tá horrível”), o usuário pediu “Deixa os módulos vazios”. Isso substitui “Preservar os componentes funcionais existentes até suas respectivas fatias”: cada Módulo mostra só o cabeçalho (nome, fonte e atualização) até a sua fatia. Os componentes `*Module.svelte` e seus testes permanecem no repositório para as fatias 02–07, que voltam a montar o conteúdo no Painel. Até lá ficam fora do Painel: atualizar/configurar pelo Módulo (Configurações segue pela navegação), mover/abrir card do Trello e destaque da sessão notificada (a notificação ainda rola até Agentes). A moldura foi alinhada à composição H (faixas das estações visíveis ao restaurar a âncora, cabeçalhos numerados com faixa por Módulo, navegação numerada).
+- **Janela opaca (2026-10-31):** no `tauri dev` sob Wayland, a janela transparente da v1 deixava o Painel sem fundo. A janela passou a opaca e a página pinta o próprio fundo; o usuário confirmou que o fundo apareceu.
+
+## Comments
+
+**2026-10-31 — resolvido a pedido do usuário.** Painel em estações, navegação por âncoras, Configurações separada, contrato de visibilidade por conjunto e janela a 95% da área útil entregues em `fff2098`, `3a02249`, `f3ff305` e `d63b95d`. O usuário abriu o Painel nativamente (GNOME Shell 50.1, Wayland) e validou o fundo; os Módulos ficam vazios por decisão dele até as fatias 02–07. Verificação nativa detalhada (gestos do Indicador, dimensão/posição efetivas, Escape/perda de foco, três larguras) segue para o ticket 10; revalidação de memória, para o ticket 11. Testes de pausa offline e retomada escalonada continuam os existentes por coletor, sem teste novo do despacho `visibility_changed` → coletores.

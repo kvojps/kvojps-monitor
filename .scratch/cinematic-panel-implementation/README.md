@@ -8,7 +8,7 @@ Fonte de verdade: [especificação visual aprovada](../cinematic-panel/spec.md),
 
 | Ticket | Bloqueado por |
 | --- | --- |
-| [01 — Painel em estações com navegação e coleta por visibilidade](issues/01-panel-stations.md) | Nenhum |
+| [01 — Painel em estações com navegação e coleta por visibilidade](issues/01-panel-stations.md) ✅ resolvido | Nenhum |
 | [02 — IA com instrumentos de Limite de uso](issues/02-ai-instruments.md) | 01 |
 | [03 — Agentes com intervenção e sessão direcionada](issues/03-agent-sessions.md) | 01 |
 | [04 — GitHub com atividade e Repo em destaque](issues/04-github-activity.md) | 01 |
@@ -20,7 +20,7 @@ Fonte de verdade: [especificação visual aprovada](../cinematic-panel/spec.md),
 | [10 — Validar composição, acessibilidade e integração GNOME/Wayland](issues/10-native-and-accessibility-validation.md) | 09 |
 | [11 — Medir e ajustar desempenho e memória](issues/11-performance-and-memory.md) | 10 |
 
-Fronteira inicial: 01. Após sua conclusão, 02–08 podem começar independentemente. `ready-for-agent` indica triagem; não elimina os bloqueios declarados. Medições na máquina do usuário e verificação manual nativa exigem acesso ao ambiente real e resultados registrados, sem substituir evidência por testes do navegador.
+Fronteira inicial: 01. Após sua conclusão, 02–08 podem começar independentemente. **01 resolvido em 2026-10-31:** os Módulos ficaram vazios no Painel por decisão do usuário; cada fatia 02–07 volta a montar o conteúdo do seu Módulo (detalhes no ticket 01). `ready-for-agent` indica triagem; não elimina os bloqueios declarados. Medições na máquina do usuário e verificação manual nativa exigem acesso ao ambiente real e resultados registrados, sem substituir evidência por testes do navegador.
 
 ## Critérios comuns
 
