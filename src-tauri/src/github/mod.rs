@@ -1,5 +1,6 @@
 use crate::module::Module;
-use crate::ports::{Clock, Http, Processes};
+use crate::persistence::{Event, LogRecord, Persistence, Volatile};
+use crate::ports::{Clock, Http, HttpError, Processes};
 use crate::snapshot::Snapshot;
 use chrono::{DateTime, Datelike, Utc};
 use serde_json::{json, Value};
@@ -13,10 +14,20 @@ pub struct Github<P, H, R> {
     manual_at: Option<u64>,
     attempt_at: Option<u64>,
     data: Value,
+    failures: usize,
+    retry_at: u64,
+    rejected: Option<u64>,
+    persistence: Box<dyn Persistence>,
+    failure_since: Option<u64>,
 }
 impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     pub fn new(processes: P, http: H, clock: R) -> Self {
         Self {
+            failures: 0,
+            retry_at: 0,
+            rejected: None,
+            persistence: Box::new(Volatile),
+            failure_since: None,
             processes,
             http,
             clock,
@@ -27,9 +38,31 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             data: json!({"state":"missingGh", "calendar":null, "featured":null, "refreshing":false}),
         }
     }
+    pub fn with_persistence(
+        processes: P,
+        http: H,
+        clock: R,
+        persistence: impl Persistence + 'static,
+    ) -> Self {
+        let mut collector = Self::new(processes, http, clock);
+        if let Some(snapshot) = persistence.load(Module::Github) {
+            collector.repo_at = snapshot.updated_at;
+            collector.data = snapshot.data;
+        }
+        collector.persistence = Box::new(persistence);
+        collector
+    }
     pub fn snapshot(&self, refreshing: bool) -> Snapshot {
         let mut data = self.data.clone();
         data["refreshing"] = json!(refreshing);
+        if self.data["state"] == "ready" {
+            data.as_object_mut().unwrap().remove("lastSuccessAt");
+            data.as_object_mut().unwrap().remove("failureSince");
+        }
+        if self.data["state"] != "ready" && self.data["state"] != "missingGh" {
+            data["lastSuccessAt"] = json!(self.repo_at);
+            data["failureSince"] = json!(self.failure_since);
+        }
         Snapshot {
             module: Module::Github,
             updated_at: self.repo_at,
@@ -57,12 +90,22 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     }
     pub fn should_collect(&self, visible: bool, manual: bool) -> bool {
         let now = self.clock.now();
+        if let Some(rejected) = self.rejected {
+            return self
+                .processes
+                .execute("gh", &["auth", "token"])
+                .ok()
+                .is_some_and(|token| credential_id(token.trim()) != rejected);
+        }
         let manual_allowed = manual
             && self
                 .manual_at
                 .is_none_or(|t| now.saturating_sub(t) >= 10_000);
+        if now < self.retry_at {
+            return false;
+        }
         manual_allowed
-            || (self.due(visible)
+            || ((self.failures > 0 || self.due(visible))
                 && (self.data["state"] == "ready"
                     || self
                         .attempt_at
@@ -78,6 +121,9 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     }
     pub fn refresh(&mut self, force: bool) -> Option<Snapshot> {
         let now = self.clock.now();
+        if now < self.retry_at {
+            return None;
+        }
         self.attempt_at = Some(now);
         let calendar = force
             || self
@@ -86,19 +132,70 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         // Never store the token in the struct or snapshot.
         let Ok(token) = self.processes.execute("gh", &["auth", "token"]) else {
             self.data["state"] = json!("missingGh");
+            self.persistence.log(LogRecord {
+                source: Module::Github,
+                event: Event::MissingCredential,
+                http_status: None,
+                duration_ms: self.clock.now().saturating_sub(now),
+            });
             return Some(self.snapshot(false));
         };
+        let credential = credential_id(token.trim());
+        if self.rejected == Some(credential) {
+            return None;
+        }
+        if self.rejected.take().is_some() {
+            self.failures = 0;
+            self.failure_since = None;
+        }
         let result = self.query(token.trim(), now, calendar);
+        let status = result.as_ref().err().and_then(|error| error.status);
         match result {
             Ok(()) => {
+                self.failure_since = None;
+                self.failures = 0;
+                self.retry_at = 0;
                 self.repo_at = Some(now);
                 self.data["state"] = json!("ready");
             }
-            Err(()) => self.data["state"] = json!("error"),
+            Err(error) if matches!(error.status, Some(401 | 403)) => {
+                self.rejected = Some(credential);
+                self.retry_at = 0;
+                self.data["state"] = json!("invalidCredential");
+            }
+            Err(error) => {
+                let failed_at = self.clock.now();
+                self.failure_since.get_or_insert(failed_at);
+                self.failures += 1;
+                let delays = [30_000, 60_000, 120_000, 240_000, 480_000, 900_000];
+                self.retry_at = failed_at
+                    .saturating_add(delays[(self.failures - 1).min(5)].max(error.retry_after_ms))
+                    .max(error.retry_after_at.unwrap_or(0));
+                self.data["state"] = json!(if self.failures >= 3 { "error" } else { "stale" });
+            }
         }
-        Some(self.snapshot(false))
+        let snapshot = self.snapshot(false);
+        let event = match self.data["state"].as_str() {
+            Some("ready") => {
+                self.persistence.save(&snapshot);
+                Event::Updated
+            }
+            Some("invalidCredential") => Event::InvalidCredential,
+            _ => Event::Failed,
+        };
+        self.persistence.log(LogRecord {
+            source: Module::Github,
+            event,
+            http_status: status.or(if matches!(event, Event::Updated) {
+                Some(200)
+            } else {
+                None
+            }),
+            duration_ms: self.clock.now().saturating_sub(now),
+        });
+        Some(snapshot)
     }
-    fn query(&mut self, token: &str, now: u64, calendar: bool) -> Result<(), ()> {
+    fn query(&mut self, token: &str, now: u64, calendar: bool) -> Result<(), HttpError> {
         let year = year(now);
         let field = if calendar {
             "contributionsCollection(from:$from,to:$to) { restrictedContributionsCount contributionCalendar { totalContributions weeks { contributionDays { date contributionCount color } } } }"
@@ -113,7 +210,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         let query = format!("query{declaration} {{ viewer {{ id login {field} repositories(first:20, affiliations:[OWNER,COLLABORATOR,ORGANIZATION_MEMBER], orderBy:{{field:PUSHED_AT,direction:DESC}}) {{ nodes {{ nameWithOwner }} }} }} }}");
         let response = self.http.graphql(token, &json!({"query":query,"variables":{"from":format!("{year}-01-01T00:00:00Z"),"to":format!("{year}-12-31T23:59:59Z")}}))?;
         if response.get("errors").is_some() {
-            return Err(());
+            return Err(().into());
         }
         let viewer = &response["data"]["viewer"];
         let id = viewer["id"].as_str().ok_or(())?;
@@ -125,7 +222,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             let (owner, name) = full_name.split_once('/').ok_or(())?;
             let response = self.http.graphql(token, &json!({"query": "query($owner:String!,$name:String!,$id:ID!,$since:GitTimestamp!,$until:GitTimestamp!) { repository(owner:$owner,name:$name) { defaultBranchRef { target { ... on Commit { window:history(first:1,author:{id:$id},since:$since,until:$until) { totalCount nodes { committedDate messageHeadline } } total:history(author:{id:$id}) { totalCount } } } } } }", "variables":{"owner":owner,"name":name,"id":id,"since":since,"until":until}}))?;
             if response.get("errors").is_some() {
-                return Err(());
+                return Err(().into());
             }
             let commit = &response["data"]["repository"]["defaultBranchRef"]["target"];
             if commit.is_null() {
@@ -154,7 +251,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         if calendar {
             let collection = &viewer["contributionsCollection"];
             if !collection["contributionCalendar"].is_object() {
-                return Err(());
+                return Err(().into());
             }
             // totalContributions includes private contributions; restricted is the anonymous subset, so do not add it again.
             self.data["calendar"] = collection.clone();
@@ -164,6 +261,12 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         self.data["featured"] = json!(featured);
         Ok(())
     }
+}
+fn credential_id(token: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hash = std::collections::hash_map::DefaultHasher::new();
+    token.hash(&mut hash);
+    hash.finish()
 }
 fn year(ms: u64) -> i32 {
     DateTime::<Utc>::from_timestamp_millis(ms as i64)
@@ -182,11 +285,27 @@ pub fn start(app: tauri::AppHandle) {
     let (tx, rx) = std::sync::mpsc::channel();
     app.manage(Collector(tx));
     std::thread::spawn(move || {
-        let mut github = Github::new(
-            crate::ports::SystemProcesses,
-            crate::ports::GithubHttp,
-            crate::ports::SystemClock,
-        );
+        let mut github = match (dirs::cache_dir(), dirs::state_dir()) {
+            (Some(cache), Some(state)) => Github::with_persistence(
+                crate::ports::SystemProcesses,
+                crate::ports::GithubHttp,
+                crate::ports::SystemClock,
+                crate::persistence::LocalPersistence {
+                    cache: crate::persistence::Cache(crate::persistence::DiskStorage(
+                        cache.join("kvojps-monitor"),
+                    )),
+                    logs: crate::persistence::Logs(crate::persistence::DiskStorage(
+                        state.join("kvojps-monitor"),
+                    )),
+                },
+            ),
+            _ => Github::new(
+                crate::ports::SystemProcesses,
+                crate::ports::GithubHttp,
+                crate::ports::SystemClock,
+            ),
+        };
+        crate::snapshot::publish(&app, github.snapshot(false));
         loop {
             let manual = rx
                 .recv_timeout(std::time::Duration::from_secs(1))
@@ -220,7 +339,11 @@ mod tests {
     }
     pub(super) struct Http;
     impl crate::ports::Http for Http {
-        fn graphql(&self, _: &str, _: &serde_json::Value) -> Result<serde_json::Value, ()> {
+        fn graphql(
+            &self,
+            _: &str,
+            _: &serde_json::Value,
+        ) -> Result<serde_json::Value, crate::ports::HttpError> {
             panic!("HTTP must not be called without credentials")
         }
     }
@@ -243,11 +366,11 @@ mod scenarios {
             Ok("test-secret".into())
         }
     }
-    struct Api {
-        empty: bool,
+    pub(super) struct Api {
+        pub(super) empty: bool,
     }
     impl Http for Api {
-        fn graphql(&self, _: &str, body: &Value) -> Result<Value, ()> {
+        fn graphql(&self, _: &str, body: &Value) -> Result<Value, HttpError> {
             if body["query"].as_str().unwrap().contains("viewer {") {
                 Ok(
                     serde_json::from_str(include_str!("../../fixtures/github/viewer.json"))
@@ -267,6 +390,18 @@ mod scenarios {
                 }
                 Ok(v)
             }
+        }
+    }
+    #[test]
+    fn transient_failures_back_off_without_showing_error_until_third_failure() {
+        let clock = FakeClock::at(1793448000000);
+        let mut g = Github::new(Gh, ApiError, clock.clone());
+        for delay in [30_000, 60_000, 120_000, 240_000, 480_000, 900_000, 900_000] {
+            let snapshot = g.step(false, false).unwrap();
+            assert_eq!(snapshot.data["state"] == "error", delay >= 120_000);
+            clock.advance(delay - 1);
+            assert!(g.step(false, false).is_none());
+            clock.advance(1);
         }
     }
     #[test]
@@ -298,7 +433,7 @@ mod scenarios {
     }
     struct CalendarYear(FakeClock);
     impl Http for CalendarYear {
-        fn graphql(&self, token: &str, body: &Value) -> Result<Value, ()> {
+        fn graphql(&self, token: &str, body: &Value) -> Result<Value, HttpError> {
             if body["query"]
                 .as_str()
                 .unwrap()
@@ -327,8 +462,8 @@ mod scenarios {
     }
     struct ApiError;
     impl Http for ApiError {
-        fn graphql(&self, _: &str, _: &Value) -> Result<Value, ()> {
-            Err(())
+        fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
+            Err(().into())
         }
     }
     #[test]
@@ -337,7 +472,11 @@ mod scenarios {
         let mut full = Github::new(Gh, Api { empty: false }, clock.clone());
         let mut empty = Github::new(Gh, Api { empty: true }, clock.clone());
         let mut error = Github::new(Gh, ApiError, clock.clone());
-        let mut without = Github::new(super::tests::Gh, super::tests::Http, clock);
+        let mut without = Github::new(super::tests::Gh, super::tests::Http, clock.clone());
+        error.step(false, false);
+        clock.advance(30_000);
+        error.step(false, false);
+        clock.advance(60_000);
         for (name, snapshot) in [
             ("full", full.refresh(true).unwrap()),
             ("empty", empty.refresh(true).unwrap()),
@@ -376,7 +515,7 @@ mod scenarios {
         clock: FakeClock,
     }
     impl Http for CadenciaCalendar {
-        fn graphql(&self, token: &str, body: &Value) -> Result<Value, ()> {
+        fn graphql(&self, token: &str, body: &Value) -> Result<Value, HttpError> {
             if body["query"].as_str().unwrap().contains("viewer {") {
                 let mut response = Api { empty: false }.graphql(token, body)?;
                 let calendar = body["query"]
@@ -420,6 +559,241 @@ mod scenarios {
         assert_eq!(
             time.data["calendar"]["contributionCalendar"]["totalContributions"],
             99
+        );
+    }
+}
+
+#[cfg(test)]
+mod resilience_tests {
+    use super::*;
+    use crate::ports::fakes::FakeClock;
+    use std::sync::{Arc, Mutex};
+    struct Credential(Arc<Mutex<String>>);
+    impl Processes for Credential {
+        fn execute(&self, _: &str, _: &[&str]) -> Result<String, ()> {
+            Ok(self.0.lock().unwrap().clone())
+        }
+    }
+    struct Refused(u16);
+    impl Http for Refused {
+        fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
+            Err(HttpError {
+                status: Some(self.0),
+                retry_after_ms: 180_000,
+                ..HttpError::default()
+            })
+        }
+    }
+    struct SwitchApi(Arc<Mutex<Option<u16>>>);
+    impl Http for SwitchApi {
+        fn graphql(&self, token: &str, body: &Value) -> Result<Value, HttpError> {
+            if let Some(status) = *self.0.lock().unwrap() {
+                return Refused(status).graphql(token, body);
+            }
+            super::scenarios::Api { empty: false }.graphql(token, body)
+        }
+    }
+    #[test]
+    fn refused_credentials_keep_last_data_and_pause_even_manual_until_changed() {
+        for status in [401, 403] {
+            let clock = FakeClock::at(1793448000000);
+            let token = Arc::new(Mutex::new("secret-one".into()));
+            let failure = Arc::new(Mutex::new(None));
+            let mut g = Github::new(
+                Credential(token.clone()),
+                SwitchApi(failure.clone()),
+                clock.clone(),
+            );
+            let old = g.step(true, false).unwrap();
+            *failure.lock().unwrap() = Some(status);
+            clock.advance(300_000);
+            let s = g.step(true, false).unwrap();
+            assert_eq!(s.data["state"], "invalidCredential");
+            assert_eq!(s.data["featured"], old.data["featured"]);
+            assert_eq!(s.data["lastSuccessAt"], 1793448000000u64);
+            clock.advance(3_600_000);
+            *failure.lock().unwrap() = None;
+            assert!(g.step(true, true).is_none());
+            *token.lock().unwrap() = "secret-two".into();
+            assert_eq!(g.step(true, false).unwrap().data["state"], "ready");
+        }
+    }
+    #[test]
+    fn resilience_ui_fixtures_match_published_snapshots() {
+        let clock = FakeClock::at(1793448000000);
+        let failure = Arc::new(Mutex::new(None));
+        let mut g = Github::new(
+            Credential(Arc::new(Mutex::new("secret".into()))),
+            SwitchApi(failure.clone()),
+            clock.clone(),
+        );
+        g.step(true, false).unwrap();
+        clock.advance(300_000);
+        *failure.lock().unwrap() = Some(503);
+        let stale = g.step(true, false).unwrap();
+        clock.advance(180_000);
+        g.step(true, false).unwrap();
+        clock.advance(180_000);
+        let failed = g.step(true, false).unwrap();
+        clock.advance(240_000);
+        *failure.lock().unwrap() = Some(401);
+        let invalid = g.step(true, false).unwrap();
+        for (name, snapshot) in [
+            ("stale", stale),
+            ("failure", failed),
+            ("invalid-credential", invalid),
+        ] {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(format!("../src/lib/github/fixtures/{name}.json"));
+            if std::env::var_os("UPDATE_FIXTURES").is_some() {
+                std::fs::write(
+                    &path,
+                    serde_json::to_string_pretty(&snapshot.data).unwrap() + "\n",
+                )
+                .unwrap();
+            }
+            let fixture: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            assert_eq!(snapshot.data, fixture);
+        }
+    }
+    #[test]
+    fn successful_retry_resets_failures_and_restores_normal_cadence() {
+        let clock = FakeClock::at(1793448000000);
+        let failure = Arc::new(Mutex::new(None));
+        let mut g = Github::new(
+            Credential(Arc::new(Mutex::new("secret".into()))),
+            SwitchApi(failure.clone()),
+            clock.clone(),
+        );
+        g.step(true, false).unwrap();
+        // A manual refresh can fail before the normal five-minute deadline.
+        *failure.lock().unwrap() = Some(503);
+        clock.advance(10_000);
+        g.step(true, true).unwrap();
+        *failure.lock().unwrap() = None;
+        clock.advance(180_000);
+        assert_eq!(g.step(true, false).unwrap().data["state"], "ready");
+        assert!(g.step(true, false).is_none());
+        clock.advance(300_000);
+        *failure.lock().unwrap() = Some(500);
+        assert_eq!(g.step(true, false).unwrap().data["state"], "stale");
+    }
+    struct SlowTimeout(FakeClock);
+    impl Http for SlowTimeout {
+        fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
+            self.0.advance(30_000);
+            Err(HttpError::default())
+        }
+    }
+    #[test]
+    fn timeout_waits_the_full_backoff_after_request_finishes() {
+        let clock = FakeClock::at(1793448000000);
+        let mut g = Github::new(
+            Credential(Arc::new(Mutex::new("secret".into()))),
+            SlowTimeout(clock.clone()),
+            clock.clone(),
+        );
+        g.step(true, false).unwrap();
+        assert!(g.step(true, false).is_none());
+        clock.advance(29_999);
+        assert!(g.step(true, true).is_none());
+        clock.advance(1);
+        assert!(g.step(true, false).is_some());
+    }
+    struct SlowResponse {
+        clock: FakeClock,
+        header: &'static str,
+    }
+    impl Http for SlowResponse {
+        fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
+            self.clock.advance(20_000);
+            Err(HttpError::response(429, Some(self.header)))
+        }
+    }
+    #[test]
+    fn retry_after_seconds_and_http_dates_use_response_time_and_injected_clock() {
+        // Controlled response metadata variants; the body is deliberately discarded.
+        for (header, wait) in [
+            ("180", 180_000),
+            ("Sat, 31 Oct 2026 12:03:00 GMT", 160_000),
+            ("invalid", 30_000),
+        ] {
+            let clock = FakeClock::at(1793448000000);
+            let mut g = Github::new(
+                Credential(Arc::new(Mutex::new("secret".into()))),
+                SlowResponse {
+                    clock: clock.clone(),
+                    header,
+                },
+                clock.clone(),
+            );
+            g.step(true, false).unwrap();
+            clock.advance(wait - 1);
+            assert!(g.step(true, true).is_none(), "{header}");
+            clock.advance(1);
+            assert!(g.step(true, false).is_some(), "{header}");
+        }
+    }
+    #[test]
+    fn retry_after_is_a_minimum_even_for_manual_refresh() {
+        let clock = FakeClock::at(1793448000000);
+        let mut g = Github::new(
+            Credential(Arc::new(Mutex::new("secret".into()))),
+            Refused(429),
+            clock.clone(),
+        );
+        g.step(true, false).unwrap();
+        clock.advance(179_999);
+        assert!(g.step(true, true).is_none());
+        clock.advance(1);
+        assert!(g.step(true, false).is_some());
+    }
+}
+
+#[cfg(test)]
+mod persistence_tests {
+    use super::*;
+    use crate::{
+        persistence::{Cache, DiskStorage, LocalPersistence, Logs},
+        ports::fakes::FakeClock,
+    };
+    struct Gh;
+    impl Processes for Gh {
+        fn execute(&self, _: &str, _: &[&str]) -> Result<String, ()> {
+            Ok("private-token".into())
+        }
+    }
+    #[test]
+    fn restart_publishes_sanitized_last_snapshot_before_any_network_request() {
+        let cache = tempfile::tempdir().unwrap();
+        let logs = tempfile::tempdir().unwrap();
+        let persistence = || LocalPersistence {
+            cache: Cache(DiskStorage(cache.path().into())),
+            logs: Logs(DiskStorage(logs.path().into())),
+        };
+        let clock = FakeClock::at(1793448000000);
+        let mut g = Github::with_persistence(
+            Gh,
+            super::scenarios::Api { empty: false },
+            clock.clone(),
+            persistence(),
+        );
+        let fresh = g.step(false, false).unwrap();
+        let restored =
+            Github::with_persistence(Gh, super::tests::Http, clock, persistence()).snapshot(false);
+        assert_eq!(restored.updated_at, fresh.updated_at);
+        assert_eq!(restored.data["featured"]["commits"], 27);
+        assert_eq!(restored.data["featured"]["title"], "");
+        assert_eq!(restored.data["state"], "stale");
+        let cache_text = std::fs::read_to_string(cache.path().join("github.json")).unwrap();
+        let log_text = std::fs::read_to_string(logs.path().join("info.log")).unwrap();
+        for text in [&cache_text, &log_text] {
+            assert!(!text.contains("private-token"));
+            assert!(!text.contains("Atualiza documentação"));
+        }
+        assert_eq!(
+            serde_json::from_str::<Value>(log_text.trim()).unwrap(),
+            json!({"source":"github","event":"updated","httpStatus":200,"durationMs":0})
         );
     }
 }

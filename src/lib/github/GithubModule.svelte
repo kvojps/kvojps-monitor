@@ -22,26 +22,34 @@
   {#if data.state === "missingGh"}
     <p>{t.github.missingGh}</p>
     <button onclick={() => configure = true}>{t.github.configure}</button>
-    {#if configure}<p>{t.github.login}</p><p>{t.github.instruction}</p>{/if}
   {:else}
-    {#if data.state === "error"}<p role="status">{t.github.error}</p>{/if}
-    {#if data.calendar}
-      <h2>{t.github.calendar}</h2>
-      <p>{interpolate(t.github.contributions, {total:String(data.calendar.contributionCalendar.totalContributions)})}</p>
-      <div class="calendar" role="img" aria-label={t.github.calendar}>
-        {#each data.calendar.contributionCalendar.weeks as week}
-          <div class="week">{#each week.contributionDays as day}<span style:background={day.color} title={`${day.date}: ${day.contributionCount}`}></span>{/each}</div>
-        {/each}
-      </div>
-      <p class="secondary">{interpolate(t.github.private, {total:String(data.calendar.restrictedContributionsCount)})}</p>
+    {#if data.state === "invalidCredential"}
+      <button onclick={() => configure = true}>{t.github.invalidCredential}</button>
     {/if}
-    <h2>{t.github.featured}</h2>
-    {#if data.featured}
-      <p>{data.featured.name}</p>
-      <p class="num">{interpolate(t.github.count, {commits:String(data.featured.commits),total:String(data.featured.total)})}</p>
-      <p class="secondary">{age(data.featured.when)}</p>
-      <p class="title">{data.featured.title}</p>
-    {:else}<p>{t.github.empty}</p>{/if}
+    {#if data.state === "error"}<p role="status">{data.failureSince != null ? interpolate(t.github.failureAge, {age: age(data.failureSince)}) : t.github.error}</p>{/if}
+    {#if data.lastSuccessAt != null && data.state !== "ready"}<p class="secondary">{interpolate(t.github.updatedAge, {age: age(data.lastSuccessAt)})}</p>{/if}
+    <div data-stale={data.state === "invalidCredential"} class:dimmed={data.state === "invalidCredential"}>
+      {#if data.calendar}
+        <h2>{t.github.calendar}</h2>
+        <p>{interpolate(t.github.contributions, {total:String(data.calendar.contributionCalendar.totalContributions)})}</p>
+        <div class="calendar" role="img" aria-label={t.github.calendar}>
+          {#each data.calendar.contributionCalendar.weeks as week}
+            <div class="week">{#each week.contributionDays as day}<span style:background={day.color} title={`${day.date}: ${day.contributionCount}`}></span>{/each}</div>
+          {/each}
+        </div>
+        <p class="secondary">{interpolate(t.github.private, {total:String(data.calendar.restrictedContributionsCount)})}</p>
+      {/if}
+      <h2>{t.github.featured}</h2>
+      {#if data.featured}
+        <p>{data.featured.name}</p>
+        <p class="num">{interpolate(t.github.count, {commits:String(data.featured.commits),total:String(data.featured.total)})}</p>
+        <p class="secondary">{age(data.featured.when)}</p>
+        <p class="title">{data.featured.title}</p>
+      {:else}<p>{t.github.empty}</p>{/if}
+    </div>
+  {/if}
+  {#if configure && (data.state === "missingGh" || data.state === "invalidCredential")}
+    <p>{t.github.login}</p><p>{t.github.instruction}</p>
   {/if}
 </section>
 <style>
@@ -50,6 +58,7 @@
   p { margin: 8px 0; font-size: 12px; }
   button { padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; }
   button:disabled { opacity: .4; }
+  .dimmed { opacity: .5; }
   .secondary { color: var(--muted); }
   .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .calendar { display: flex; gap: 2px; margin: 12px 0; overflow-x: auto; }

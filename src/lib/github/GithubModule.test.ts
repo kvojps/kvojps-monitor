@@ -25,7 +25,7 @@ it("offers login instructions without gh and requests refresh", async () => {
 it("shows refresh failure from fixture", async () => {
   const { default: error } = await import("./fixtures/error.json");
   render(GithubModule, { data: error, refresh: vi.fn() });
-  expect(screen.getByText("Não foi possível atualizar o GitHub")).toBeInTheDocument();
+  expect(screen.getByText(/Falha ao atualizar/)).toBeInTheDocument();
 });
 it("disables refresh during the ten second cooldown", async () => {
   vi.useFakeTimers();
@@ -38,4 +38,26 @@ it("disables refresh during the ten second cooldown", async () => {
     await vi.advanceTimersByTimeAsync(10_000);
     expect(button).toBeEnabled();
   } finally { vi.useRealTimers(); }
+});
+
+it("dims cached data and offers reconnection for refused credentials", async () => {
+  const { default: data } = await import("./fixtures/invalid-credential.json");
+  render(GithubModule, { data, refresh: vi.fn() });
+  expect(screen.getByText("Credencial inválida · Reconectar")).toBeInTheDocument();
+  expect(screen.getByText("exemplo/repo-1").closest("[data-stale]" )).toHaveAttribute("data-stale", "true");
+  expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
+  await fireEvent.click(screen.getByText("Credencial inválida · Reconectar"));
+  expect(screen.getByText("Rodar `gh auth login`")).toBeInTheDocument();
+});
+it("shows stale snapshot age without a failure banner", async () => {
+  const { default: data } = await import("./fixtures/stale.json");
+  render(GithubModule, { data, refresh: vi.fn() });
+  expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
+  expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
+});
+it("shows sustained failure age and keeps the last repository", async () => {
+  const { default: data } = await import("./fixtures/failure.json");
+  render(GithubModule, { data, refresh: vi.fn() });
+  expect(screen.getByText(/Falha ao atualizar/)).toBeInTheDocument();
+  expect(screen.getByText("exemplo/repo-1")).toBeInTheDocument();
 });

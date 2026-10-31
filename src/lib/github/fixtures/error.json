@@ -1,6 +1,8 @@
 {
   "calendar": null,
+  "failureSince": 1793448000000,
   "featured": null,
+  "lastSuccessAt": null,
   "refreshing": false,
   "state": "error"
 }

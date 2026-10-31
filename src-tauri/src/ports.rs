@@ -233,26 +233,76 @@ impl Processes for SystemProcesses {
         String::from_utf8(output.stdout).map_err(|_| ())
     }
 }
+/// Transport failures contain metadata only, never response bodies or credentials.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct HttpError {
+    pub status: Option<u16>,
+    pub retry_after_ms: u64,
+    pub retry_after_at: Option<u64>,
+}
+impl HttpError {
+    /// Decode Retry-After without reading a clock. The collector compares absolute
+    /// HTTP dates with its injected clock after the request finishes.
+    pub fn response(status: u16, retry_after: Option<&str>) -> Self {
+        let mut error = Self {
+            status: Some(status),
+            ..Self::default()
+        };
+        if let Some(header) = retry_after {
+            if let Ok(seconds) = header.trim().parse::<u64>() {
+                error.retry_after_ms = seconds.saturating_mul(1000);
+            } else {
+                error.retry_after_at = chrono::DateTime::parse_from_rfc2822(header)
+                    .ok()
+                    .map(|date| date.timestamp_millis().max(0) as u64);
+            }
+        }
+        error
+    }
+}
+impl From<()> for HttpError {
+    fn from(_: ()) -> Self {
+        Self::default()
+    }
+}
 /// GitHub GraphQL endpoint only; borrow credentials for one refresh.
 pub trait Http: Send {
-    fn graphql(&self, credential: &str, body: &serde_json::Value) -> Result<serde_json::Value, ()>;
+    fn graphql(
+        &self,
+        credential: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, HttpError>;
 }
 pub struct GithubHttp;
 impl Http for GithubHttp {
-    fn graphql(&self, credential: &str, body: &serde_json::Value) -> Result<serde_json::Value, ()> {
-        reqwest::blocking::Client::builder()
+    fn graphql(
+        &self,
+        credential: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, HttpError> {
+        let response = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .map_err(|_| ())?
+            .map_err(|_| HttpError::default())?
             .post("https://api.github.com/graphql")
             .header("User-Agent", "kvojps-monitor")
             .bearer_auth(credential)
             .json(body)
             .send()
-            .map_err(|_| ())?
-            .error_for_status()
-            .map_err(|_| ())?
-            .json()
-            .map_err(|_| ())
+            .map_err(|_| HttpError::default())?;
+        let status = response.status().as_u16();
+        if !response.status().is_success() {
+            return Err(HttpError::response(
+                status,
+                response
+                    .headers()
+                    .get("retry-after")
+                    .and_then(|value| value.to_str().ok()),
+            ));
+        }
+        response.json().map_err(|_| HttpError {
+            status: Some(status),
+            ..HttpError::default()
+        })
     }
 }

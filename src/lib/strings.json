@@ -79,6 +79,9 @@
     "private": "{total} contribuições privadas (anônimas)",
     "count": "{commits} commits em 7 dias · {total} no total",
     "error": "Não foi possível atualizar o GitHub",
-    "featured": "Repo em destaque"
+    "featured": "Repo em destaque",
+    "invalidCredential": "Credencial inválida · Reconectar",
+    "failureAge": "Falha ao atualizar {age}",
+    "updatedAge": "Atualizado {age}"
   }
 }

@@ -13,3 +13,7 @@
 - [ ] Sem credencial: Módulo visível com estado vazio e "Configurar"
 - [ ] Desconectar apaga key e token do keyring
 - [ ] Testes do núcleo com respostas gravadas; testes de UI por fixtures (cheio, vazio, vencido, credencial inválida)
+
+## Integração com a persistência (ticket 09)
+
+Conforme escopo confirmado pelo usuário no ticket 09, integrar o snapshot deste coletor ao cache em disco quando seu contrato existir. Reutilizar as portas de persistência e adicionar projeção tipada sanitizada: nunca persistir credenciais nem conteúdo de commits/cards/prompts/respostas. Restaurar o último dado na inicialização; para Rede, persistir apenas o último teste de velocidade.

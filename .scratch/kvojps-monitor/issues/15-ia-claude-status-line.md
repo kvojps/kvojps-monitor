@@ -14,3 +14,7 @@
 - [ ] Plano por `subscriptionType` de `~/.claude/.credentials.json` (Pro/Max); detecção = `claude` no PATH + credenciais
 - [ ] Regras de dado desatualizado do ticket 14 aplicadas ao Claude
 - [ ] Testes de UI por fixtures (conectado, desconectado por terceiros, sem leitura)
+
+## Integração com a persistência (ticket 09)
+
+Conforme escopo confirmado pelo usuário no ticket 09, integrar o snapshot deste coletor ao cache em disco quando seu contrato existir. Reutilizar as portas de persistência e adicionar projeção tipada sanitizada: nunca persistir credenciais nem conteúdo de commits/cards/prompts/respostas. Restaurar o último dado na inicialização; para Rede, persistir apenas o último teste de velocidade.

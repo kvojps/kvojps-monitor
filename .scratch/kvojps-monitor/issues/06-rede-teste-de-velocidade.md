@@ -12,3 +12,7 @@
 - [ ] Velocidade pesa na Qualidade só se medida há < 6 h na rede atual: Ruim < 2 Mbps de descida, Regular < 10 Mbps
 - [ ] Último resultado no cache em disco e exibido com idade, inclusive sem conexão
 - [ ] Testes com relógio falso: agendamento de 6 h, metered bloqueia, resultado antigo não pesa
+
+## Integração com a persistência (ticket 09)
+
+Conforme escopo confirmado pelo usuário no ticket 09, integrar o snapshot deste coletor ao cache em disco quando seu contrato existir. Reutilizar as portas de persistência e adicionar projeção tipada sanitizada: nunca persistir credenciais nem conteúdo de commits/cards/prompts/respostas. Restaurar o último dado na inicialização; para Rede, persistir apenas o último teste de velocidade.

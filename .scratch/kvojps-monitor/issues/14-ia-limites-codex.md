@@ -13,3 +13,7 @@
 - [ ] Planos ChatGPT Plus/Pro
 - [ ] Snapshot no cache em disco; ↻ com espera de 10 s
 - [ ] Testes com respostas reais gravadas do app-server e rollouts; testes de UI por fixtures (cheio, desatualizado, reiniciado, não instalado)
+
+## Integração com a persistência (ticket 09)
+
+Conforme escopo confirmado pelo usuário no ticket 09, integrar o snapshot deste coletor ao cache em disco quando seu contrato existir. Reutilizar as portas de persistência e adicionar projeção tipada sanitizada: nunca persistir credenciais nem conteúdo de commits/cards/prompts/respostas. Restaurar o último dado na inicialização; para Rede, persistir apenas o último teste de velocidade.

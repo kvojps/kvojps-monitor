@@ -7,6 +7,7 @@ mod indicator;
 mod module;
 mod network;
 mod panel;
+mod persistence;
 mod ports;
 mod snapshot;
 mod state;

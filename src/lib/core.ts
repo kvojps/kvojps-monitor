@@ -79,6 +79,8 @@ export interface NetworkData {
 }
 
 export interface GithubData {
+  lastSuccessAt?: number | null;
+  failureSince?: number | null;
   state: string;
   refreshing: boolean;
   calendar: { restrictedContributionsCount: number; contributionCalendar: {totalContributions:number; weeks: {contributionDays: {date:string; contributionCount:number; color:string}[]}[]} } | null;
