@@ -1,3 +1,4 @@
+mod ai;
 mod autostart;
 mod collection;
 mod commands;
@@ -84,6 +85,7 @@ pub fn run() {
             commands::initial_state,
             commands::report_module_visible,
             commands::close_panel,
+            commands::refresh_ai,
             commands::refresh_github,
             commands::save_github_token,
             commands::refresh_trello,

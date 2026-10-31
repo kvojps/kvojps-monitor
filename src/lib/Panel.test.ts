@@ -158,3 +158,13 @@ it("sends a Trello move to the core with card and destination list", async () =>
   await userEvent.click(screen.getByRole("region", { name: to.name }));
   expect(moveTrelloCard).toHaveBeenCalledExactlyOnceWith(from.cards[0].id, to.id);
 });
+
+it("shows the AI module snapshot and sends its refresh to the core", async () => {
+  const { default: full } = await import("./ai/fixtures/full.json");
+  const { core } = fakeCore({ lastModule: "ai", snapshots: [{ module: "ai", updatedAt: 1, data: full }] });
+  const refreshAi = vi.fn();
+  render(Panel, { core: { ...core, refreshAi } });
+  expect(await screen.findByRole("region", { name: "ChatGPT / Codex" })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Atualizar IA" }));
+  expect(refreshAi).toHaveBeenCalledOnce();
+});

@@ -13,6 +13,7 @@ pub fn start(app: &AppHandle) {
     crate::lifecycle::start(app);
     crate::github::start(app.clone());
     crate::trello::start(app.clone());
+    crate::ai::start(app.clone());
 }
 
 /// Call after every panel or view change.

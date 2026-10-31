@@ -1,0 +1,10 @@
+{"timestamp": "2026-10-31T14:25:52.101Z", "type": "session_meta"}
+{"timestamp": "2026-10-31T14:25:52.300Z", "type": "turn_context"}
+{"timestamp": "2026-10-31T14:25:53.000Z", "type": "event_msg", "payload": {"type": "task_started"}}
+{"timestamp": "2026-10-31T14:26:10.000Z", "type": "response_item", "payload": {"type": "message"}}
+{"timestamp": "2026-10-31T14:26:12.000Z", "type": "response_item", "payload": {"type": "reasoning"}}
+{"timestamp": "2026-10-31T14:26:12.500Z", "type": "token_usage_record"}
+{"timestamp": "2026-10-31T14:33:58.475Z", "ordinal": 300, "type": "event_msg", "payload": {"type": "token_count", "info": {"total_token_usage": {"input_tokens": 2974840, "cached_input_tokens": 2901120, "cache_write_input_tokens": 0, "output_tokens": 17566, "reasoning_output_tokens": 2392, "total_tokens": 2992406}, "last_token_usage": {"input_tokens": 95784, "cached_input_tokens": 95360, "cache_write_input_tokens": 0, "output_tokens": 108, "reasoning_output_tokens": 0, "total_tokens": 95892}, "last_usage_includes_reasoning": true, "model_context_window": 475000}, "rate_limits": {"limit_id": "codex", "limit_name": null, "primary": {"used_percent": 91.0, "window_minutes": 300, "resets_at": 1793467355}, "secondary": {"used_percent": 48.0, "window_minutes": 10080, "resets_at": 1793814230}, "credits": {"has_credits": false, "unlimited": false, "balance": "0"}, "individual_limit": null, "spend_control_reached": null, "plan_type": "plus", "rate_limit_reached_type": null}}}
+{"timestamp": "2026-10-31T14:33:59.000Z", "type": "response_item", "payload": {"type": "message"}}
+{"timestamp": "2026-10-31T14:33:59.200Z", "type": "event_msg", "payload": {"type": "item_completed"}}
+{"timestamp": "2026-10-31T14:33:59.300Z", "type": "event_msg", "payload": {"type": "task_complete"}}

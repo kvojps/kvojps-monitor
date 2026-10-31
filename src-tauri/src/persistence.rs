@@ -149,6 +149,20 @@ fn sanitize(module: Module, data: &Value) -> io::Result<Value> {
                 serde_json::from_value(data.clone()).map_err(io::Error::other)?;
             serde_json::to_value(clean).map_err(io::Error::other)
         }
+        Module::Ai => {
+            #[derive(Serialize, Deserialize)]
+            struct CachedAi {
+                codex: CachedCodex,
+            }
+            /// Plan and usage windows; never account e-mail or ids.
+            #[derive(Serialize, Deserialize)]
+            struct CachedCodex {
+                plan: Option<String>,
+                reading: Option<crate::ai::Reading>,
+            }
+            let clean: CachedAi = serde_json::from_value(data.clone()).map_err(io::Error::other)?;
+            serde_json::to_value(clean).map_err(io::Error::other)
+        }
         Module::Network => {
             #[derive(Serialize, Deserialize)]
             struct CachedNetwork {
@@ -279,6 +293,39 @@ mod tests {
         assert_eq!(snapshot.data["state"], "stale");
         assert_eq!(snapshot.data["featured"]["title"], "");
         assert!(cache.load(Module::System).is_none());
+    }
+    #[test]
+    fn ai_cache_keeps_plan_and_windows_but_never_account_data() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = Cache(DiskStorage(dir.path().into()));
+        let mut data: Value =
+            serde_json::from_str(include_str!("../../src/lib/ai/fixtures/full.json")).unwrap();
+        data["codex"]["email"] = json!("exemplo@example.com");
+        data["codex"]["accountId"] = json!("conta-exemplo");
+        data["codex"]["reading"]["token"] = json!("secret-token");
+        cache
+            .save(&Snapshot {
+                module: Module::Ai,
+                updated_at: Some(1000),
+                data,
+            })
+            .unwrap();
+        let bytes = std::fs::read_to_string(dir.path().join("ai.json")).unwrap();
+        for forbidden in [
+            "exemplo@example.com",
+            "conta-exemplo",
+            "secret-token",
+            "email",
+            "token",
+        ] {
+            assert!(!bytes.contains(forbidden), "{forbidden}");
+        }
+        let snapshot = cache.load(Module::Ai).unwrap();
+        assert_eq!(snapshot.data["codex"]["plan"], "plus");
+        assert_eq!(
+            snapshot.data["codex"]["reading"]["buckets"][0]["secondary"]["usedPercent"],
+            48.0
+        );
     }
     #[test]
     fn info_logs_have_only_metadata_and_rotate_with_three_one_megabyte_files() {

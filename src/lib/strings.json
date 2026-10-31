@@ -147,5 +147,29 @@
     },
     "disconnectFailed": "Não foi possível apagar a key e o token: GNOME Keyring indisponível.",
     "pendingToken": "Token gerado? Cole-o nas Configurações para concluir."
+  },
+  "ai": {
+    "refresh": "Atualizar IA",
+    "refreshing": "Atualizando…",
+    "codex": "ChatGPT / Codex",
+    "missingCodex": "Codex não encontrado · instale e faça login no CLI",
+    "emptyCodex": "Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻",
+    "sources": {
+      "appServer": "app-server",
+      "rollout": "rollout"
+    },
+    "reading": "{source} · atualizado {age}",
+    "now": "agora",
+    "plans": {
+      "plus": "Plus",
+      "pro": "Pro"
+    },
+    "fiveHour": "Sessão (5 h)",
+    "weekly": "Semanal",
+    "windowHours": "Janela de {hours} h",
+    "resetsIn": "reinicia em {time}",
+    "resetsAt": "reinicia {day} {time}",
+    "restarted": "Reiniciado às {time} · sem leitura nova",
+    "failureAge": "Falha ao atualizar {age}"
   }
 }

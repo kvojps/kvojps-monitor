@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icon from "./Icon.svelte";
-  import { MODULES, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import { MODULES, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import AiModule from "./ai/AiModule.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
   import GithubModule from "./github/GithubModule.svelte";
   import TrelloModule from "./trello/TrelloModule.svelte";
@@ -78,6 +79,9 @@
           </span>
         {/if}
       </header>
+      {#if view === "ai" && snapshots.ai?.data}
+        <AiModule data={snapshots.ai.data as AiData} refresh={() => core.refreshAi?.()} />
+      {/if}
       {#if view === "github" && snapshots.github}
         <GithubModule data={snapshots.github.data as GithubData} refresh={() => core.refreshGithub?.()} configure={() => selecionar("settings")} />
       {/if}

@@ -48,6 +48,11 @@ pub fn refresh_github(collector: State<crate::github::Collector>) {
 }
 
 #[tauri::command]
+pub fn refresh_ai(collector: State<crate::ai::Collector>) {
+    let _ = collector.0.send(crate::ai::Command::Refresh);
+}
+
+#[tauri::command]
 pub fn run_speed_test(collector: State<crate::network::Collector>) {
     let _ = collector.0.send(crate::network::Command::FullSpeed);
 }

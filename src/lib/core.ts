@@ -50,6 +50,7 @@ export interface Core {
   reportModuleVisible(module: Module | null): void;
   runSpeedTest?(): void;
   setAutomaticSpeed?(enabled: boolean): void;
+  refreshAi?(): void;
   refreshGithub?(): void;
   saveGithubToken?(token: string): Promise<string>;
   refreshTrello?(): void;
@@ -75,6 +76,7 @@ export const tauriCore: Core = {
   runSpeedTest: () => void invoke("run_speed_test"),
   setAutomaticSpeed: (enabled) => void invoke("set_automatic_speed", { enabled }),
   saveGithubToken: (token) => invoke<string>("save_github_token", { token }),
+  refreshAi: () => void invoke("refresh_ai"),
   refreshGithub: () => void invoke("refresh_github"),
   refreshTrello: () => void invoke("refresh_trello"),
   connectTrello: (key, token) => invoke<string>("connect_trello", { key, token }),
@@ -106,6 +108,32 @@ export interface NetworkData {
   internet: NetworkMeasurements;
   traffic: NetworkTraffic | null;
   history: NetworkTraffic[];
+}
+
+/** One usage window; the core nulls the percent once the window restarts. */
+export interface AiWindow {
+  usedPercent: number | null;
+  durationMins: number | null;
+  /** Epoch milliseconds. */
+  resetsAt: number | null;
+  /** Restarted after the reading: never shown as 0%. */
+  reset: boolean;
+}
+export interface AiData {
+  refreshing: boolean;
+  paused?: boolean;
+  codex: {
+    state: "missing" | "empty" | "ready";
+    /** First of at least three consecutive failed queries. */
+    failureSince?: number | null;
+    /** Codex planType, e.g. plus or pro. */
+    plan: string | null;
+    reading: {
+      source: "appServer" | "rollout";
+      readAt: number;
+      buckets: { id: string; name: string | null; primary: AiWindow | null; secondary: AiWindow | null }[];
+    } | null;
+  };
 }
 
 export interface GithubData {
