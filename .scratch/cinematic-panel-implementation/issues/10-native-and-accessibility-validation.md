@@ -4,7 +4,7 @@
 
 **Blocked by:** 09 — Coreografia combinada com pausa nativa.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [ ] Comparar lado a lado com H/Coreografia combinada em escuro/claro/sistema, três colunas, largura intermediária e 560 px, incluindo escala de texto/tela. Registrar condições e corrigir cortes, sobreposições e perdas de campos/ações.
 - [ ] Medir contraste WCAG AA: 4,5:1 para texto comum e 3:1 para texto grande/controles necessários à identificação; ajustar tokens onde necessário. Cor da estação não representa estado da fonte e informação indispensável não depende de microtexto.
@@ -28,3 +28,11 @@ reprodução e limitações no [registro de validação](../validation/README.md
 6,15:1 escuro / 4,89:1 claro na matriz verificada. Integração manual GNOME/Wayland
 e comparação visual integral permanecem pendentes; ticket não resolvido e 11
 continua bloqueado. A resposta “ok” do usuário não descreveu resultados manuais.
+
+## Answer
+
+2026-10-31 — Resolvido por instrução explícita do usuário: “Marque como resolvido”.
+Implementação, correções e evidências em `c5dbbab` e no
+[registro de validação](../validation/README.md). O encerramento libera o ticket 11.
+As verificações manuais e a comparação visual integral sem evidência permanecem
+identificadas no registro; o encerramento não as declara executadas ou aprovadas.

@@ -1,7 +1,9 @@
 # Validação integrada — ticket 10
 
 Registro de 2026-10-31, baseline `c69ad108ee72881defa18b76c195b48ef44c28c3`.
-O ticket permanece aberto para aceitação nativa e comparação visual integral.
+O ticket foi resolvido por instrução explícita do usuário em 2026-10-31.
+As lacunas de evidência nativa e comparação visual integral abaixo permanecem
+registradas; não foram declaradas executadas ou aprovadas.
 
 ## Reprodução
 
