@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Painel em estações com navegação e coleta por visibilidade.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Destacar CPU e temperatura e mostrar barras de RAM/swap/disco e bateria com contexto real, sem constantes da fixture.
 - [x] Não acrescentar histórico de CPU, todos os discos/espaço livre, tempo restante da bateria ou expansores; preservar a seleção de H sem alterar coleta ou critérios de alerta do núcleo.
@@ -30,3 +30,7 @@
   - *Falha × antigo:* o núcleo não publica quando a leitura falha, então a UI não distingue falha de leitura antiga e mostra “Leitura antiga” nos dois casos. Separar exigiria um campo de falha no snapshot do Sistema (formato do núcleo, sem mudar coleta nem critérios).
   - *Linha de alerta de disco fora de `/`:* elemento ausente em H, acrescentado para preservar o alerta de disco sem listar todos os discos.
   - *Pausa por visibilidade:* ao voltar à área visível depois de mais de 10 s, “Leitura antiga” aparece até o snapshot imediato da retomada (menos de 1 s), porque a UI não sabe se a coleta estava pausada.
+
+## Comments
+
+**2026-10-31 — resolvido a pedido do usuário.** CPU e temperatura em destaque, barras de RAM/swap/disco, bateria, alertas, ausências e idade da leitura entregues em `ee87e0e`. As decisões listadas acima (falha × antigo, linha de alerta de disco fora de `/`, pausa por visibilidade) ficam registradas sem mudança no comportamento. A conferência visual nativa segue para o ticket 10.
