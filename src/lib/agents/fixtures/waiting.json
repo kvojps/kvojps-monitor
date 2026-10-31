@@ -1,0 +1,17 @@
+{
+  "sessions": [
+    {
+      "id": "test",
+      "project": "project",
+      "name": "Minha sessão",
+      "state": "waiting",
+      "waitingFor": "permission prompt",
+      "startedAt": 1799999900000,
+      "closedAt": null
+    }
+  ],
+  "closed": [],
+  "accentDot": true,
+  "failed": false,
+  "observedAt": 1800000000000
+}

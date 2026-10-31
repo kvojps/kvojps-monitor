@@ -195,3 +195,21 @@ export interface TrelloData {
   /** Key typed before generating the token; kept in core memory only. */
   pendingKey?: string;
 }
+
+export interface AgentSession {
+  id: string;
+  project: string;
+  name: string | null;
+  state: "working" | "waiting" | "done" | "failed" | "closed";
+  waitingFor: string | null;
+  startedAt: number;
+  closedAt: number | null;
+  lastState?: "working" | "waiting" | "done" | "failed" | null;
+}
+export interface AgentsData {
+  sessions: AgentSession[];
+  closed: AgentSession[];
+  accentDot: boolean;
+  failed: boolean;
+  observedAt: number;
+}

@@ -205,5 +205,24 @@
     "resetsAt": "reinicia {day} {time}",
     "restarted": "Reiniciado às {time} · sem leitura nova",
     "failureAge": "Falha ao atualizar {age}"
+  },
+  "agents": {
+    "empty": "Nenhuma sessão de agente ativa",
+    "closed": "Encerradas",
+    "unnamed": "Sem nome",
+    "provider": "Claude Code",
+    "failure": "Não foi possível consultar o Claude Code",
+    "waitingDetail": "Aguardando sua resposta",
+    "permission": "Aguardando aprovação",
+    "input": "Aguardando sua resposta",
+    "sandbox": "Aguardando permissão de sandbox",
+    "dialog": "Aguardando resposta no diálogo",
+    "states": {
+      "working": "Em andamento",
+      "waiting": "Aguardando você",
+      "done": "Turno concluído",
+      "failed": "Com falha",
+      "closed": "Encerrada"
+    }
   }
 }

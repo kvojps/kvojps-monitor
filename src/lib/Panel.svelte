@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icon from "./Icon.svelte";
-  import { MODULES, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
   import AiSettings from "./ai/AiSettings.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
@@ -65,6 +66,9 @@
         onclick={() => selecionar(item.view)}
       >
         <Icon name={item.view} />
+        {#if item.view === "agents" && (snapshots.agents?.data as AgentsData | undefined)?.accentDot}
+          <span class="accent-dot" aria-label={t.agents.states.waiting}></span>
+        {/if}
       </button>
     {/each}
   </nav>
@@ -80,6 +84,9 @@
           </span>
         {/if}
       </header>
+      {#if view === "agents" && snapshots.agents}
+        <AgentsModule data={snapshots.agents.data as AgentsData} />
+      {/if}
       {#if view === "ai" && snapshots.ai?.data}
         <AiModule data={snapshots.ai.data as AiData} refresh={() => core.refreshAi?.()}
           configure={() => selecionar("settings")} reconnect={() => void core.connectClaude?.().catch(() => selecionar("settings"))} />
@@ -158,7 +165,9 @@
     margin-top: auto;
   }
 
+  .accent-dot { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
   .item {
+    position: relative;
     width: 36px;
     height: 36px;
     border-radius: 8px;

@@ -1,3 +1,4 @@
+mod agents;
 mod ai;
 mod autostart;
 mod collection;

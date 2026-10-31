@@ -168,3 +168,15 @@ it("shows the AI module snapshot and sends its refresh to the core", async () =>
   await userEvent.click(screen.getByRole("button", { name: "Atualizar IA" }));
   expect(refreshAi).toHaveBeenCalledOnce();
 });
+
+it("mirrors and clears the waiting accent on the Agents rail icon", async () => {
+  const { act } = await import("@testing-library/svelte");
+  const waiting = (await import("./agents/fixtures/waiting.json")).default;
+  const empty = (await import("./agents/fixtures/empty.json")).default;
+  const { core, publish } = fakeCore({ snapshots: [{ module: "agents", updatedAt: 1, data: waiting }] });
+  render(Panel, { core });
+  const rail = await screen.findByRole("navigation", { name: "Módulos" });
+  expect(await within(rail).findByLabelText("Aguardando você")).toBeInTheDocument();
+  await act(() => publish({ module: "agents", updatedAt: 2, data: empty }));
+  expect(within(rail).queryByLabelText("Aguardando você")).not.toBeInTheDocument();
+});

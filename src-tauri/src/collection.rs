@@ -14,6 +14,7 @@ pub fn start(app: &AppHandle) {
     crate::github::start(app.clone());
     crate::trello::start(app.clone());
     crate::ai::start(app.clone());
+    crate::agents::start(app.clone());
 }
 
 /// Call after every panel or view change.
