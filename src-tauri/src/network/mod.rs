@@ -191,6 +191,20 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
             speed.set_automatic(enabled);
         }
     }
+    pub fn resume(&mut self) {
+        self.next = 0;
+        self.next_ping = 0;
+        self.previous = None;
+        self.history.clear();
+        self.samples.clear();
+        self.assessment.resume();
+        if let Some(processes) = &mut self.processes {
+            processes.reset();
+        }
+        if let Some(speed) = &mut self.speed {
+            speed.resume();
+        }
+    }
     pub fn step(&mut self) -> Option<(u64, NetworkData)> {
         let now = self.clock.now();
         if now < self.next {
@@ -406,6 +420,7 @@ fn classify(g: &Measurements, i: &Measurements, connectivity: u32) -> Quality {
 }
 pub enum Command {
     Visible(bool),
+    Resume,
     FullSpeed,
     AutomaticSpeed(bool),
 }
@@ -468,6 +483,7 @@ pub fn start(app: tauri::AppHandle) {
         loop {
             for command in rx.try_iter() {
                 match command {
+                    Command::Resume => network.resume(),
                     Command::Visible(visible) => network.process_visible(visible),
                     Command::FullSpeed => network.request_speed(),
                     Command::AutomaticSpeed(enabled) => network.automatic_speed(enabled),

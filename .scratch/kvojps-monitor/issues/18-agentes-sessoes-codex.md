@@ -11,3 +11,7 @@
 - [ ] Indicação "Aguardando indisponível sem Detecção instantânea" no Módulo
 - [ ] Adapter isolado (formatos instáveis); testes com SQLite e rollouts reais gravados
 - [ ] Testes de UI com sessões dos dois provedores
+
+## Integração de ciclo de vida (ticket 10)
+
+Integração futura autorizada pelo usuário no ticket 10: usar o estado compartilhado de `lifecycle`, aguardar conectividade e `Status::ready_for(posição)` (fontes remotas separadas por 3 s), pausar HTTP/consultas sem faixa de erro e preservar dados com idade. Consumir cada geração de reconexão/retomada uma vez, reiniciar relógios e verificar/reiniciar subprocessos persistentes mortos quando existirem. Preservar o bloqueio de credenciais recusadas. Definir posições distintas das fontes remotas ao integrar (GitHub usa 0).

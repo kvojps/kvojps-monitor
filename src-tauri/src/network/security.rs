@@ -58,6 +58,11 @@ pub struct Assessment {
     notified: bool,
 }
 impl Assessment {
+    pub fn resume(&mut self) {
+        self.next_check = 0;
+        self.mac_revision = None;
+    }
+
     pub fn assess(
         &mut self,
         c: &Connection,

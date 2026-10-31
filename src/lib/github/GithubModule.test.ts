@@ -61,3 +61,12 @@ it("shows sustained failure age and keeps the last repository", async () => {
   expect(screen.getByText(/Falha ao atualizar/)).toBeInTheDocument();
   expect(screen.getByText("exemplo/repo-1")).toBeInTheDocument();
 });
+
+it("keeps offline cached data and age without an error banner", async () => {
+  const { default: data } = await import("./fixtures/offline.json");
+  render(GithubModule, { data, refresh: vi.fn() });
+  expect(screen.getByText("exemplo/repo-1")).toBeInTheDocument();
+  expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
+  expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", {name:"Atualizar GitHub"})).toBeDisabled();
+});

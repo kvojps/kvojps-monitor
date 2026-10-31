@@ -94,6 +94,13 @@ impl<A: Files, U: UPower, R: Clock> System<A, U, R> {
         self.next_disks = self.next_cpu;
     }
 
+    pub fn resume(&mut self) {
+        if self.visible {
+            self.hide();
+            self.show();
+        }
+    }
+
     pub fn hide(&mut self) {
         self.visible = false;
         self.last = None;
@@ -161,6 +168,7 @@ impl<A: Files, U: UPower, R: Clock> System<A, U, R> {
 enum Event {
     Visible(bool),
     BatteryChanged,
+    Resume,
 }
 
 /// Channel for the collector thread, which sleeps until a deadline or event.
@@ -193,6 +201,10 @@ impl Collector {
                         system.hide();
                         None
                     }
+                    Ok(Event::Resume) => {
+                        system.resume();
+                        None
+                    }
                     Ok(Event::BatteryChanged) => system.battery_changed(),
                     Err(RecvTimeoutError::Timeout) => system.step(),
                     Err(RecvTimeoutError::Disconnected) => return,
@@ -209,6 +221,10 @@ impl Collector {
             eprintln!("system: failed to start collection: {e}");
         }
         Collector(tx)
+    }
+
+    pub fn resume(&self) {
+        let _ = self.0.send(Event::Resume);
     }
 
     /// Collect only while the System module is visible.
@@ -271,6 +287,22 @@ mod tests {
             clock,
             system,
         }
+    }
+
+    #[test]
+    fn resume_discards_cpu_baseline_and_collects_without_waiting() {
+        let mut c = notebook();
+        c.system.show();
+        c.system.step().unwrap();
+        c.clock.advance(2_000);
+        c.system.step().unwrap();
+        c.system.resume();
+        let data = c.system.step().unwrap().1;
+        assert_eq!(data.cpu.usage, None);
+        assert!(data.cpu.history.is_empty());
+        c.system.hide();
+        c.system.resume();
+        assert!(c.system.step().is_none());
     }
 
     #[test]

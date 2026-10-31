@@ -89,6 +89,7 @@ export interface NetworkData {
 }
 
 export interface GithubData {
+  paused?: boolean;
   lastSuccessAt?: number | null;
   failureSince?: number | null;
   state: string;

@@ -19,10 +19,14 @@ pub struct Github<P, H, R> {
     rejected: Option<u64>,
     persistence: Box<dyn Persistence>,
     failure_since: Option<u64>,
+    lifecycle: Option<crate::lifecycle::Status>,
+    refresh_pending: bool,
 }
 impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     pub fn new(processes: P, http: H, clock: R) -> Self {
         Self {
+            lifecycle: None,
+            refresh_pending: false,
             failures: 0,
             retry_at: 0,
             rejected: None,
@@ -52,10 +56,32 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         collector.persistence = Box::new(persistence);
         collector
     }
+    pub fn lifecycle(&mut self, status: crate::lifecycle::Status) {
+        if self
+            .lifecycle
+            .is_none_or(|previous| previous.generation != status.generation)
+        {
+            self.refresh_pending = true;
+            self.attempt_at = None;
+            self.manual_at = None;
+            self.retry_at = 0;
+        }
+        self.lifecycle = Some(status);
+    }
+    fn paused(&self) -> bool {
+        self.lifecycle
+            .is_some_and(|s| !s.online || self.clock.now() < s.ready_for(0))
+    }
     pub fn snapshot(&self, refreshing: bool) -> Snapshot {
         let mut data = self.data.clone();
-        data["refreshing"] = json!(refreshing);
-        if self.data["state"] == "ready" {
+        data["refreshing"] = json!(refreshing && !self.paused());
+        if self.paused() {
+            data["paused"] = json!(true);
+        }
+        if self.paused() {
+            data["lastSuccessAt"] = json!(self.repo_at);
+        }
+        if self.data["state"] == "ready" && !self.paused() {
             data.as_object_mut().unwrap().remove("lastSuccessAt");
             data.as_object_mut().unwrap().remove("failureSince");
         }
@@ -89,6 +115,9 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         true
     }
     pub fn should_collect(&self, visible: bool, manual: bool) -> bool {
+        if self.paused() {
+            return false;
+        }
         let now = self.clock.now();
         if let Some(rejected) = self.rejected {
             return self
@@ -104,7 +133,8 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         if now < self.retry_at {
             return false;
         }
-        manual_allowed
+        self.refresh_pending
+            || manual_allowed
             || ((self.failures > 0 || self.due(visible))
                 && (self.data["state"] == "ready"
                     || self
@@ -117,13 +147,17 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             return None;
         }
         let force = manual && self.manual();
-        self.refresh(force)
+        self.refresh(force || self.refresh_pending)
     }
     pub fn refresh(&mut self, force: bool) -> Option<Snapshot> {
+        if self.paused() {
+            return None;
+        }
         let now = self.clock.now();
         if now < self.retry_at {
             return None;
         }
+        self.refresh_pending = false;
         self.attempt_at = Some(now);
         let calendar = force
             || self
@@ -306,10 +340,18 @@ pub fn start(app: tauri::AppHandle) {
             ),
         };
         crate::snapshot::publish(&app, github.snapshot(false));
+        let mut previous_status = (false, 0, 0);
         loop {
             let manual = rx
                 .recv_timeout(std::time::Duration::from_secs(1))
                 .unwrap_or(false);
+            let status = *app.state::<crate::lifecycle::Shared>().lock().unwrap();
+            github.lifecycle(status);
+            let current_status = (status.online, status.generation, status.ready_at);
+            if current_status != previous_status {
+                previous_status = current_status;
+                crate::snapshot::publish(&app, github.snapshot(false));
+            }
             let visible = app
                 .state::<std::sync::Mutex<crate::state::AppState>>()
                 .lock()
@@ -392,6 +434,38 @@ mod scenarios {
             }
         }
     }
+    #[test]
+    fn reconnect_refreshes_fresh_cache_once_and_preserves_it_while_offline() {
+        let clock = FakeClock::at(1793448000000);
+        let mut g = Github::new(Gh, Api { empty: false }, clock.clone());
+        let ready = g.step(false, false).unwrap();
+        let online = crate::lifecycle::Status {
+            online: true,
+            generation: 1,
+            ready_at: clock.now() + 10_000,
+        };
+        g.lifecycle(online);
+        assert!(g.step(true, true).is_none());
+        clock.advance(10_000);
+        assert!(g.step(false, false).is_some());
+        assert!(g.step(false, false).is_none());
+        g.lifecycle(crate::lifecycle::Status {
+            online: false,
+            ..online
+        });
+        let paused = g.snapshot(false);
+        assert_eq!(paused.data["featured"], ready.data["featured"]);
+        assert_eq!(paused.data["lastSuccessAt"], json!(clock.now()));
+        assert!(g.step(true, true).is_none());
+        g.lifecycle(crate::lifecycle::Status {
+            online: true,
+            generation: 2,
+            ready_at: clock.now(),
+        });
+        assert!(g.step(false, false).is_some());
+        assert!(g.step(false, false).is_none());
+    }
+
     #[test]
     fn transient_failures_back_off_without_showing_error_until_third_failure() {
         let clock = FakeClock::at(1793448000000);
@@ -635,12 +709,20 @@ mod resilience_tests {
         g.step(true, false).unwrap();
         clock.advance(180_000);
         let failed = g.step(true, false).unwrap();
+        g.lifecycle(crate::lifecycle::Status::default());
+        let offline = g.snapshot(false);
+        g.lifecycle(crate::lifecycle::Status {
+            online: true,
+            generation: 1,
+            ready_at: clock.now(),
+        });
         clock.advance(240_000);
         *failure.lock().unwrap() = Some(401);
         let invalid = g.step(true, false).unwrap();
         for (name, snapshot) in [
             ("stale", stale),
             ("failure", failed),
+            ("offline", offline),
             ("invalid-credential", invalid),
         ] {
             let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -795,5 +877,33 @@ mod persistence_tests {
             serde_json::from_str::<Value>(log_text.trim()).unwrap(),
             json!({"source":"github","event":"updated","httpStatus":200,"durationMs":0})
         );
+    }
+}
+
+#[cfg(test)]
+mod lifecycle_tests {
+    use super::*;
+    use crate::ports::fakes::FakeClock;
+    struct NoProcesses;
+    impl Processes for NoProcesses {
+        fn execute(&self, _: &str, _: &[&str]) -> Result<String, ()> {
+            panic!("paused collector must not execute processes")
+        }
+    }
+    struct NoHttp;
+    impl Http for NoHttp {
+        fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
+            panic!("paused collector must not send HTTP")
+        }
+    }
+    #[test]
+    fn offline_blocks_manual_and_automatic_collection_without_error_banner() {
+        let mut github = Github::new(NoProcesses, NoHttp, FakeClock::at(1000));
+        github.lifecycle(crate::lifecycle::Status::default());
+        assert!(github.step(true, true).is_none());
+        assert!(!github.should_collect(true, false));
+        let snapshot = github.snapshot(false);
+        assert_eq!(snapshot.data["paused"], true);
+        assert_ne!(snapshot.data["state"], "error");
     }
 }

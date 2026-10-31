@@ -82,6 +82,14 @@ impl SpeedTests {
             );
         }
     }
+    pub fn resume(&mut self) {
+        self.transport.cancel();
+        self.running = false;
+        self.pending = None;
+        self.next = 0;
+        self.manual = false;
+        self.generation += 1;
+    }
     pub fn request(&mut self) {
         self.manual = true;
     }

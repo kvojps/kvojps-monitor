@@ -10,6 +10,7 @@ use crate::system;
 pub fn start(app: &AppHandle) {
     app.manage(system::Collector::start(app.clone()));
     crate::network::start(app.clone());
+    crate::lifecycle::start(app);
     crate::github::start(app.clone());
 }
 

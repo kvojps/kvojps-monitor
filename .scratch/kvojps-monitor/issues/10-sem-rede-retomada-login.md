@@ -11,3 +11,17 @@
 - [ ] Sinal do logind (PrepareForSleep) na retomada: aguarda conectividade, atualiza escalonado, zera relógios, reinicia subprocessos mortos
 - [ ] Inicialização: ~10 s, aguarda conectividade, uma fonte a cada ~3 s
 - [ ] Testes com relógio falso e NM/logind falsos para cada cenário
+
+## Decisões confirmadas nesta implementação
+
+- O usuário autorizou implementar esta fatia nos coletores existentes (GitHub, Rede e Sistema). IA e Trello ainda não têm coletores: a integração da pausa, escalonamento e reinício de subprocessos fica nos tickets 12, 14, 16, 17 e 18.
+- O seam já acordado na spec e no AGENTS.md permanece: núcleo com portas de E/S e relógio falso; UI por fixtures de snapshots.
+- Revisão contra o HEAD anterior: `c31e5c8d045be45cd5adb4be6dea6a99b45efe81`.
+
+## Implementação
+
+- Porta de sessão com adapter do logind que escuta `PrepareForSleep`, preservando a sequência dos sinais. Conectividade plena do NetworkManager libera fontes remotas; indisponibilidade de D-Bus mantém a pausa.
+- Login espera 10 segundos e conectividade. Posições estáveis de fontes remotas têm prazos separados por 3 segundos; GitHub ocupa a primeira posição, sendo a única fonte remota implementada nesta fatia.
+- GitHub pausa inclusive atualização manual; mantém snapshot e idade, sem faixa de erro. Reconexão/retomada força uma atualização completa uma vez, preservando bloqueio de credenciais recusadas. Requisições já em andamento podem terminar.
+- Rede reinicia os relógios de coleta, DNS/portal, ping e teste leve; descarta bases de taxas anteriores à suspensão e cancela teste de velocidade interrompido. Sistema reinicia leituras e histórico enquanto visível.
+- Reinício de processos persistentes pertence aos tickets dos agentes/Codex: os coletores existentes não mantêm esses subprocessos.

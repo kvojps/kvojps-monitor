@@ -17,18 +17,18 @@
   function refreshNow() { allowedAt = Date.now() + 10000; refresh(); }
 </script>
 <section class="github">
-  <button aria-label={t.github.refresh} disabled={data.refreshing || now < allowedAt} onclick={refreshNow}>↻</button>
+  <button aria-label={t.github.refresh} disabled={data.paused || data.refreshing || now < allowedAt} onclick={refreshNow}>↻</button>
   {#if data.refreshing}<span role="status">{t.github.refreshing}</span>{/if}
   {#if data.state === "missingGh"}
     <p>{t.github.missingGh}</p>
     <button onclick={() => configure = true}>{t.github.configure}</button>
   {:else}
-    {#if data.state === "invalidCredential"}
+    {#if data.state === "invalidCredential" && !data.paused}
       <button onclick={() => configure = true}>{t.github.invalidCredential}</button>
     {/if}
-    {#if data.state === "error"}<p role="status">{data.failureSince != null ? interpolate(t.github.failureAge, {age: age(data.failureSince)}) : t.github.error}</p>{/if}
-    {#if data.lastSuccessAt != null && data.state !== "ready"}<p class="secondary">{interpolate(t.github.updatedAge, {age: age(data.lastSuccessAt)})}</p>{/if}
-    <div data-stale={data.state === "invalidCredential"} class:dimmed={data.state === "invalidCredential"}>
+    {#if data.state === "error" && !data.paused}<p role="status">{data.failureSince != null ? interpolate(t.github.failureAge, {age: age(data.failureSince)}) : t.github.error}</p>{/if}
+    {#if data.lastSuccessAt != null && (data.state !== "ready" || data.paused)}<p class="secondary">{interpolate(t.github.updatedAge, {age: age(data.lastSuccessAt)})}</p>{/if}
+    <div data-stale={data.state === "invalidCredential" && !data.paused} class:dimmed={data.state === "invalidCredential" && !data.paused}>
       {#if data.calendar}
         <h2>{t.github.calendar}</h2>
         <p>{interpolate(t.github.contributions, {total:String(data.calendar.contributionCalendar.totalContributions)})}</p>

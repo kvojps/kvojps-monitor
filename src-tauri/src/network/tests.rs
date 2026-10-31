@@ -1558,3 +1558,17 @@ fn accepts_native_ipv6_and_mapped_external_ipv4_but_never_mapped_loopback() {
     );
     assert_eq!(data.others.download, 5904.0);
 }
+
+#[test]
+fn resume_discards_traffic_baseline_and_collects_without_waiting() {
+    let clock = FakeClock::at(1000);
+    let mut network = Network::new(FakeRoot::from("network"), Nm, Ping(20.0), clock.clone());
+    network.step().unwrap();
+    clock.advance(1000);
+    assert!(network.step().unwrap().1.traffic.is_some());
+    network.resume();
+    let data = network.step().unwrap().1;
+    assert!(data.traffic.is_none());
+    assert!(data.history.is_empty());
+    assert_eq!(data.internet.latency, Some(20.0));
+}

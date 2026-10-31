@@ -4,6 +4,7 @@ mod commands;
 mod github;
 mod icon;
 mod indicator;
+mod lifecycle;
 mod module;
 mod network;
 mod panel;
