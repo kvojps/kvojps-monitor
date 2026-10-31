@@ -20,7 +20,7 @@ Esta fatia **define o padrão do núcleo** que as outras seguem: portas injetáv
 ## Notas da implementação
 
 - **Disco real** = origem em `/dev/*`, fora das exclusões do ticket e de `/snap/*`, uma barra por origem (subvolumes btrfs e bind mounts não duplicam). Raízes ZFS (origem `rpool/...`) ficam de fora; revisitar se alguém usar ZFS.
-- **Temperatura**: lida como "≥ `temp*_crit` se o sensor informa, senão ≥ 90 °C" (um `coretemp` com crit 100 °C a 95 °C não pede atenção). A outra leitura possível é "≥ crit **ou** ≥ 90 °C"; em aberto até decisão do usuário.
+- **Temperatura**: decidido pelo usuário: atenção em "≥ `temp*_crit` do sensor **ou** ≥ 90 °C", o que vier primeiro (um `coretemp` com crit 100 °C já pede atenção a 90 °C).
 - **Fixtures**: `/proc`, hwmon, `statvfs` e o UPower "carregada" foram gravados nesta máquina (notebook AMD, `k10temp`). Sem como gravar aqui, `notebook-descarregando.json` e `desktop.json` derivam da gravação real trocando só os campos usados; o layout `coretemp` é montado no teste.
 - **Contrato núcleo → UI**: as fixtures de snapshot da UI (`src/lib/sistema/fixtures/`) são geradas pelo núcleo; `ATUALIZAR_FIXTURES=1 cargo test` regrava e o teste falha se divergirem.
 

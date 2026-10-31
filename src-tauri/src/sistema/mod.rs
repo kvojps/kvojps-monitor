@@ -414,13 +414,13 @@ mod testes {
     }
 
     /// Layout do `coretemp` (Intel): pacote com crit própria e um sensor por núcleo.
-    fn com_coretemp(c: &Cenario, pacote: &str) {
+    fn com_coretemp(c: &Cenario, pacote: &str, crit: &str) {
         c.raiz.apagar("/sys/class/hwmon/hwmon4");
         for (arquivo, valor) in [
             ("name", "coretemp"),
             ("temp1_label", "Package id 0"),
             ("temp1_input", pacote),
-            ("temp1_crit", "100000"),
+            ("temp1_crit", crit),
             ("temp2_label", "Core 0"),
             ("temp2_input", "61000"),
             ("temp2_crit", "100000"),
@@ -433,18 +433,36 @@ mod testes {
     }
 
     #[test]
-    fn coretemp_usa_o_pacote_e_a_crit_do_sensor() {
+    fn coretemp_usa_o_pacote() {
         let mut c = notebook();
-        com_coretemp(&c, "95000");
+        com_coretemp(&c, "85000", "100000");
+
         assert_eq!(
             temperatura(&mut c),
             Some(Temperatura {
-                celsius: 95.0,
+                celsius: 85.0,
                 atencao: false
             })
         );
+    }
 
-        com_coretemp(&c, "100000");
+    #[test]
+    fn atencao_em_90_graus_mesmo_com_crit_mais_alta() {
+        let mut c = notebook();
+        com_coretemp(&c, "89900", "100000");
+        assert!(!temperatura(&mut c).unwrap().atencao);
+
+        com_coretemp(&c, "90000", "100000");
+        assert!(temperatura(&mut c).unwrap().atencao);
+    }
+
+    #[test]
+    fn atencao_na_crit_do_sensor_quando_abaixo_de_90_graus() {
+        let mut c = notebook();
+        com_coretemp(&c, "79900", "80000");
+        assert!(!temperatura(&mut c).unwrap().atencao);
+
+        com_coretemp(&c, "80000", "80000");
         assert!(temperatura(&mut c).unwrap().atencao);
     }
 

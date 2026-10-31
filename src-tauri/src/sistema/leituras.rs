@@ -78,14 +78,14 @@ pub fn memoria(arquivos: &impl Arquivos) -> io::Result<(Memoria, Option<Memoria>
 const SENSORES_DE_CPU: [&str; 2] = ["k10temp", "coretemp"];
 /// Rótulos da leitura que representa a CPU inteira, em ordem de preferência.
 const ROTULOS_DA_CPU: [&str; 3] = ["Tctl", "Tdie", "Package id 0"];
-/// Limite de atenção quando o sensor não informa `temp*_crit`, em m°C.
-const CRIT_PADRAO: i64 = 90_000;
+/// Atenção a partir daqui mesmo que o `temp*_crit` do sensor seja mais alto, em m°C.
+const LIMITE_DE_ATENCAO: i64 = 90_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Temperatura {
     /// Com uma casa.
     pub celsius: f64,
-    /// Chegou ao `temp*_crit` do sensor, ou a 90 °C sem ele.
+    /// Chegou ao `temp*_crit` do sensor ou a 90 °C.
     pub atencao: bool,
 }
 
@@ -125,12 +125,12 @@ pub fn temperatura(arquivos: &impl Arquivos) -> Option<Temperatura> {
         .or(indices.first())?;
 
     let mili: i64 = ler(format!("temp{indice}_input"))?.parse().ok()?;
-    let crit = ler(format!("temp{indice}_crit"))
+    let limite = ler(format!("temp{indice}_crit"))
         .and_then(|c| c.parse().ok())
-        .unwrap_or(CRIT_PADRAO);
+        .map_or(LIMITE_DE_ATENCAO, |crit: i64| crit.min(LIMITE_DE_ATENCAO));
     Some(Temperatura {
         celsius: (mili as f64 / 100.0).round() / 10.0,
-        atencao: mili >= crit,
+        atencao: mili >= limite,
     })
 }
 
