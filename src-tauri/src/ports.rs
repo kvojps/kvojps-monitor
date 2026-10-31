@@ -21,6 +21,10 @@ pub trait Files: Send {
     /// Directory entry names.
     fn list(&self, dir: &str) -> io::Result<Vec<String>>;
     fn space(&self, mount_point: &str) -> io::Result<Space>;
+    /// Query a local SQLite database without creating or modifying it.
+    fn read_sqlite(&self, _path: &str, _query: &str) -> io::Result<Vec<serde_json::Value>> {
+        Err(io::ErrorKind::Unsupported.into())
+    }
     fn read_link(&self, _path: &str) -> io::Result<PathBuf> {
         Err(io::ErrorKind::Unsupported.into())
     }
@@ -54,6 +58,41 @@ impl Files for RootFilesystem {
         std::fs::read_dir(self.path(dir))?
             .map(|e| Ok(e?.file_name().to_string_lossy().into_owned()))
             .collect()
+    }
+
+    fn read_sqlite(&self, path: &str, query: &str) -> io::Result<Vec<serde_json::Value>> {
+        use rusqlite::{types::ValueRef, Connection, OpenFlags};
+        let read = || -> rusqlite::Result<Vec<serde_json::Value>> {
+            let connection = Connection::open_with_flags(
+                self.path(path),
+                OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+            )?;
+            let mut statement = connection.prepare(query)?;
+            let names: Vec<String> = statement
+                .column_names()
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect();
+            let rows = statement
+                .query_map([], |row| {
+                    let mut object = serde_json::Map::new();
+                    for (index, name) in names.iter().enumerate() {
+                        let value = match row.get_ref(index)? {
+                            ValueRef::Null => serde_json::Value::Null,
+                            ValueRef::Integer(value) => value.into(),
+                            ValueRef::Text(value) => {
+                                String::from_utf8_lossy(value).into_owned().into()
+                            }
+                            _ => return Err(rusqlite::Error::InvalidQuery),
+                        };
+                        object.insert(name.clone(), value);
+                    }
+                    Ok(serde_json::Value::Object(object))
+                })?
+                .collect();
+            rows
+        };
+        read().map_err(|_| io::Error::other("SQLite read failed"))
     }
 
     fn read_link(&self, path: &str) -> io::Result<PathBuf> {
@@ -140,6 +179,10 @@ pub mod fakes {
 
         fn list(&self, dir: &str) -> io::Result<Vec<String>> {
             RootFilesystem::at(self.dir.path()).list(dir)
+        }
+
+        fn read_sqlite(&self, path: &str, query: &str) -> io::Result<Vec<serde_json::Value>> {
+            RootFilesystem::at(self.dir.path()).read_sqlite(path, query)
         }
 
         fn read_link(&self, path: &str) -> io::Result<PathBuf> {

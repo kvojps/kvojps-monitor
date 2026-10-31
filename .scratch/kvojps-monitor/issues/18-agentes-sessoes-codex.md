@@ -6,12 +6,27 @@
 
 **Status:** ready-for-agent
 
-- [ ] SQLite `~/.codex/state_5.sqlite` em modo read-only, tabela `threads` (cwd, título, criação, última atualização, branch)
-- [ ] Último evento do rollout (`task_started`/`task_complete`/`turn_aborted`) + processo vivo definem o estado; `turn_aborted` = Turno concluído
-- [ ] Indicação "Aguardando indisponível sem Detecção instantânea" no Módulo
-- [ ] Adapter isolado (formatos instáveis); testes com SQLite e rollouts reais gravados
-- [ ] Testes de UI com sessões dos dois provedores
+- [x] SQLite `~/.codex/state_5.sqlite` em modo read-only, tabela `threads` (cwd, título, criação, última atualização, branch)
+- [x] Último evento do rollout (`task_started`/`task_complete`/`turn_aborted`) + processo vivo definem o estado; `turn_aborted` = Turno concluído
+- [x] Indicação "Aguardando indisponível sem Detecção instantânea" no Módulo
+- [x] Adapter isolado (formatos instáveis); testes com SQLite e rollouts reais gravados
+- [x] Testes de UI com sessões dos dois provedores
 
 ## Integração de ciclo de vida (ticket 10)
 
 Integração futura autorizada pelo usuário no ticket 10: usar o estado compartilhado de `lifecycle`, aguardar conectividade e `Status::ready_for(posição)` (fontes remotas separadas por 3 s), pausar HTTP/consultas sem faixa de erro e preservar dados com idade. Consumir cada geração de reconexão/retomada uma vez, reiniciar relógios e verificar/reiniciar subprocessos persistentes mortos quando existirem. Preservar o bloqueio de credenciais recusadas. Definir posições distintas das fontes remotas ao integrar (GitHub usa 0).
+
+## Implementação
+
+Adapter isolado para o SQLite em modo somente leitura, via porta de arquivos,
+e eventos de rollout. Processos Codex são associados às threads pelos descritores
+abertos em `/proc`; associação verificada no host. Snapshots identificam o provedor,
+carregam branch e última atualização, e compartilham a ordenação e o histórico em
+memória do Módulo. Falhas de consulta preservam a última leitura e não encerram
+sessões. Polling local continua sem rede; não há HTTP, credenciais ou subprocesso
+persistente novo neste ticket.
+
+Fixtures locais sanitizadas de SQLite, início, conclusão e interrupção; falha é
+uma variante explícita do schema. Testes no seam do núcleo cobrem os estados,
+privacidade, acesso somente leitura, falhas injetadas e histórico. Fixture de UI
+reúne os dois provedores e a indicação de Aguardando indisponível.

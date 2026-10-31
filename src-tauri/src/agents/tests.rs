@@ -158,7 +158,16 @@ fn codex_rollout_outcomes_process_exit_and_read_failures_are_reconciled() {
         ("error", SessionState::Failed),
         ("turn_aborted", SessionState::Done),
     ] {
-        std::fs::write(root.join("rollout.jsonl"), format!(r#"{{"type":"event_msg","payload":{{"type":"{event}","message":"PRIVATE_RESPONSE","token":"PRIVATE_TOKEN"}}}}"#)).unwrap();
+        // Recorded successful/interrupted turns; error is an explicit schema variant.
+        let recorded = match event {
+            "task_complete" => include_str!("../../fixtures/agents/codex/task_complete.jsonl"),
+            "turn_aborted" => include_str!("../../fixtures/agents/codex/turn_aborted.jsonl"),
+            "task_started" => include_str!("../../fixtures/agents/codex/rollout.jsonl"),
+            _ => {
+                r#"{"type":"event_msg","payload":{"type":"error","message":"PRIVATE_RESPONSE","token":"PRIVATE_TOKEN"}}"#
+            }
+        };
+        std::fs::write(root.join("rollout.jsonl"), recorded).unwrap();
         clock.advance(2000);
         let data = monitor.step().unwrap();
         let session = data
@@ -218,4 +227,65 @@ fn unavailable_codex_rollout_retains_last_reading_and_database_is_read_only() {
     let data = monitor.step().unwrap();
     assert!(data.failed);
     assert_eq!(data.sessions[0].state, SessionState::Working);
+}
+
+#[test]
+fn injected_sqlite_and_proc_failures_never_close_a_live_codex_session() {
+    use crate::ports::{Files, Space};
+    use std::{io, path::PathBuf};
+    struct UnavailableFiles {
+        inner: crate::ports::fakes::FakeRoot,
+        unavailable: Arc<Mutex<Option<&'static str>>>,
+    }
+    impl Files for UnavailableFiles {
+        fn read(&self, path: &str) -> io::Result<String> {
+            self.inner.read(path)
+        }
+        fn list(&self, path: &str) -> io::Result<Vec<String>> {
+            if *self.unavailable.lock().unwrap() == Some(path) {
+                return Err(io::ErrorKind::PermissionDenied.into());
+            }
+            self.inner.list(path)
+        }
+        fn space(&self, path: &str) -> io::Result<Space> {
+            self.inner.space(path)
+        }
+        fn read_link(&self, path: &str) -> io::Result<PathBuf> {
+            if *self.unavailable.lock().unwrap() == Some(path) {
+                return Err(io::ErrorKind::PermissionDenied.into());
+            }
+            self.inner.read_link(path)
+        }
+        fn read_sqlite(&self, path: &str, query: &str) -> io::Result<Vec<serde_json::Value>> {
+            if *self.unavailable.lock().unwrap() == Some(path) {
+                return Err(io::ErrorKind::PermissionDenied.into());
+            }
+            self.inner.read_sqlite(path, query)
+        }
+    }
+    let source = codex::tests::source();
+    let files = source.test_files();
+    let unavailable = Arc::new(Mutex::new(None));
+    let source = codex::Adapter::new(
+        "/".into(),
+        UnavailableFiles {
+            inner: files,
+            unavailable: unavailable.clone(),
+        },
+    );
+    let clock = FakeClock::at(1800000000000);
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let mut monitor = Monitor::new(process, clock.clone()).with_codex(source);
+    assert_eq!(
+        monitor.step().unwrap().sessions[0].state,
+        SessionState::Working
+    );
+    for path in ["/state_5.sqlite", "/proc/123/fd", "/proc/123/exe"] {
+        *unavailable.lock().unwrap() = Some(path);
+        clock.advance(2000);
+        let data = monitor.step().unwrap();
+        assert!(data.failed);
+        assert_eq!(data.sessions[0].state, SessionState::Working);
+        assert!(data.closed.is_empty());
+    }
 }

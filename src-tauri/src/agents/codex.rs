@@ -1,7 +1,7 @@
 //! Unstable Codex SQLite/rollout formats are confined to this adapter.
 use super::{Provider, Session, SessionState};
 use crate::ports::Files;
-use rusqlite::{Connection, OpenFlags};
+use serde::Deserialize;
 use std::{collections::HashSet, path::PathBuf};
 
 /// Read-only local session source; no content is persisted or logged.
@@ -17,27 +17,47 @@ impl<F: Files> Adapter<F> {
         Self { root, files }
     }
 
-    #[cfg(test)]
-    pub(super) fn test_root(&self) -> PathBuf {
-        self.root.clone()
-    }
-
     fn live_rollouts(&self) -> Result<HashSet<PathBuf>, ()> {
         let mut paths = HashSet::new();
         for pid in self.files.list("/proc").map_err(|_| ())? {
             if !pid.bytes().all(|b| b.is_ascii_digit()) {
                 continue;
             }
-            let Ok(exe) = self.files.read_link(&format!("/proc/{pid}/exe")) else {
-                continue;
+            let exe = match self.files.read_link(&format!("/proc/{pid}/exe")) {
+                Ok(exe) => exe,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+                    // Other users' processes normally deny exe access. An unreadable
+                    // process owned by this user is an incomplete observation.
+                    let own = self.files.read("/proc/self/status").map_err(|_| ())?;
+                    let status = match self.files.read(&format!("/proc/{pid}/status")) {
+                        Ok(status) => status,
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                        Err(_) => return Err(()),
+                    };
+                    if process_uid(&own)? != process_uid(&status)? {
+                        continue;
+                    }
+                    return Err(());
+                }
+                Err(_) => return Err(()),
             };
             if exe.file_name().is_none_or(|name| name != "codex") {
                 continue;
             }
             let fd_dir = format!("/proc/{pid}/fd");
-            for fd in self.files.list(&fd_dir).unwrap_or_default() {
-                if let Ok(path) = self.files.read_link(&format!("{fd_dir}/{fd}")) {
-                    paths.insert(path);
+            let descriptors = match self.files.list(&fd_dir) {
+                Ok(entries) => entries,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(_) => return Err(()),
+            };
+            for fd in descriptors {
+                match self.files.read_link(&format!("{fd_dir}/{fd}")) {
+                    Ok(path) => {
+                        paths.insert(path);
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(_) => return Err(()),
                 }
             }
         }
@@ -47,33 +67,32 @@ impl<F: Files> Adapter<F> {
 impl<F: Files> Source for Adapter<F> {
     fn sessions(&self, tracked: &[String]) -> Result<Vec<(Session, bool)>, ()> {
         let path = self.root.join("state_5.sqlite");
-        // A missing CLI/database is an empty source, never create a database.
-        if !path.try_exists().map_err(|_| ())? {
-            return Ok(vec![]);
+        // Absence is an empty source only before a session has been observed.
+        match self.files.list(&self.root.to_string_lossy()) {
+            Ok(names)
+                if !names.iter().any(|name| name == "state_5.sqlite") && tracked.is_empty() =>
+            {
+                return Ok(vec![])
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && tracked.is_empty() => {
+                return Ok(vec![])
+            }
+            Err(_) => return Err(()),
+            _ => {}
         }
-        let connection = Connection::open_with_flags(
-            path,
-            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-        )
-        .map_err(|_| ())?;
-        let mut query = connection.prepare("SELECT id, rollout_path, cwd, title, created_at, updated_at, git_branch FROM threads").map_err(|_| ())?;
-        let rows = query
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, String>(3)?,
-                    row.get::<_, i64>(4)?,
-                    row.get::<_, i64>(5)?,
-                    row.get::<_, Option<String>>(6)?,
-                ))
-            })
-            .map_err(|_| ())?;
+        let rows = self.files.read_sqlite(&path.to_string_lossy(), "SELECT id, rollout_path, cwd, title, created_at, updated_at, git_branch FROM threads").map_err(|_| ())?;
         let live = self.live_rollouts()?;
         let mut sessions = Vec::new();
         for row in rows {
-            let (id, rollout, cwd, title, created, updated, branch) = row.map_err(|_| ())?;
+            let Thread {
+                id,
+                rollout_path: rollout,
+                cwd,
+                title,
+                created_at: created,
+                updated_at: updated,
+                git_branch: branch,
+            } = serde_json::from_value(row).map_err(|_| ())?;
             let running = live.contains(&PathBuf::from(&rollout));
             if !running && !tracked.iter().any(|known| known == &format!("codex:{id}")) {
                 continue;
@@ -130,6 +149,37 @@ pub(super) mod tests {
         std::fs::create_dir_all(root.join("proc/123/fd")).unwrap();
         std::os::unix::fs::symlink("/usr/bin/codex", root.join("proc/123/exe")).unwrap();
         std::os::unix::fs::symlink("/rollout.jsonl", root.join("proc/123/fd/4")).unwrap();
-        Adapter::new(root, files)
+        Adapter::new(PathBuf::from("/"), files)
     }
+}
+
+#[derive(Deserialize)]
+struct Thread {
+    id: String,
+    rollout_path: String,
+    cwd: String,
+    title: String,
+    created_at: i64,
+    updated_at: i64,
+    git_branch: Option<String>,
+}
+
+#[cfg(test)]
+impl Adapter<crate::ports::fakes::FakeRoot> {
+    pub(super) fn test_files(&self) -> crate::ports::fakes::FakeRoot {
+        self.files.clone()
+    }
+    pub(super) fn test_root(&self) -> PathBuf {
+        self.files.dir.path().to_path_buf()
+    }
+}
+
+fn process_uid(status: &str) -> Result<&str, ()> {
+    status
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("Uid:")
+                .and_then(|value| value.split_whitespace().next())
+        })
+        .ok_or(())
 }

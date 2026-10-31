@@ -1,4 +1,4 @@
-//! Local Claude session polling. Session metadata stays in memory only.
+//! Local Claude and Codex session polling. Session metadata stays in memory only.
 mod codex;
 use crate::ports::{Clock, Processes};
 use serde::{Deserialize, Serialize};

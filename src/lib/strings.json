@@ -213,7 +213,7 @@
     "provider": "Claude Code",
     "codex": "Codex",
     "codexWaitingUnavailable": "Aguardando indisponível sem Detecção instantânea",
-    "failure": "Não foi possível consultar o Claude Code",
+    "failure": "Não foi possível consultar as sessões de agente",
     "waitingDetail": "Aguardando sua resposta",
     "permission": "Aguardando aprovação",
     "input": "Aguardando sua resposta",
