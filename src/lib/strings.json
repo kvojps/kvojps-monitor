@@ -4,8 +4,9 @@
     "openPanel": "Abrir painel"
   },
   "panel": {
-    "eyebrow": "KVOJPS / MONITOR PESSOAL",
-    "title": "Painel",
+    "eyebrow": "Kvojps / Monitor pessoal",
+    "title": "Painel de trabalho",
+    "bridge": "PONTE / MONITOR PESSOAL",
     "back": "Voltar ao Painel"
   },
   "nav": {

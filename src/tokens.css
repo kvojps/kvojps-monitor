@@ -19,7 +19,13 @@
   --band-amber: #e9b783;
   --band-cyan: #81cce5;
   --band-blue: #718fce;
+  --band-violet: #c0a6dc;
+  --band-steel: #7faed4;
   --on-band: #070a10;
+  /* Bands used as text on the background. */
+  --band-lavender-text: #b7a4df;
+  --band-amber-text: #e9b783;
+  --module-bg: #050a10;
 
   --mono: "Ubuntu Sans Mono", "Ubuntu Mono", "JetBrains Mono", ui-monospace, monospace;
   --sans: "Ubuntu Sans", "Ubuntu", "Inter", system-ui, sans-serif;
@@ -42,6 +48,11 @@
     --ok: #17663f;
     --warn: #7a4f00;
     --bad: #b42318;
+    --band-lavender-text: #5a4790;
+    --band-amber-text: #7a4f00;
+    --module-bg: #e4edf5;
+    /* Band colors lack contrast as text on light surfaces. */
+    --module-title: var(--text);
 
     color-scheme: light;
   }

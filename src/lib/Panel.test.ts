@@ -126,7 +126,8 @@ describe("Panel navigation", () => {
     render(Panel, { core });
 
     await screen.findByRole("region", { name: "IA" });
-    const names = within(nav()).getAllByRole("button").map((b) => b.textContent?.trim());
+    // The decorative index is hidden from assistive technology.
+    const names = within(nav()).getAllByRole("button").map((b) => b.textContent?.replace(/^\s*\d+/, "").trim());
     expect(names).toEqual(["IA", "Agentes", "GitHub", "Trello", "Rede", "Sistema", "Configurações"]);
   });
 

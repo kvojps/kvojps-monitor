@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from "svelte";
-  import Icon from "./Icon.svelte";
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
   import AgentSettings from "./agents/AgentSettings.svelte";
   import AgentsModule from "./agents/AgentsModule.svelte";
@@ -103,6 +102,10 @@
     reveal("agents", false);
   }
 
+  const stationOf = (module: Module) => stations.find((s) => s.modules.includes(module))!.key;
+  /** Decorative module number, as in the navigation. */
+  const code = (module: Module) => String(MODULES.indexOf(module) + 1).padStart(2, "0");
+
   const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
   function updated(module: Module) {
     const at = snapshots[module]?.updatedAt ?? null;
@@ -154,8 +157,12 @@
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
     tabindex="-1" bind:this={sections[module]}>
     <header class="module-head">
-      <h2 id="module-{module}-title">{t.modules[module]}</h2>
-      <p class="source"><span>{t.sources[module]}</span><span aria-hidden="true"> · </span><span class="num">{updated(module)}</span></p>
+      <div class="module-title">
+        <span class="eyebrow" aria-hidden="true">{code(module)} / {t.stations[stationOf(module)]}</span>
+        <h2 id="module-{module}-title">{t.modules[module]}</h2>
+        <p class="source"><span>{t.sources[module]}</span><span aria-hidden="true">·</span><span class="num">{updated(module)}</span></p>
+      </div>
+      <span class="code num" aria-hidden="true">{code(module)}</span>
     </header>
     {@render body()}
   </section>
@@ -198,14 +205,14 @@
 <div class="panel">
   <header class="masthead">
     <span class="eyebrow">{t.panel.eyebrow}</span>
-    <h1>{t.panel.title}</h1>
+    <h1>{t.panel.title}<span class="beacon" aria-hidden="true"></span></h1>
   </header>
-  <div class="divider" aria-hidden="true"><span class="elbow"></span><span class="segment lavender"></span><span class="segment cyan"></span><span class="segment blue"></span><span class="cap"></span></div>
+  <div class="divider" aria-hidden="true"><span class="elbow"></span><span class="segment lavender"></span><span class="segment cyan"></span><span class="divider-label">{t.panel.bridge}</span><span class="segment blue"></span><span class="cap"></span></div>
 
   <nav aria-label={t.nav.label}>
     {#each MODULES as module (module)}
       <button aria-current={area === "panel" && anchor === module ? "location" : undefined} onclick={() => choose(module)}>
-        <Icon name={module} size={16} />
+        <span class="index num" aria-hidden="true">{code(module)}</span>
         <span>{t.modules[module]}</span>
         {#if module === "agents" && (snapshots.agents?.data as AgentsData | undefined)?.accentDot}
           <span class="alert" role="img" aria-label={t.agents.states.waiting}></span>
@@ -213,7 +220,7 @@
       </button>
     {/each}
     <button class="settings-item" aria-current={area === "settings" ? "page" : undefined} onclick={openSettings}>
-      <Icon name="settings" size={16} />
+      <span class="index num" aria-hidden="true">07</span>
       <span>{t.settings.title}</span>
     </button>
   </nav>
@@ -280,31 +287,40 @@
     overflow: hidden;
   }
 
-  .masthead {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 14px 20px 12px;
-  }
-
   .eyebrow {
     font: 10px var(--mono);
     letter-spacing: 2px;
-    color: var(--muted);
+    text-transform: uppercase;
+    color: var(--band-lavender-text);
   }
 
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 22px 18px;
+  }
   h1 {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 500;
     letter-spacing: 2px;
     text-transform: uppercase;
+  }
+  .beacon {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin: 0 0 5px 16px;
+    background: var(--accent);
+    box-shadow: 0 0 18px var(--accent);
   }
 
   /* LCARS divider: structural decoration, outside the accessibility tree. */
   .divider {
     display: flex;
     gap: 7px;
-    height: 40px;
+    height: 46px;
+    margin-bottom: 8px;
     flex: none;
   }
   .elbow {
@@ -312,64 +328,67 @@
     width: 90px;
     flex: none;
     background: var(--band-amber);
-    border-radius: 36px 0 0 0;
+    border-radius: 40px 0 0 0;
   }
   .elbow::after {
     content: "";
     position: absolute;
-    inset: 15px 0 0 26px;
+    inset: 16px 0 0 18px;
     background: var(--bg);
-    border-top-left-radius: 22px;
+    border-top-left-radius: 26px;
   }
   .segment {
-    height: 15px;
+    height: 16px;
     flex: 1;
   }
   .lavender { flex: 0.7; background: var(--band-lavender); }
   .cyan { flex: 1.8; background: var(--band-cyan); }
   .blue { background: var(--band-blue); }
+  .divider-label {
+    padding: 1px 6px;
+    font: 11px var(--mono);
+    letter-spacing: 2px;
+    white-space: nowrap;
+    color: var(--band-lavender-text);
+  }
   .cap {
-    width: 60px;
-    height: 15px;
+    width: 70px;
+    height: 16px;
     background: var(--band-amber);
-    border-radius: 0 15px 15px 0;
+    border-radius: 0 16px 16px 0;
   }
 
   nav {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 0 0 12px 30px;
+    padding: 0 4px 14px 30px;
     border-left: 18px solid var(--band-amber);
     flex: none;
   }
   nav button {
-    position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 36px;
-    padding: 8px 16px;
-    border-radius: 0 20px 20px 0;
+    gap: 10px;
+    min-height: 37px;
+    padding: 8px 17px;
+    border-radius: 0 24px 24px 0;
     background: var(--band-lavender);
     color: var(--on-band);
     font-weight: 600;
   }
   nav button:nth-child(2n) { background: var(--band-cyan); }
-  nav button[aria-current] {
-    background: var(--band-amber);
-    box-shadow: inset 0 -4px var(--on-band);
-  }
-  nav button:hover { filter: brightness(1.12); }
+  nav button[aria-current] { background: var(--band-amber); }
+  nav button:hover { filter: brightness(1.15); }
   nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .index { font-size: 10px; opacity: 0.7; }
   .settings-item { margin-left: auto; }
   .settings-item:not([aria-current]) { background: var(--band-blue); }
   .alert {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     background: var(--on-band);
-    outline: 2px solid var(--warn);
   }
 
   .workspace {
@@ -377,13 +396,13 @@
     flex: 1;
     min-height: 0;
     border-left: 18px solid var(--band-amber);
-    border-radius: 0 0 0 40px;
+    border-radius: 0 0 0 45px;
   }
 
   .scroller {
     height: 100%;
     overflow-y: auto;
-    padding: 6px 12px 24px 30px;
+    padding: 4px 4px 24px 30px;
   }
   .scroller.covered { visibility: hidden; }
 
@@ -417,37 +436,71 @@
     letter-spacing: 1px;
     text-transform: uppercase;
   }
+  .station-label span:last-child { font-size: 10px; }
   .capacity { --station-band: var(--band-lavender); }
   .execution { --station-band: var(--band-amber); }
   .observation { --station-band: var(--band-cyan); }
 
   .module {
+    --module-band: var(--band-cyan);
     min-width: 0;
     display: flex;
     flex-direction: column;
-    background: var(--surface);
-    border-top: 5px solid var(--station-band);
-    scroll-margin-top: 8px;
+    background: var(--module-bg);
+    border-top: 5px solid var(--module-band);
+    /* Keep the station label in view when the first row is revealed. */
+    scroll-margin-top: 60px;
   }
+  .module.system { --module-band: var(--band-lavender); }
+  .module.agents { --module-band: var(--band-violet); }
+  .module.trello { --module-band: var(--band-amber); }
+  .module.github { --module-band: var(--band-steel); }
+  .module.network { --module-band: var(--band-blue); }
   .module:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .module-head {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 4px 12px;
-    padding: 16px 20px 12px;
+    gap: 12px;
+    margin: 0 16px;
+    padding: 18px 4px 14px;
     border-bottom: 1px solid var(--line);
   }
+  .module-title {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .module-title .eyebrow {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+  }
   .module-head h2 {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 500;
     letter-spacing: 1px;
     text-transform: uppercase;
+    color: var(--module-title, var(--module-band));
   }
   .source {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     font-size: 11px;
     color: var(--muted);
+  }
+  .code {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 26px;
+    border-radius: 20px;
+    background: var(--module-band);
+    color: var(--on-band);
+    font-size: 12px;
   }
 
   /* 651–850 px: stations stacked, their two modules side by side. */
@@ -472,6 +525,8 @@
     .scroller { padding: 4px 4px 24px 8px; }
     .elbow { width: 45px; }
     .cap { width: 25px; }
+    .divider-label { display: none; }
+    h1 { font-size: 23px; }
   }
 
   .settings {
@@ -496,6 +551,7 @@
     font-weight: 500;
     letter-spacing: 2px;
     text-transform: uppercase;
+    color: var(--band-amber-text);
   }
   .back {
     min-height: 36px;
