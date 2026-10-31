@@ -21,3 +21,11 @@ Escolhida a **variante A: trilho lateral, um Módulo por vez**. Usuário escolhe
 - O conteúdo das Configurações no protótipo é provisório até [Fluxo de credenciais nas Configurações](15-fluxo-de-credenciais.md).
 
 Protótipo: branch local `prototype/painel-visual` (commit `8ca6cad`), arquivo `prototype/painel-visual/index.html`.
+
+## Comments
+
+### 2026-10-31 — Reabertura da direção visual
+
+O usuário autorizou planejar uma nova direção para todo o Painel: visual futurista cinematográfico de intensidade máxima, inspirado em interfaces de filmes de super-heróis. Confirmou especificação validada por protótipo como destino, possibilidade de ampliar e reorganizar o Painel, preto profundo com ciano e azul elétrico, geometria técnica, anéis de telemetria e movimento contínuo com opção de redução. Condição explícita: preservar todas as funções e a utilidade atual como ferramenta de trabalho, com dados reais, ações acessíveis, legibilidade e fluidez.
+
+O [mapa Painel cinematográfico para trabalho](../../cinematic-panel/map.md) conduz as decisões de substituição. Este registro autoriza explorar divergências visuais; a spec da v1 continua sendo a referência funcional e não foi alterada nesta abertura.
