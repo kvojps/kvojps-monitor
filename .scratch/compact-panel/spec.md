@@ -1,6 +1,6 @@
 # Especificação visual — Painel compacto
 
-Status: consolidação para revisão final; decisões visuais do protótipo aprovadas pelo usuário.
+Status: aprovada pelo usuário em 2026-10-31; verificações de implementação permanecem obrigatórias.
 Origem: [Painel compacto sem rolagem](map.md) e [Consolidar a especificação do Painel compacto](issues/03-compact-specification.md).
 
 ## Autoridade e referência

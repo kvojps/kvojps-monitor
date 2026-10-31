@@ -1,6 +1,7 @@
 # Mapa: Painel compacto sem rolagem
 
 Label: wayfinder:map
+Status: resolved
 
 ## Destination
 
@@ -12,7 +13,7 @@ Uma especificação visual validada por protótipo para um Painel de aproximadam
 - O usuário confirmou os três acordos de abertura em 2026-10-31: janela de aproximadamente 1100 × 700; IA e Agentes reunidos visualmente; resumos permanentes e listas extensas em detalhes sob demanda.
 - Retirar título e subtítulo gerais; reduzir faixas decorativas e cabeçalhos repetidos. Atualizar/configurar passam a ícones junto aos títulos, com descrição no hover e foco pelo teclado.
 - Claude e Codex mantêm seus instrumentos de limites. Sessões de agente ganham anel com quantidade trabalhando no centro, segmentos por Estado da sessão e legenda com contagens; hover/foco identifica as sessões daquele estado. Aguardando você continua como alerta visível.
-- Trello, processos de rede e sessões podem abrir detalhes em área sobreposta. Não exigir que listas ilimitadas caibam integralmente na visão principal. A localização e o comportamento desses detalhes ainda precisam de validação.
+- Trello, processos de rede e sessões abrem detalhes em área sobreposta, conforme a especificação aprovada. Não exigir que listas ilimitadas caibam integralmente na visão principal.
 - Preservar linguagem LCARS, temas, movimento e redução de movimento aprovados; buscar outras economias de espaço sem reduzir a legibilidade nem esconder alertas.
 - Referências: [complemento visual vigente](../cinematic-panel/spec.md), [spec da v1](../kvojps-monitor/spec.md) e [vocabulário](../../GLOSSARY.md). Agrupamento visual de IA/Agentes não implica fundir fontes, snapshots ou regras de coleta.
 - Esta revisão autoriza explorar substituições de tamanho, composição, navegação e acesso a detalhes do complemento visual vigente. Registrar a autorização nos tickets de origem; consolidar regras novas apenas após validação. Privacidade, credenciais, fontes e regras de negócio permanecem fora da revisão.
@@ -22,10 +23,11 @@ Uma especificação visual validada por protótipo para um Painel de aproximadam
 
 - [Validar a distribuição compacta do Painel](issues/01-compact-composition.md): escolhida B — Núcleo lateral; quadro completo do Trello e movimentação seguem na validação de detalhes.
 - [Validar detalhes sob demanda e estados do Painel compacto](issues/02-details-and-states.md): aprovados os detalhes conforme o protótipo; estados não demonstrados preservam as regras anteriores e exigem verificação na implementação.
+- [Consolidar a especificação do Painel compacto](issues/03-compact-specification.md): especificação final aprovada pelo usuário; verificações de implementação explicitadas e planejamento concluído.
 
 ## Not yet specified
 
-Nenhuma área adicional identificada; consolidação e revisão final cobertas pelo ticket existente.
+Nenhuma pendência; especificação aprovada e todos os tickets resolvidos.
 
 ## Out of scope
 
