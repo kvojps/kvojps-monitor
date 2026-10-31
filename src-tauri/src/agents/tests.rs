@@ -265,6 +265,9 @@ fn injected_sqlite_and_proc_failures_never_close_a_live_codex_session() {
     }
     let source = codex::tests::source();
     let files = source.test_files();
+    files.write("/proc/456/status", "Uid:\t1000\t1000\t1000\t1000\n");
+    files.write("/proc/self/status", "Uid:\t1000\t1000\t1000\t1000\n");
+    files.write("/proc/456/comm", "systemd\n");
     let unavailable = Arc::new(Mutex::new(None));
     let source = codex::Adapter::new(
         "/".into(),
@@ -280,6 +283,14 @@ fn injected_sqlite_and_proc_failures_never_close_a_live_codex_session() {
         monitor.step().unwrap().sessions[0].state,
         SessionState::Working
     );
+    *unavailable.lock().unwrap() = Some("/proc/456/exe");
+    clock.advance(2000);
+    let data = monitor.step().unwrap();
+    assert!(
+        !data.failed,
+        "An unrelated inaccessible process must not hide Codex sessions"
+    );
+    assert_eq!(data.sessions[0].state, SessionState::Working);
     for path in ["/state_5.sqlite", "/proc/123/fd", "/proc/123/exe"] {
         *unavailable.lock().unwrap() = Some(path);
         clock.advance(2000);

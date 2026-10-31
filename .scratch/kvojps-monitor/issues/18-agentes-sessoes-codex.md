@@ -30,3 +30,14 @@ Fixtures locais sanitizadas de SQLite, início, conclusão e interrupção; falh
 uma variante explícita do schema. Testes no seam do núcleo cobrem os estados,
 privacidade, acesso somente leitura, falhas injetadas e histórico. Fixture de UI
 reúne os dois provedores e a indicação de Aguardando indisponível.
+
+## Correção: sessões ausentes por processos sem acesso ao executável
+
+A verificação do coletor no host reproduziu `failed=true, active=0` apesar de
+haver rollout aberto correspondente ao SQLite. Processos do mesmo usuário
+(`systemd`, `(sd-pam)` e `ssh-agent`) negavam a leitura de `/proc/<pid>/exe` e
+abortavam toda a coleta. Agora o adapter consulta também `comm` nesse caso:
+processos que não são Codex são ignorados; falhas de acesso de candidatos Codex
+continuam preservando a última leitura. Regressão exercitada no seam do núcleo.
+Após a correção, o mesmo diagnóstico no host retornou `failed=false, active=1`.
+O harness temporário foi removido após confirmar o resultado.

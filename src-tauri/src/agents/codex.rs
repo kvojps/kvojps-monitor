@@ -27,8 +27,9 @@ impl<F: Files> Adapter<F> {
                 Ok(exe) => exe,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
                 Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
-                    // Other users' processes normally deny exe access. An unreadable
-                    // process owned by this user is an incomplete observation.
+                    // Non-dumpable processes (including systemd and ssh-agent) can
+                    // deny exe access even for their owner. Only Codex candidates
+                    // can make this session observation incomplete.
                     let own = self.files.read("/proc/self/status").map_err(|_| ())?;
                     let status = match self.files.read(&format!("/proc/{pid}/status")) {
                         Ok(status) => status,
@@ -38,7 +39,11 @@ impl<F: Files> Adapter<F> {
                     if process_uid(&own)? != process_uid(&status)? {
                         continue;
                     }
-                    return Err(());
+                    match self.files.read(&format!("/proc/{pid}/comm")) {
+                        Ok(name) if name.trim() != "codex" => continue,
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                        _ => return Err(()),
+                    }
                 }
                 Err(_) => return Err(()),
             };
