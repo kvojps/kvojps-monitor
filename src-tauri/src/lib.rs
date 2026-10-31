@@ -7,6 +7,7 @@ mod indicador;
 mod modulo;
 mod painel;
 mod portas;
+mod rede;
 mod sistema;
 mod snapshot;
 mod strings;

@@ -41,5 +41,25 @@
     "paraCarregar": "{tempo} p/ carregar",
     "restantes": "{tempo} restantes",
     "semValor": "—"
+  },
+  "rede": {
+    "qualidade": "Qualidade da rede",
+    "boa": "Boa",
+    "regular": "Regular",
+    "ruim": "Ruim",
+    "semConexao": "Sem conexão",
+    "semMedicao": "Aguardando medição",
+    "cabeada": "Cabeada",
+    "vpn": "VPN ativa",
+    "gateway": "Gateway",
+    "internet": "Internet",
+    "latencia": "Latência",
+    "jitter": "Jitter",
+    "perda": "Perda",
+    "trafego": "Tráfego total",
+    "grafico": "Tráfego total nos últimos 60 s",
+    "descida": "Descida",
+    "subida": "Subida",
+    "semValor": "—"
   }
 }

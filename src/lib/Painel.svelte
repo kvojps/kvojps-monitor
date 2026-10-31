@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icone from "./Icone.svelte";
-  import { MODULOS, type DadosSistema, type Modulo, type Nucleo, type Snapshot } from "./nucleo";
+  import { MODULOS, type DadosRede, type DadosSistema, type Modulo, type Nucleo, type Snapshot } from "./nucleo";
+  import ModuloRede from "./rede/ModuloRede.svelte";
   import ModuloSistema from "./sistema/ModuloSistema.svelte";
   import { preencher, t } from "./strings";
   import type { Vista } from "./vista";
@@ -73,6 +74,9 @@
           </span>
         {/if}
       </header>
+      {#if vista === "rede" && snapshots.rede?.dados}
+        <ModuloRede dados={snapshots.rede.dados as DadosRede} />
+      {/if}
       {#if vista === "sistema" && snapshots.sistema}
         <ModuloSistema dados={snapshots.sistema.dados as DadosSistema} />
       {/if}

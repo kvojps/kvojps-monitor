@@ -60,3 +60,16 @@ export const nucleoTauri: Nucleo = {
   informarModuloVisivel: (modulo) => void invoke("informar_modulo_visivel", { modulo }),
   fecharPainel: () => void invoke("fechar_painel"),
 };
+
+export interface MedidasRede { latencia: number | null; jitter: number | null; perda: number | null }
+export interface TrafegoRede { descida: number; subida: number }
+export interface DadosRede {
+  conectada: boolean;
+  cabeada: boolean;
+  vpn: boolean;
+  qualidade: "boa" | "regular" | "ruim" | null;
+  gateway: MedidasRede;
+  internet: MedidasRede;
+  trafego: TrafegoRede | null;
+  historico: TrafegoRede[];
+}

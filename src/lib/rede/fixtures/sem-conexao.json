@@ -1,0 +1,22 @@
+{
+  "modulo": "rede",
+  "atualizadoEm": 1793457126000,
+  "dados": {
+    "cabeada": false,
+    "conectada": false,
+    "gateway": {
+      "jitter": null,
+      "latencia": null,
+      "perda": null
+    },
+    "historico": [],
+    "internet": {
+      "jitter": null,
+      "latencia": null,
+      "perda": null
+    },
+    "qualidade": null,
+    "trafego": null,
+    "vpn": false
+  }
+}
