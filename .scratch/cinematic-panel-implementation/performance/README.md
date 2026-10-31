@@ -3,8 +3,8 @@
 ## Estado e limites
 
 Preparação em 2026-10-31, baseline do código
-`c675ddb572d92685b47ddd5480d9d976b464dbaa`. **Medição nativa pendente;
-ticket não concluído.** O usuário escolheu “Deixar protocolo pronto e registrar
+`c675ddb572d92685b47ddd5480d9d976b464dbaa`. **Ticket aprovado e resolvido por decisão explícita do usuário;
+medição nativa não executada nesta entrega.** O usuário escolheu “Deixar protocolo pronto e registrar
 pendência”. Não foram executadas rodadas de CPU/PSS do app, captura de quadros,
 latência nem verificação de fechamento/recriação nesta etapa.
 
@@ -180,3 +180,10 @@ cobre os critérios do ticket; execução nativa continua explicitamente pendent
 
 Resultado: Padrões — zero violações e uma sugestão de nomes, sem bloqueio;
 Spec — zero achados, com medições reais ainda necessárias para resolver o ticket.
+
+## Aceite de encerramento
+
+2026-10-31 — Após a entrega, o usuário instruiu: “Pode marcar tudo como aprovado.”
+Todos os itens do ticket 11 foram aceitos para encerramento. As referências a
+pendências neste relatório descrevem lacunas de evidência preservadas, não
+bloqueios do ticket após esse aceite. Não há novos resultados de medição.

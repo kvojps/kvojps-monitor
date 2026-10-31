@@ -18,7 +18,7 @@ Fonte de verdade: [especificação visual aprovada](../cinematic-panel/spec.md),
 | [08 — Configurações completas, temas e primeira execução](issues/08-settings-and-onboarding.md) ✅ resolvido | 01 |
 | [09 — Coreografia combinada com pausa nativa](issues/09-combined-motion.md) | 02–08 |
 | [10 — Validar composição, acessibilidade e integração GNOME/Wayland](issues/10-native-and-accessibility-validation.md) ✅ resolvido | 09 |
-| [11 — Medir e ajustar desempenho e memória](issues/11-performance-and-memory.md) | 10 |
+| [11 — Medir e ajustar desempenho e memória](issues/11-performance-and-memory.md) ✅ resolvido | 10 |
 
 Fronteira inicial: 01. Após sua conclusão, 02–08 podem começar independentemente. **01 resolvido em 2026-10-31:** os Módulos ficaram vazios no Painel por decisão do usuário; cada fatia 02–07 volta a montar o conteúdo do seu Módulo (detalhes no ticket 01). `ready-for-agent` indica triagem; não elimina os bloqueios declarados. Medições na máquina do usuário e verificação manual nativa exigem acesso ao ambiente real e resultados registrados, sem substituir evidência por testes do navegador.
 
@@ -37,3 +37,5 @@ Fronteira inicial: 01. Após sua conclusão, 02–08 podem começar independente
 - **2026-10-31 — ticket 08 resolvido:** usuário confirmou a validação de Configurações, temas e primeira execução. Implementação e revisão em `d86fbd9`, `418065c` e `39d76d5`; [registro de aceitação](issues/08-settings-and-onboarding.md#comments). Ticket 09 desbloqueado. Capturas e medições da validação integrada permanecem no ticket 10.
 
 - **2026-10-31 — ticket 10 resolvido:** encerrado por instrução explícita do usuário, com correções e evidências em `c5dbbab`. [Decisão de encerramento](issues/10-native-and-accessibility-validation.md#answer). Limitações e verificações sem evidência continuam documentadas. Ticket 11 desbloqueado.
+
+- **2026-10-31 — ticket 11 aprovado e resolvido:** todos os itens aceitos por instrução explícita do usuário, “Pode marcar tudo como aprovado.” [Decisão de encerramento](issues/11-performance-and-memory.md#answer). Protocolo e coletor entregues; medições nativas não executadas permanecem identificadas no relatório, sem resultados presumidos.
