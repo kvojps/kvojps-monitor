@@ -1,4 +1,5 @@
 //! Local Claude session polling. Session metadata stays in memory only.
+mod codex;
 use crate::ports::{Clock, Processes};
 use serde::{Deserialize, Serialize};
 
@@ -11,10 +12,20 @@ pub enum SessionState {
     Failed,
     Closed,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum Provider {
+    Claude,
+    Codex,
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Session {
     id: String,
+    provider: Provider,
+    branch: Option<String>,
+    updated_at: Option<u64>,
     project: String,
     name: Option<String>,
     state: SessionState,
@@ -31,6 +42,7 @@ pub struct Data {
     accent_dot: bool,
     failed: bool,
     observed_at: u64,
+    codex_waiting_unavailable: bool,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -64,6 +76,9 @@ impl Record {
         Ok((
             Session {
                 id,
+                provider: Provider::Claude,
+                branch: None,
+                updated_at: None,
                 project: std::path::Path::new(&self.cwd)
                     .file_name()
                     .map(|p| p.to_string_lossy().into_owned())
@@ -80,6 +95,7 @@ impl Record {
     }
 }
 pub struct Monitor<P, C> {
+    codex: Option<Box<dyn codex::Source>>,
     process: P,
     clock: C,
     next: Option<u64>,
@@ -89,12 +105,17 @@ pub struct Monitor<P, C> {
 impl<P: Processes, C: Clock> Monitor<P, C> {
     pub fn new(process: P, clock: C) -> Self {
         Self {
+            codex: None,
             process,
             clock,
             next: None,
             sessions: vec![],
             closed: vec![],
         }
+    }
+    fn with_codex(mut self, source: impl codex::Source + 'static) -> Self {
+        self.codex = Some(Box::new(source));
+        self
     }
     pub fn step(&mut self) -> Option<Data> {
         let now = self.clock.now();
@@ -112,8 +133,38 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
                     .map(Record::session)
                     .collect::<Result<Vec<_>, _>>()
             });
-        let failed = result.is_err();
-        if let Ok(mut sessions) = result {
+        let mut failed = result.is_err();
+        let mut sessions = result.unwrap_or_else(|_| {
+            self.sessions
+                .iter()
+                .filter(|s| s.provider == Provider::Claude)
+                .cloned()
+                .map(|s| (s, true))
+                .collect()
+        });
+        if let Some(source) = &self.codex {
+            match source.sessions(
+                &self
+                    .sessions
+                    .iter()
+                    .filter(|s| s.provider == Provider::Codex)
+                    .map(|s| s.id.clone())
+                    .collect::<Vec<_>>(),
+            ) {
+                Ok(records) => sessions.extend(records),
+                Err(()) => {
+                    failed = true;
+                    sessions.extend(
+                        self.sessions
+                            .iter()
+                            .filter(|s| s.provider == Provider::Codex)
+                            .cloned()
+                            .map(|s| (s, true)),
+                    );
+                }
+            }
+        }
+        {
             let outcomes: std::collections::HashMap<_, _> = sessions
                 .iter()
                 .map(|(s, _)| (s.id.clone(), s.state))
@@ -159,12 +210,17 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             closed: self.closed.clone(),
             failed,
             observed_at: now,
+            codex_waiting_unavailable: true,
         })
     }
 }
 pub fn start(app: tauri::AppHandle) {
     std::thread::spawn(move || {
-        let mut monitor = Monitor::new(crate::ports::SystemProcesses, crate::ports::SystemClock);
+        let mut monitor = Monitor::new(crate::ports::SystemProcesses, crate::ports::SystemClock)
+            .with_codex(codex::Adapter::new(
+                dirs::home_dir().unwrap_or_default().join(".codex"),
+                crate::ports::RootFilesystem::system(),
+            ));
         loop {
             if let Some(data) = monitor.step() {
                 if let Some(handle) =

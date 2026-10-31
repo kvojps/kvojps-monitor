@@ -197,6 +197,9 @@ export interface TrelloData {
 }
 
 export interface AgentSession {
+  provider?: "claude" | "codex";
+  branch?: string | null;
+  updatedAt?: number | null;
   id: string;
   project: string;
   name: string | null;
@@ -207,6 +210,7 @@ export interface AgentSession {
   lastState?: "working" | "waiting" | "done" | "failed" | null;
 }
 export interface AgentsData {
+  codexWaitingUnavailable?: boolean;
   sessions: AgentSession[];
   closed: AgentSession[];
   accentDot: boolean;

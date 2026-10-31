@@ -33,3 +33,11 @@ it("preserves a failed background outcome in the closed section", async () => {
   await userEvent.click(screen.getByText("Encerradas (1)"));
   expect(screen.getByText("Com falha")).toBeVisible();
 });
+
+import mixed from "./fixtures/mixed.json";
+it("shows both providers and explains unavailable Codex waiting detection", () => {
+  render(AgentsModule, { data: mixed as AgentsData });
+  expect(screen.getByText("Codex")).toBeVisible();
+  expect(screen.getByText("Claude Code")).toBeVisible();
+  expect(screen.getByText("Aguardando indisponível sem Detecção instantânea")).toBeVisible();
+});

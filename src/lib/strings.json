@@ -211,6 +211,8 @@
     "closed": "Encerradas",
     "unnamed": "Sem nome",
     "provider": "Claude Code",
+    "codex": "Codex",
+    "codexWaitingUnavailable": "Aguardando indisponível sem Detecção instantânea",
     "failure": "Não foi possível consultar o Claude Code",
     "waitingDetail": "Aguardando sua resposta",
     "permission": "Aguardando aprovação",

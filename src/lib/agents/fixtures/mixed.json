@@ -1,0 +1,29 @@
+{
+  "sessions": [
+    {
+      "id": "test",
+      "project": "project",
+      "name": "Minha sess\u00e3o",
+      "state": "working",
+      "waitingFor": "permission prompt",
+      "startedAt": 1799999900000,
+      "closedAt": null,
+      "provider": "claude"
+    },
+    {
+      "id": "codex:recorded-thread",
+      "project": "project",
+      "name": "Sess\u00e3o Codex",
+      "state": "working",
+      "waitingFor": "permission prompt",
+      "startedAt": 1799999900000,
+      "closedAt": null,
+      "provider": "codex"
+    }
+  ],
+  "closed": [],
+  "accentDot": true,
+  "failed": false,
+  "observedAt": 1800000000000,
+  "codexWaitingUnavailable": true
+}

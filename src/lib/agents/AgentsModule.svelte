@@ -12,7 +12,7 @@
       "permission prompt": t.agents.permission, "input needed": t.agents.input,
       "sandbox request": t.agents.sandbox, "dialog open": t.agents.dialog,
     };
-    return session.state === "waiting" ? reasons[session.waitingFor ?? ""] ?? t.agents.waitingDetail : t.agents.provider;
+    return session.state === "waiting" ? reasons[session.waitingFor ?? ""] ?? t.agents.waitingDetail : (session.provider === "codex" ? t.agents.codex : t.agents.provider);
   }
 </script>
 
@@ -24,6 +24,7 @@
   </article>
 {/snippet}
 <section aria-label={t.modules.agents}>
+  {#if data.codexWaitingUnavailable}<p class="muted">{t.agents.codexWaitingUnavailable}</p>{/if}
   {#if data.failed}<p role="status" class="muted">{t.agents.failure}</p>{/if}
   {#if data.sessions.length === 0}<p class="muted">{t.agents.empty}</p>{/if}
   {#each data.sessions as session (session.id)}{@render row(session)}{/each}

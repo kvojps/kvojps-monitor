@@ -126,3 +126,96 @@ fn background_failure_keeps_its_outcome_in_closed_history() {
     assert_eq!(data.closed[0].state, SessionState::Closed);
     assert_eq!(data.closed[0].last_state, Some(SessionState::Failed));
 }
+
+#[test]
+fn codex_sessions_share_history_and_keep_provider_identity() {
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let source = codex::tests::source();
+    let mut monitor = Monitor::new(process, clock.clone()).with_codex(source);
+    let data = monitor.step().unwrap();
+    assert_eq!(data.sessions.len(), 1);
+    let json = serde_json::to_value(&data).unwrap();
+    assert_eq!(json["sessions"][0]["provider"], "codex");
+    assert_eq!(json["sessions"][0]["state"], "working");
+    assert_eq!(json["codexWaitingUnavailable"], true);
+}
+
+#[test]
+fn codex_rollout_outcomes_process_exit_and_read_failures_are_reconciled() {
+    let source = codex::tests::source();
+    let root = source.test_root();
+    let process = Process(Arc::new(Mutex::new(Ok(include_str!(
+        "../../fixtures/agents/recorded.json"
+    )
+    .into()))));
+    let clock = FakeClock::at(1800000000000);
+    let mut monitor = Monitor::new(process.clone(), clock.clone()).with_codex(source);
+    assert_eq!(monitor.step().unwrap().sessions.len(), 2);
+    for (event, expected) in [
+        ("task_complete", SessionState::Done),
+        ("task_started", SessionState::Working),
+        ("error", SessionState::Failed),
+        ("turn_aborted", SessionState::Done),
+    ] {
+        std::fs::write(root.join("rollout.jsonl"), format!(r#"{{"type":"event_msg","payload":{{"type":"{event}","message":"PRIVATE_RESPONSE","token":"PRIVATE_TOKEN"}}}}"#)).unwrap();
+        clock.advance(2000);
+        let data = monitor.step().unwrap();
+        let session = data
+            .sessions
+            .iter()
+            .find(|s| s.provider == Provider::Codex)
+            .unwrap();
+        assert_eq!(session.state, expected);
+        assert!(data.accent_dot);
+        assert!(!serde_json::to_string(&data).unwrap().contains("PRIVATE_"));
+    }
+    std::fs::write(root.join("state_5.sqlite"), "invalid sqlite PRIVATE_TOKEN").unwrap();
+    clock.advance(2000);
+    let data = monitor.step().unwrap();
+    assert!(data.failed);
+    assert_eq!(data.sessions.len(), 2);
+}
+
+#[test]
+fn codex_closed_history_only_contains_previously_live_sessions() {
+    let source = codex::tests::source();
+    let root = source.test_root();
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let mut monitor = Monitor::new(process.clone(), clock.clone()).with_codex(source);
+    monitor.step().unwrap();
+    std::fs::remove_file(root.join("proc/123/fd/4")).unwrap();
+    clock.advance(2000);
+    let data = monitor.step().unwrap();
+    assert!(data.sessions.is_empty());
+    assert_eq!(data.closed.len(), 1);
+    assert_eq!(data.closed[0].last_state, Some(SessionState::Working));
+    clock.advance(7_200_000);
+    assert!(monitor.step().unwrap().closed.is_empty());
+    let mut restarted = Monitor::new(process, clock).with_codex(codex::Adapter::new(
+        root,
+        crate::ports::RootFilesystem::at("/nonexistent"),
+    ));
+    assert!(restarted.step().unwrap().closed.is_empty());
+}
+
+#[test]
+fn unavailable_codex_rollout_retains_last_reading_and_database_is_read_only() {
+    let source = codex::tests::source();
+    let root = source.test_root();
+    let before = std::fs::read(root.join("state_5.sqlite")).unwrap();
+    let process = Process(Arc::new(Mutex::new(Err(()))));
+    let clock = FakeClock::at(1800000000000);
+    let mut monitor = Monitor::new(process, clock.clone()).with_codex(source);
+    let data = monitor.step().unwrap();
+    assert!(data.failed); // Claude failure must not hide Codex.
+    assert_eq!(data.sessions[0].state, SessionState::Working);
+    assert_eq!(std::fs::read(root.join("state_5.sqlite")).unwrap(), before);
+    assert!(!root.join("state_5.sqlite-journal").exists());
+    std::fs::remove_file(root.join("rollout.jsonl")).unwrap();
+    clock.advance(2000);
+    let data = monitor.step().unwrap();
+    assert!(data.failed);
+    assert_eq!(data.sessions[0].state, SessionState::Working);
+}
