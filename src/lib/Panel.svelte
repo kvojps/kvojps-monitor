@@ -5,6 +5,7 @@
   import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
   import AiSettings from "./ai/AiSettings.svelte";
+  import GithubModule from "./github/GithubModule.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
   import TrelloSettings from "./trello/TrelloSettings.svelte";
   import { interpolate, t } from "./strings";
@@ -100,7 +101,7 @@
 
   const NO_AI_READING: AiData = { refreshing: false, codex: { state: "empty", plan: null, reading: null } };
   /** Module contents arrive with their instrument slices (tickets 02–07). */
-  const bodies: Partial<Record<Module, Snippet>> = { ai, agents };
+  const bodies: Partial<Record<Module, Snippet>> = { ai, agents, github };
 
   const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
   const waitingCount = $derived(agentsData?.sessions.filter((s) => s.state === "waiting").length ?? 0);
@@ -164,6 +165,10 @@
 
 {#snippet agents()}
   <AgentsModule data={agentsData} notified={agentTarget} />
+{/snippet}
+
+{#snippet github()}
+  <GithubModule data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={openSettings} />
 {/snippet}
 
 {#snippet moduleSection(module: Module, body?: Snippet)}

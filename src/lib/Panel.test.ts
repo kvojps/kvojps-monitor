@@ -7,6 +7,7 @@ import networkSpeed from "./network/fixtures/speed.json";
 import notebook from "./system/fixtures/notebook.json";
 import waitingAgents from "./agents/fixtures/waiting.json";
 import aiFull from "./ai/fixtures/full.json";
+import githubFull from "./github/fixtures/full.json";
 
 /** Stands in for the webview IntersectionObserver: tests decide what intersects. */
 class FakeObserver {
@@ -438,5 +439,51 @@ describe("Agents module in the panel", () => {
     expect(section("Agentes")).toHaveFocus();
     expect(core.chooseAnchor).toHaveBeenLastCalledWith("agents");
     expect(screen.queryByRole("listitem", { current: true })).not.toBeInTheDocument();
+  });
+});
+
+describe("GitHub module in the panel", () => {
+  it("explains there is no reading yet and sends a refresh to the core", async () => {
+    const { core } = fakeCore();
+    const refreshGithub = vi.fn();
+    render(Panel, { core: { ...core, refreshGithub } });
+    const github = await screen.findByRole("region", { name: "GitHub" });
+    expect(within(github).getByText("Sem leitura da atividade do GitHub ainda")).toBeInTheDocument();
+    await userEvent.click(within(github).getByRole("button", { name: "Atualizar GitHub" }));
+    expect(refreshGithub).toHaveBeenCalledOnce();
+  });
+
+  it("shows the activity and featured repository from the snapshot", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "github", updatedAt: 1, data: githubFull }] });
+    render(Panel, { core });
+    const github = await screen.findByRole("region", { name: "GitHub" });
+    expect(within(github).getByRole("region", { name: "Repo em destaque" })).toHaveTextContent("exemplo/repo-1");
+    expect(within(github).getByRole("list", { name: "Contribuições por dia nos últimos 14 dias" })).toBeInTheDocument();
+  });
+
+  it("opens Settings from the module and returns focus to it", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "github", updatedAt: 1, data: githubFull }] });
+    render(Panel, { core });
+    const github = await screen.findByRole("region", { name: "GitHub" });
+    await userEvent.click(within(github).getByRole("button", { name: "Configurar GitHub" }));
+    expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
+    expect(within(github).getByRole("button", { name: "Configurar GitHub" })).toHaveFocus();
+  });
+
+  it("keeps focus and scroll position when a GitHub snapshot arrives", async () => {
+    const { core, publish } = fakeCore({ snapshots: [{ module: "github", updatedAt: 1, data: githubFull }] });
+    render(Panel, { core });
+    const github = await screen.findByRole("region", { name: "GitHub" });
+    const configure = within(github).getByRole("button", { name: "Configurar GitHub" });
+    configure.focus();
+    const scroller = screen.getByRole("main");
+    scroller.scrollTop = 120;
+
+    await publish({ module: "github", updatedAt: 2, data: { ...githubFull, refreshing: true } });
+
+    expect(within(github).getByRole("status")).toHaveTextContent("Atualizando…");
+    expect(configure).toHaveFocus();
+    expect(scroller.scrollTop).toBe(120);
   });
 });

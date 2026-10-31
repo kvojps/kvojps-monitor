@@ -101,18 +101,13 @@
   "github": {
     "refresh": "Atualizar GitHub",
     "refreshing": "Atualizando…",
-    "configure": "Configurar",
     "login": "Rodar `gh auth login`",
     "instruction": "No terminal, execute gh auth login e depois atualize este Módulo.",
-    "missingGh": "GitHub não conectado",
     "empty": "Sem commits nos últimos 7 dias",
-    "calendar": "Calendário de contribuições",
-    "contributions": "{total} contribuições no ano",
-    "private": "{total} contribuições privadas (anônimas)",
-    "count": "{commits} commits em 7 dias · {total} no total",
+    "private": "inclui {total} privadas (anônimas)",
     "error": "Não foi possível atualizar o GitHub",
     "featured": "Repo em destaque",
-    "invalidCredential": "Credencial inválida · Reconectar",
+    "invalidCredential": "Credencial do GitHub inválida",
     "failureAge": "Falha ao atualizar {age}",
     "updatedAge": "Atualizado {age}",
     "connected": "Conectado como {login}",
@@ -127,6 +122,26 @@
       "missingRepo": "Falta o escopo repo",
       "offline": "Sem conexão, tente de novo",
       "keyringUnavailable": "GNOME Keyring indisponível. Ative ou desbloqueie o chaveiro para salvar; o token não foi salvo."
+    },
+    "configureGithub": "Configurar GitHub",
+    "reconnect": "Reconectar",
+    "missingSource": "GitHub não conectado · rode gh auth login no terminal ou cole um token",
+    "noReading": "Sem leitura da atividade do GitHub ainda",
+    "annual": "contribuições em {year}",
+    "weeks": "Últimas 8 semanas · {total}",
+    "weeksNone": "Últimas 8 semanas · sem contribuições",
+    "weeksMap": "Últimas 8 semanas: {total} contribuições de {from} a {to}, máximo de {peak} em um dia",
+    "weeksMapNone": "Últimas 8 semanas: sem contribuições de {from} a {to}",
+    "days": "Últimos 14 dias · {total} · pico de {peak} em {day}",
+    "daysNone": "Últimos 14 dias · sem contribuições",
+    "daysList": "Contribuições por dia nos últimos 14 dias",
+    "day": {
+      "one": "{day}: {count} contribuição",
+      "other": "{day}: {count} contribuições"
+    },
+    "commits": {
+      "one": "{commits} commit em 7 dias",
+      "other": "{commits} commits em 7 dias"
     }
   },
   "trello": {

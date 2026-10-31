@@ -1,72 +1,195 @@
-import { render, screen, fireEvent } from "@testing-library/svelte";
-import { expect, it, vi } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/svelte";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import GithubModule from "./GithubModule.svelte";
+import type { GithubData } from "../core";
 import full from "./fixtures/full.json";
 import empty from "./fixtures/empty.json";
 import missingGh from "./fixtures/missing-gh.json";
-it("shows calendar, counts and latest commit", () => {
-  render(GithubModule, { data: full, refresh: vi.fn() });
-  expect(screen.getByText("exemplo/repo-1")).toBeInTheDocument();
-  expect(screen.getByText("27 commits em 7 dias · 27 no total")).toBeInTheDocument();
-  expect(screen.getByText("Atualiza documentação")).toBeInTheDocument();
+
+/** Instant the GitHub fixtures were published (São Paulo, 31/10/2026 09:00). */
+const FIXTURE_NOW = 1793448000000;
+
+beforeEach(() => {
+  vi.stubEnv("TZ", "America/Sao_Paulo");
+  vi.useFakeTimers();
+  vi.setSystemTime(FIXTURE_NOW);
 });
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
+
+const data = (fixture: unknown) => fixture as GithubData;
+
+/** The same snapshot with every day's contributions set to zero. */
+function withoutActivity(fixture: GithubData): GithubData {
+  const calendar = structuredClone(fixture.calendar!);
+  calendar.contributionCalendar.totalContributions = 0;
+  calendar.restrictedContributionsCount = 0;
+  for (const week of calendar.contributionCalendar.weeks) for (const day of week.contributionDays) day.contributionCount = 0;
+  return { ...fixture, calendar, featured: null };
+}
+
+it("identifies the total as the calendar year's, with anonymous private contributions", () => {
+  render(GithubModule, { data: data(full), refresh: vi.fn() });
+  expect(screen.getByText("1.608")).toBeInTheDocument();
+  expect(screen.getByText("contribuições em 2026")).toBeInTheDocument();
+  expect(screen.getByText("inclui 1.247 privadas (anônimas)")).toBeInTheDocument();
+});
+
+it("summarises the last eight weeks as a map, without the full year calendar", () => {
+  render(GithubModule, { data: data(full), refresh: vi.fn() });
+  const map = screen.getByRole("img", { name: /^Últimas 8 semanas/ });
+  expect(map).toHaveAccessibleName("Últimas 8 semanas: 1.219 contribuições de 06/09 a 31/10, máximo de 63 em um dia");
+  // 8 weeks of 7 days, never the 53 weeks of the snapshot.
+  expect(map.querySelectorAll("[data-date]")).toHaveLength(56);
+  expect(screen.getByText("Últimas 8 semanas · 1.219")).toBeInTheDocument();
+});
+
+it("names each of the last 14 days' bars with its date and value", () => {
+  render(GithubModule, { data: data(full), refresh: vi.fn() });
+  const bars = screen.getByRole("list", { name: "Contribuições por dia nos últimos 14 dias" });
+  const days = within(bars).getAllByRole("listitem");
+  expect(days).toHaveLength(14);
+  expect(days[0]).toHaveAccessibleName("18/10: 29 contribuições");
+  expect(days[3]).toHaveAccessibleName("21/10: 35 contribuições");
+  expect(days[13]).toHaveAccessibleName("31/10: 0 contribuições");
+  expect(screen.getByText("Últimos 14 dias · 290 · pico de 35 em 21/10")).toBeInTheDocument();
+});
+
+it("leaves out calendar days after today", () => {
+  const future = structuredClone(full) as GithubData;
+  future.calendar!.contributionCalendar.weeks.push({
+    contributionDays: [{ date: "2026-11-01", contributionCount: 0, color: "#ebedf0" }],
+  });
+  render(GithubModule, { data: future, refresh: vi.fn() });
+  const days = within(screen.getByRole("list", { name: "Contribuições por dia nos últimos 14 dias" })).getAllByRole("listitem");
+  expect(days.at(-1)).toHaveAccessibleName("31/10: 0 contribuições");
+});
+
+it("shows the featured repository with commits in 7 days and the last commit title", () => {
+  render(GithubModule, { data: data(full), refresh: vi.fn() });
+  const repo = screen.getByRole("region", { name: "Repo em destaque" });
+  expect(within(repo).getByText("exemplo/repo-1")).toBeInTheDocument();
+  expect(within(repo).getByText("27 commits em 7 dias")).toBeInTheDocument();
+  expect(within(repo).getByText("Atualiza documentação")).toBeInTheDocument();
+});
+
+it("omits the commit title restored from the disk cache, which never stores it", () => {
+  const restored = structuredClone(full) as GithubData;
+  restored.featured!.title = "";
+  render(GithubModule, { data: restored, refresh: vi.fn() });
+  const repo = screen.getByRole("region", { name: "Repo em destaque" });
+  expect(within(repo).getByText("27 commits em 7 dias")).toBeInTheDocument();
+  expect(repo).toHaveTextContent(/^Repo em destaque\s*exemplo\/repo-1\s*27 commits em 7 dias$/);
+});
+
 it("explains an empty contribution window", () => {
-  render(GithubModule, { data: empty, refresh: vi.fn() });
+  render(GithubModule, { data: data(empty), refresh: vi.fn() });
   expect(screen.getByText("Sem commits nos últimos 7 dias")).toBeInTheDocument();
 });
-it("offers login instructions without gh and requests refresh", async () => {
+
+it("shows zero activity as zero, with no demonstration numbers", () => {
+  render(GithubModule, { data: withoutActivity(data(full)), refresh: vi.fn() });
+  expect(screen.getByText("contribuições em 2026")).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: /^Últimas 8 semanas/ })).toHaveAccessibleName("Últimas 8 semanas: sem contribuições de 06/09 a 31/10");
+  expect(screen.getByText("Últimos 14 dias · sem contribuições")).toBeInTheDocument();
+  expect(screen.getByText("Sem commits nos últimos 7 dias")).toBeInTheDocument();
+});
+
+it("explains a missing source without numbers and offers configuration", async () => {
+  const configure = vi.fn();
+  render(GithubModule, { data: data(missingGh), refresh: vi.fn(), configure });
+  expect(screen.getByText("GitHub não conectado · rode gh auth login no terminal ou cole um token")).toBeInTheDocument();
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  expect(screen.queryByText(/\d/)).not.toBeInTheDocument();
+  await fireEvent.click(screen.getByRole("button", { name: "Configurar GitHub" }));
+  expect(configure).toHaveBeenCalledOnce();
+});
+
+it("explains that nothing was read yet before the first snapshot", () => {
+  render(GithubModule, { data: null, refresh: vi.fn() });
+  expect(screen.getByText("Sem leitura da atividade do GitHub ainda")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Atualizar GitHub" })).toBeEnabled();
+});
+
+it("requests a refresh and waits ten seconds before the next one", async () => {
   const refresh = vi.fn();
-  render(GithubModule, { data: missingGh, refresh });
-  await fireEvent.click(screen.getByText("Configurar"));
-  expect(screen.getByText("Rodar `gh auth login`")).toBeInTheDocument();
-  await fireEvent.click(screen.getByRole("button", {name:"Atualizar GitHub"}));
+  render(GithubModule, { data: data(full), refresh });
+  const button = screen.getByRole("button", { name: "Atualizar GitHub" });
+  await fireEvent.click(button);
   expect(refresh).toHaveBeenCalledOnce();
+  expect(button).toBeDisabled();
+  await vi.advanceTimersByTimeAsync(9_000);
+  expect(button).toBeDisabled();
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(button).toBeEnabled();
 });
-it("shows refresh failure from fixture", async () => {
+
+it("shows refresh failure without data from fixture", async () => {
   const { default: error } = await import("./fixtures/error.json");
-  render(GithubModule, { data: error, refresh: vi.fn() });
+  render(GithubModule, { data: data(error), refresh: vi.fn() });
   expect(screen.getByText(/Falha ao atualizar/)).toBeInTheDocument();
+  expect(screen.getByText("Sem leitura da atividade do GitHub ainda")).toBeInTheDocument();
+  // Nothing was read, so it must not claim there were no commits.
+  expect(screen.queryByText("Sem commits nos últimos 7 dias")).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Repo em destaque" })).not.toBeInTheDocument();
 });
-it("disables refresh during the ten second cooldown", async () => {
-  vi.useFakeTimers();
-  try {
-    const refresh = vi.fn();
-    render(GithubModule, { data: full, refresh });
-    const button = screen.getByRole("button", {name:"Atualizar GitHub"});
-    await fireEvent.click(button);
-    expect(button).toBeDisabled();
-    await vi.advanceTimersByTimeAsync(10_000);
-    expect(button).toBeEnabled();
-  } finally { vi.useRealTimers(); }
+
+it("keeps the annual total when the calendar has no days up to today yet", () => {
+  vi.setSystemTime(new Date("2025-10-01T12:00:00-03:00"));
+  const early = structuredClone(full) as GithubData;
+  early.calendar!.contributionCalendar.weeks = early.calendar!.contributionCalendar.weeks.slice(-1);
+  render(GithubModule, { data: early, refresh: vi.fn() });
+  expect(screen.getByText("contribuições em 2025")).toBeInTheDocument();
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  expect(screen.queryByText("Sem leitura da atividade do GitHub ainda")).not.toBeInTheDocument();
+});
+
+it("uses the singular for a single contribution or commit", () => {
+  const one = structuredClone(full) as GithubData;
+  one.calendar!.contributionCalendar.weeks.at(-1)!.contributionDays.at(-1)!.contributionCount = 1;
+  one.featured!.commits = 1;
+  render(GithubModule, { data: one, refresh: vi.fn() });
+  const days = within(screen.getByRole("list", { name: "Contribuições por dia nos últimos 14 dias" })).getAllByRole("listitem");
+  expect(days.at(-1)).toHaveAccessibleName("31/10: 1 contribuição");
+  expect(screen.getByText("1 commit em 7 dias")).toBeInTheDocument();
 });
 
 it("dims cached data and offers reconnection for refused credentials", async () => {
-  const { default: data } = await import("./fixtures/invalid-credential.json");
-  render(GithubModule, { data, refresh: vi.fn() });
-  expect(screen.getByText("Credencial inválida · Reconectar")).toBeInTheDocument();
-  expect(screen.getByText("exemplo/repo-1").closest("[data-stale]" )).toHaveAttribute("data-stale", "true");
-  expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
-  await fireEvent.click(screen.getByText("Credencial inválida · Reconectar"));
-  expect(screen.getByText("Rodar `gh auth login`")).toBeInTheDocument();
+  const { default: invalid } = await import("./fixtures/invalid-credential.json");
+  const configure = vi.fn();
+  vi.setSystemTime(FIXTURE_NOW + 2 * 3_600_000);
+  render(GithubModule, { data: data(invalid), refresh: vi.fn(), configure });
+  expect(screen.getByText(/Credencial do GitHub inválida/)).toBeInTheDocument();
+  expect(screen.getByText("exemplo/repo-1").closest("[data-stale]")).toHaveAttribute("data-stale", "true");
+  expect(screen.getByText("Atualizado há 2 horas")).toBeInTheDocument();
+  await fireEvent.click(screen.getByRole("button", { name: "Reconectar" }));
+  expect(configure).toHaveBeenCalledOnce();
 });
+
 it("shows stale snapshot age without a failure banner", async () => {
-  const { default: data } = await import("./fixtures/stale.json");
-  render(GithubModule, { data, refresh: vi.fn() });
+  const { default: stale } = await import("./fixtures/stale.json");
+  render(GithubModule, { data: data(stale), refresh: vi.fn() });
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
 });
-it("shows sustained failure age and keeps the last repository", async () => {
-  const { default: data } = await import("./fixtures/failure.json");
-  render(GithubModule, { data, refresh: vi.fn() });
-  expect(screen.getByText(/Falha ao atualizar/)).toBeInTheDocument();
+
+it("shows sustained failure age and keeps the last activity", async () => {
+  const { default: failure } = await import("./fixtures/failure.json");
+  vi.setSystemTime(FIXTURE_NOW + 600_000);
+  render(GithubModule, { data: data(failure), refresh: vi.fn() });
+  expect(screen.getByText("Falha ao atualizar há 5 minutos")).toBeInTheDocument();
   expect(screen.getByText("exemplo/repo-1")).toBeInTheDocument();
+  expect(screen.getByText("1.608")).toBeInTheDocument();
 });
 
 it("keeps offline cached data and age without an error banner", async () => {
-  const { default: data } = await import("./fixtures/offline.json");
-  render(GithubModule, { data, refresh: vi.fn() });
+  const { default: offline } = await import("./fixtures/offline.json");
+  render(GithubModule, { data: data(offline), refresh: vi.fn() });
   expect(screen.getByText("exemplo/repo-1")).toBeInTheDocument();
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
-  expect(screen.getByRole("button", {name:"Atualizar GitHub"})).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Atualizar GitHub" })).toBeDisabled();
 });
