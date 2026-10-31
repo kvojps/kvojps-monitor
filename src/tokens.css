@@ -72,10 +72,10 @@ body,
   height: 100%;
 }
 
-/* The window is transparent; .panel provides rounded corners. */
+/* Opaque window: the page paints its own background. */
 html,
 body {
-  background: transparent;
+  background: var(--bg);
   overflow: hidden;
 }
 

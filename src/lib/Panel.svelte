@@ -241,8 +241,6 @@
     height: 100%;
     padding: 6px 12px 12px;
     background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
     overflow: hidden;
   }
 
