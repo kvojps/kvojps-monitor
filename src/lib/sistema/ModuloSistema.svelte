@@ -113,13 +113,14 @@
   .sistema {
     display: flex;
     flex-direction: column;
-    gap: 16px;
     padding: 4px 16px 16px;
     min-height: 0;
     overflow-y: auto;
   }
 
   section {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     gap: 6px;
