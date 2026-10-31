@@ -110,13 +110,13 @@ describe("Panel stations", () => {
 
   it("keeps keyboard focus when a snapshot arrives", async () => {
     const { core, publish } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
-    render(Panel, { core });
-    await screen.findByRole("region", { name: "IA" });
-    await userEvent.click(within(nav()).getByRole("button", { name: "IA" }));
+    render(Panel, { core: { ...core, refreshAi: vi.fn() } });
+    const configure = await screen.findByRole("button", { name: "Configurar IA" });
+    configure.focus();
 
     await publish({ module: "ai", updatedAt: 2, data: aiFull });
 
-    expect(section("IA")).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Configurar IA" })).toHaveFocus();
   });
 });
 
@@ -336,4 +336,60 @@ it("brings an already open panel, even in Settings, to the session targeted by a
 
   await vi.waitFor(() => expect(scroll.mock.contexts.at(-1)).toBe(section("Agentes")));
   expect(screen.queryByRole("heading", { name: "Configurações" })).not.toBeInTheDocument();
+});
+
+it("keeps focus on a module chosen in the navigation when a snapshot arrives", async () => {
+  const { core, publish } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
+  render(Panel, { core });
+  await screen.findByRole("region", { name: "IA" });
+  await userEvent.click(within(nav()).getByRole("button", { name: "IA" }));
+
+  await publish({ module: "ai", updatedAt: 2, data: aiFull });
+
+  expect(section("IA")).toHaveFocus();
+});
+
+describe("AI module in the panel", () => {
+  it("explains there is no reading yet and keeps its actions before the first snapshot", async () => {
+    const { core } = fakeCore();
+    const refreshAi = vi.fn();
+    render(Panel, { core: { ...core, refreshAi } });
+    const ai = await screen.findByRole("region", { name: "IA" });
+    expect(within(ai).getByText("Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻")).toBeInTheDocument();
+    expect(within(ai).getByRole("button", { name: "Configurar IA" })).toBeInTheDocument();
+    await userEvent.click(within(ai).getByRole("button", { name: "Atualizar IA" }));
+    expect(refreshAi).toHaveBeenCalledOnce();
+  });
+
+  it("shows the AI instruments and sends a refresh to the core", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
+    const refreshAi = vi.fn();
+    render(Panel, { core: { ...core, refreshAi } });
+    const ai = await screen.findByRole("region", { name: "IA" });
+    expect(within(ai).getByRole("meter", { name: "Codex · janela de 5 h" })).toBeInTheDocument();
+    await userEvent.click(within(ai).getByRole("button", { name: "Atualizar IA" }));
+    expect(refreshAi).toHaveBeenCalledOnce();
+  });
+
+  it("opens Settings from the module and returns to it", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
+    render(Panel, { core });
+    await userEvent.click(await screen.findByRole("button", { name: "Configurar IA" }));
+    expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
+    expect(core.reportVisibleModules).toHaveBeenLastCalledWith([]);
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
+    expect(screen.getByRole("button", { name: "Configurar IA" })).toHaveFocus();
+  });
+
+  it("reconnects Claude only on click and falls back to Settings when it fails", async () => {
+    const { default: replaced } = await import("./ai/fixtures/claude-replaced.json");
+    const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: replaced }] });
+    const connectClaude = vi.fn().mockRejectedValue("unwritable");
+    render(Panel, { core: { ...core, connectClaude } });
+    const reconnect = await screen.findByRole("button", { name: "Reconectar" });
+    expect(connectClaude).not.toHaveBeenCalled();
+    await userEvent.click(reconnect);
+    expect(connectClaude).toHaveBeenCalledOnce();
+    expect(await screen.findByRole("heading", { name: "Configurações" })).toBeInTheDocument();
+  });
 });

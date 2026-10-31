@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, type Snippet } from "svelte";
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type Module, type Core, type Snapshot } from "./core";
   import AgentSettings from "./agents/AgentSettings.svelte";
+  import AiModule from "./ai/AiModule.svelte";
   import AiSettings from "./ai/AiSettings.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
   import TrelloSettings from "./trello/TrelloSettings.svelte";
@@ -96,6 +97,10 @@
     reveal("agents", false);
   }
 
+  const NO_AI_READING: AiData = { refreshing: false, codex: { state: "empty", plan: null, reading: null } };
+  /** Module contents arrive with their instrument slices (tickets 02–07). */
+  const bodies: Partial<Record<Module, Snippet>> = { ai };
+
   const stationOf = (module: Module) => stations.find((s) => s.modules.includes(module))!.key;
   /** Decorative module number, as in the navigation. */
   const code = (module: Module) => String(MODULES.indexOf(module) + 1).padStart(2, "0");
@@ -147,7 +152,13 @@
 
 <svelte:window onkeydown={onKeyDown} />
 
-{#snippet moduleSection(module: Module)}
+{#snippet ai()}
+  <!-- Before the first snapshot the instruments explain there is no reading and keep their actions. -->
+  <AiModule data={(snapshots.ai?.data as AiData | null) ?? NO_AI_READING} refresh={() => core.refreshAi?.()} configure={openSettings}
+    reconnect={() => void (core.connectClaude?.() ?? Promise.reject()).catch(openSettings)} />
+{/snippet}
+
+{#snippet moduleSection(module: Module, body?: Snippet)}
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
     tabindex="-1" bind:this={sections[module]}>
     <header class="module-head">
@@ -158,6 +169,7 @@
       </div>
       <span class="code num" aria-hidden="true">{code(module)}</span>
     </header>
+    {@render body?.()}
   </section>
 {/snippet}
 
@@ -194,7 +206,7 @@
               <span>{t.stations[station.key]}</span><span>{station.modules.map((m) => t.modules[m]).join(" / ")}</span>
             </div>
             {#each station.modules as module (module)}
-              {@render moduleSection(module)}
+              {@render moduleSection(module, bodies[module])}
             {/each}
           </div>
         {/each}

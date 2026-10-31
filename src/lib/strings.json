@@ -178,7 +178,6 @@
     "replaced": "Status line desconectada",
     "reconnect": "Reconectar",
     "expired": "Token do Claude expirado · abra o Claude Code",
-    "allModels": "Todos os modelos",
     "settings": {
       "connect": "Conectar ao Claude Code",
       "disconnect": "Desconectar",
@@ -201,7 +200,7 @@
         "unwritable": "Não foi possível gravar a configuração do Claude Code"
       }
     },
-    "codex": "ChatGPT / Codex",
+    "codex": "Codex",
     "missingCodex": "Codex não encontrado · instale e faça login no CLI",
     "emptyCodex": "Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻",
     "sources": {
@@ -212,18 +211,18 @@
     },
     "reading": "{source} · atualizado {age}",
     "now": "agora",
-    "plans": {
-      "plus": "Plus",
-      "pro": "Pro",
-      "max": "Max"
-    },
-    "fiveHour": "Sessão (5 h)",
-    "weekly": "Semanal",
-    "windowHours": "Janela de {hours} h",
     "resetsIn": "reinicia em {time}",
     "resetsAt": "reinicia {day} {time}",
     "restarted": "Reiniciado às {time} · sem leitura nova",
-    "failureAge": "Falha ao atualizar {age}"
+    "failureAge": "Falha ao atualizar {age}",
+    "fiveHourOf": "{provider} · janela de 5 h",
+    "weeklyOf": "{provider} · semana",
+    "fiveHourLabel": "Janela de 5 h",
+    "weeklyLabel": "Semana",
+    "consumed": "consumido",
+    "configureAi": "Configurar IA",
+    "noReading": "Sem leitura dos limites",
+    "high": "uso alto"
   },
   "agents": {
     "empty": "Nenhuma sessão de agente ativa",
