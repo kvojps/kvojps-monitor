@@ -7,6 +7,7 @@
   import AiSettings from "./ai/AiSettings.svelte";
   import GithubModule from "./github/GithubModule.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
+  import TrelloModule from "./trello/TrelloModule.svelte";
   import TrelloSettings from "./trello/TrelloSettings.svelte";
   import { interpolate, t } from "./strings";
 
@@ -101,7 +102,7 @@
 
   const NO_AI_READING: AiData = { refreshing: false, codex: { state: "empty", plan: null, reading: null } };
   /** Module contents arrive with their instrument slices (tickets 02–07). */
-  const bodies: Partial<Record<Module, Snippet>> = { ai, agents, github };
+  const bodies: Partial<Record<Module, Snippet>> = { ai, agents, github, trello };
 
   const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
   const waitingCount = $derived(agentsData?.sessions.filter((s) => s.state === "waiting").length ?? 0);
@@ -169,6 +170,12 @@
 
 {#snippet github()}
   <GithubModule data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={openSettings} />
+{/snippet}
+
+{#snippet trello()}
+  <TrelloModule data={(snapshots.trello?.data as TrelloData | undefined) ?? null} refresh={() => core.refreshTrello?.()}
+    configure={openSettings} openCard={(url) => core.openTrelloCard?.(url)}
+    moveCard={(card, list) => core.moveTrelloCard?.(card, list) ?? Promise.reject(new Error("unavailable"))} />
 {/snippet}
 
 {#snippet moduleSection(module: Module, body?: Snippet)}

@@ -147,16 +147,14 @@
   "trello": {
     "refresh": "Atualizar Trello",
     "refreshing": "Atualizando…",
-    "configure": "Configurar",
     "missingCredential": "Trello não conectado",
     "chooseBoard": "Escolha um quadro nas Configurações",
-    "invalidCredential": "Credencial inválida · Reconectar",
+    "invalidCredential": "Credencial inválida",
     "error": "Não foi possível atualizar o Trello",
     "failureAge": "Falha ao atualizar {age}",
     "updatedAge": "Atualizado {age}",
     "emptyList": "Sem cards",
     "hiddenTitle": "Título disponível após atualizar",
-    "openCard": "Clique para mover · duplo clique abre no navegador",
     "moveFailed": "Não foi possível mover",
     "due": "Entrega {date}",
     "overdue": "Vencido: {date}",
@@ -180,7 +178,13 @@
       "keyringUnavailable": "GNOME Keyring indisponível. Ative ou desbloqueie o chaveiro para salvar; a key e o token não foram salvos."
     },
     "disconnectFailed": "Não foi possível apagar a key e o token: GNOME Keyring indisponível.",
-    "pendingToken": "Token gerado? Cole-o nas Configurações para concluir."
+    "pendingToken": "Token gerado? Cole-o nas Configurações para concluir.",
+    "reconnect": "Reconectar",
+    "configureTrello": "Configurar Trello",
+    "noReading": "Sem leitura do quadro do Trello ainda",
+    "moveTo": "Mover para {list}",
+    "open": "Abrir {card} no navegador",
+    "noLists": "Quadro sem listas"
   },
   "ai": {
     "refresh": "Atualizar IA",

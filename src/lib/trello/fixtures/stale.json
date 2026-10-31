@@ -1,0 +1,251 @@
+{
+  "account": null,
+  "board": {
+    "id": "000000000000000000000002",
+    "name": "Quadro 1"
+  },
+  "boards": [],
+  "failureSince": null,
+  "lastSuccessAt": 1793448060000,
+  "lists": [
+    {
+      "cards": [
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "000000000000000000000004",
+          "labels": [
+            "green",
+            "blue_dark"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000004"
+        },
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "000000000000000000000007",
+          "labels": [
+            "green",
+            "blue_dark"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000007"
+        },
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "000000000000000000000008",
+          "labels": [
+            "green",
+            "blue_dark"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000008"
+        },
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "000000000000000000000009",
+          "labels": [
+            "green",
+            "blue_dark"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000009"
+        }
+      ],
+      "id": "000000000000000000000003",
+      "name": "Lista 1"
+    },
+    {
+      "cards": [],
+      "id": "00000000000000000000000a",
+      "name": "Lista 2"
+    },
+    {
+      "cards": [
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "00000000000000000000000c",
+          "labels": [
+            "red_dark"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/0000000c"
+        },
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "00000000000000000000000e",
+          "labels": [
+            "green",
+            "blue_dark"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/0000000e"
+        }
+      ],
+      "id": "00000000000000000000000b",
+      "name": "Lista 3"
+    },
+    {
+      "cards": [
+        {
+          "due": null,
+          "dueComplete": true,
+          "id": "000000000000000000000010",
+          "labels": [],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000010"
+        }
+      ],
+      "id": "00000000000000000000000f",
+      "name": "Lista 4"
+    },
+    {
+      "cards": [
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "000000000000000000000012",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000012"
+        },
+        {
+          "due": null,
+          "dueComplete": true,
+          "id": "000000000000000000000014",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000014"
+        },
+        {
+          "due": null,
+          "dueComplete": true,
+          "id": "000000000000000000000015",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000015"
+        }
+      ],
+      "id": "000000000000000000000011",
+      "name": "Lista 5"
+    },
+    {
+      "cards": [
+        {
+          "due": null,
+          "dueComplete": true,
+          "id": "000000000000000000000017",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000017"
+        },
+        {
+          "due": null,
+          "dueComplete": true,
+          "id": "000000000000000000000018",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000018"
+        },
+        {
+          "due": null,
+          "dueComplete": true,
+          "id": "000000000000000000000019",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/00000019"
+        },
+        {
+          "due": null,
+          "dueComplete": true,
+          "id": "00000000000000000000001a",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/0000001a"
+        }
+      ],
+      "id": "000000000000000000000016",
+      "name": "Lista 6"
+    },
+    {
+      "cards": [
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "00000000000000000000001c",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/0000001c"
+        }
+      ],
+      "id": "00000000000000000000001b",
+      "name": "Lista 7"
+    },
+    {
+      "cards": [
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "00000000000000000000001e",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/0000001e"
+        },
+        {
+          "due": null,
+          "dueComplete": false,
+          "id": "00000000000000000000001f",
+          "labels": [
+            "blue"
+          ],
+          "name": "",
+          "overdue": false,
+          "url": "https://trello.com/c/0000001f"
+        }
+      ],
+      "id": "00000000000000000000001d",
+      "name": "Lista 8"
+    }
+  ],
+  "refreshing": false,
+  "state": "stale"
+}

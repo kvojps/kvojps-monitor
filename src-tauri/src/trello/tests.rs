@@ -574,8 +574,25 @@ fn ui_fixtures_match_published_snapshots() {
     error.step(true, false).unwrap();
     clock.advance(30_000);
     error.step(true, false).unwrap();
+    let (mut offline, _) = connected(Api::default(), clock.clone());
+    offline.step(true, false).unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let mut cached = Trello::new(Api::default(), clock.clone())
+        .with_keyring(Vault::default())
+        .with_persistence(disk(&dir));
+    cached.connect("0123abcd", "private-token").unwrap();
+    cached.select_board(&board_id(0)).unwrap();
+    cached.step(true, false).unwrap();
+    let stale = Trello::new(NoHttp, clock.clone())
+        .with_persistence(disk(&dir))
+        .snapshot(false);
     clock.advance(60_000);
     for (name, snapshot) in [
+        ("stale", stale),
+        ("offline", {
+            offline.lifecycle(crate::lifecycle::Status::default());
+            offline.snapshot(true)
+        }),
         ("full", full.step(true, false).unwrap()),
         ("overdue", overdue.step(true, false).unwrap()),
         ("empty", empty.step(true, false).unwrap()),

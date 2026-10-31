@@ -8,6 +8,7 @@ import notebook from "./system/fixtures/notebook.json";
 import waitingAgents from "./agents/fixtures/waiting.json";
 import aiFull from "./ai/fixtures/full.json";
 import githubFull from "./github/fixtures/full.json";
+import trelloFull from "./trello/fixtures/full.json";
 
 /** Stands in for the webview IntersectionObserver: tests decide what intersects. */
 class FakeObserver {
@@ -484,6 +485,71 @@ describe("GitHub module in the panel", () => {
 
     expect(within(github).getByRole("status")).toHaveTextContent("Atualizando…");
     expect(configure).toHaveFocus();
+    expect(scroller.scrollTop).toBe(120);
+  });
+});
+
+describe("Trello module in the panel", () => {
+  it("explains there is no board yet and sends a refresh to the core", async () => {
+    const { core } = fakeCore();
+    const refreshTrello = vi.fn();
+    render(Panel, { core: { ...core, refreshTrello } });
+    const trello = await screen.findByRole("region", { name: "Trello" });
+    expect(within(trello).getByText("Sem leitura do quadro do Trello ainda")).toBeInTheDocument();
+    await userEvent.click(within(trello).getByRole("button", { name: "Atualizar Trello" }));
+    expect(refreshTrello).toHaveBeenCalledOnce();
+  });
+
+  it("moves and opens cards through the core", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: trelloFull }] });
+    const moveTrelloCard = vi.fn(async () => {});
+    const openTrelloCard = vi.fn();
+    render(Panel, { core: { ...core, moveTrelloCard, openTrelloCard } });
+    const trello = await screen.findByRole("region", { name: "Trello" });
+    const [from, to] = trelloFull.lists;
+    const card = from.cards[0];
+    await userEvent.click(within(trello).getByRole("button", { name: new RegExp(card.name) }));
+    await userEvent.click(within(trello).getByRole("button", { name: `Abrir ${card.name} no navegador` }));
+    expect(openTrelloCard).toHaveBeenCalledWith(card.url);
+    await userEvent.click(within(trello).getByRole("button", { name: `Mover para ${to.name}` }));
+    expect(moveTrelloCard).toHaveBeenCalledWith(card.id, to.id);
+  });
+
+  it("reverts a move when the core cannot reach Trello", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: trelloFull }] });
+    render(Panel, { core });
+    const trello = await screen.findByRole("region", { name: "Trello" });
+    const [from, to] = trelloFull.lists;
+    await userEvent.click(within(trello).getByRole("button", { name: new RegExp(from.cards[0].name) }));
+    await userEvent.click(within(trello).getByRole("button", { name: `Mover para ${to.name}` }));
+    expect(await within(trello).findByRole("alert")).toHaveTextContent("Não foi possível mover");
+    expect(within(within(trello).getByRole("region", { name: from.name })).getByText(from.cards[0].name)).toBeInTheDocument();
+  });
+
+  it("opens Settings from the module and returns focus to it", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: trelloFull }] });
+    render(Panel, { core });
+    const trello = await screen.findByRole("region", { name: "Trello" });
+    await userEvent.click(within(trello).getByRole("button", { name: "Configurar Trello" }));
+    expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
+    expect(within(trello).getByRole("button", { name: "Configurar Trello" })).toHaveFocus();
+  });
+
+  it("keeps the selected card, focus and scroll position when a Trello snapshot arrives", async () => {
+    const { core, publish } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: trelloFull }] });
+    render(Panel, { core });
+    const trello = await screen.findByRole("region", { name: "Trello" });
+    const card = within(trello).getByRole("button", { name: new RegExp(trelloFull.lists[0].cards[0].name) });
+    await userEvent.click(card);
+    const scroller = screen.getByRole("main");
+    scroller.scrollTop = 120;
+
+    await publish({ module: "trello", updatedAt: 2, data: { ...trelloFull, refreshing: true } });
+
+    expect(within(trello).getByRole("status")).toHaveTextContent("Atualizando…");
+    expect(card).toHaveFocus();
+    expect(card).toHaveAttribute("aria-pressed", "true");
     expect(scroller.scrollTop).toBe(120);
   });
 });

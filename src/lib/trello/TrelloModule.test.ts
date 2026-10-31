@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/svelte";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/svelte";
+import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import TrelloModule from "./TrelloModule.svelte";
 import type { TrelloData } from "../core";
@@ -8,8 +9,12 @@ import emptyJson from "./fixtures/empty.json";
 import chooseJson from "./fixtures/choose-board.json";
 import invalidJson from "./fixtures/invalid-credential.json";
 import errorJson from "./fixtures/error.json";
+import staleJson from "./fixtures/stale.json";
+import offlineJson from "./fixtures/offline.json";
 
 const full = fullJson as TrelloData;
+const stale = staleJson as TrelloData;
+const offline = offlineJson as TrelloData;
 const props = (data: unknown, moveCard = vi.fn(() => new Promise<void>(() => {}))) =>
   ({ data: data as TrelloData, refresh: vi.fn(), configure: vi.fn(), openCard: vi.fn(), moveCard });
 const column = (name: string) => screen.getByRole("region", { name });
@@ -45,7 +50,7 @@ it("keeps the module visible without credentials and offers setup", async () => 
   const p = props(emptyJson);
   render(TrelloModule, p);
   expect(screen.getByText("Trello não conectado")).toBeInTheDocument();
-  await fireEvent.click(screen.getByRole("button", { name: "Configurar" }));
+  await fireEvent.click(screen.getByRole("button", { name: "Configurar Trello" }));
   expect(p.configure).toHaveBeenCalledOnce();
 });
 
@@ -59,7 +64,8 @@ it("dims the last board and offers reconnection for a refused credential", async
   render(TrelloModule, p);
   expect(screen.getByText("Lista 1").closest("[data-stale]")).toHaveAttribute("data-stale", "true");
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
-  await fireEvent.click(screen.getByRole("button", { name: "Credencial inválida · Reconectar" }));
+  expect(screen.getByText("Credencial inválida", { exact: false })).toBeInTheDocument();
+  await fireEvent.click(screen.getByRole("button", { name: "Reconectar" }));
   expect(p.configure).toHaveBeenCalledOnce();
 });
 
@@ -69,12 +75,12 @@ it("shows sustained failure and keeps the last board", () => {
   expect(screen.getByText("Lista 1")).toBeInTheDocument();
 });
 
-it("keeps cached cards without titles readable", () => {
-  const cached = structuredClone(full);
-  cached.state = "stale";
-  cached.lists![0].cards[0].name = "";
-  render(TrelloModule, props(cached));
-  expect(screen.getAllByText("Título disponível após atualizar").length).toBeGreaterThan(0);
+it("shows the board restored from cache with its age and titles pending", () => {
+  render(TrelloModule, props(stale));
+  expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
+  expect(screen.getAllByText("Título disponível após atualizar")).toHaveLength(
+    stale.lists!.reduce((n, list) => n + list.cards.length, 0));
+  expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
 });
 
 it("refreshes manually with a ten second cooldown", async () => {
@@ -91,16 +97,19 @@ it("refreshes manually with a ten second cooldown", async () => {
   } finally { vi.useRealTimers(); }
 });
 
-it("disables refresh while offline", () => {
-  render(TrelloModule, props({ ...full, paused: true, lastSuccessAt: 1 }));
+it("keeps the board with its age and disables refresh while offline", () => {
+  render(TrelloModule, props(offline));
   expect(screen.getByRole("button", { name: "Atualizar Trello" })).toBeDisabled();
+  expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
+  expect(screen.getByText(offline.lists![0].cards[0].name)).toBeInTheDocument();
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 it("points back to Settings to paste the token after generating it", () => {
   render(TrelloModule, props({ ...emptyJson, pendingKey: "0123abcd" }));
   expect(screen.getByText("Token gerado? Cole-o nas Configurações para concluir.")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Configurar" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Configurar Trello" })).toBeInTheDocument();
 });
 
 it("moves a selected card to the clicked list right away", async () => {
@@ -144,7 +153,7 @@ it("cancels a selection by clicking the card again or its own list", async () =>
 });
 
 it("does not move cards while offline or with a refused credential", async () => {
-  for (const data of [{ ...full, paused: true, lastSuccessAt: 1 }, invalidJson]) {
+  for (const data of [offline, invalidJson]) {
     const p = props(data);
     const { unmount } = render(TrelloModule, p);
     const [from, to] = (data as TrelloData).lists!;
@@ -186,4 +195,125 @@ it("shows the latest destination when a card is moved again before the core answ
   replies[0]();
   await screen.findByRole("alert");
   expect(within(column(third.name)).getByText(card.name)).toBeInTheDocument();
+});
+
+it("explains there is no board reading yet and keeps refresh and configure", async () => {
+  const p = props(null);
+  render(TrelloModule, p);
+  expect(screen.getByText("Sem leitura do quadro do Trello ainda")).toBeInTheDocument();
+  await fireEvent.click(screen.getByRole("button", { name: "Atualizar Trello" }));
+  await fireEvent.click(screen.getByRole("button", { name: "Configurar Trello" }));
+  expect(p.refresh).toHaveBeenCalledOnce();
+  expect(p.configure).toHaveBeenCalledOnce();
+});
+
+it("keeps configure available next to the board", () => {
+  render(TrelloModule, props(full));
+  expect(screen.getByRole("button", { name: "Configurar Trello" })).toBeInTheDocument();
+});
+
+it("selects, moves and opens a card from the keyboard", async () => {
+  const user = userEvent.setup();
+  const p = props(full);
+  render(TrelloModule, p);
+  const [from, to] = full.lists!;
+  const card = from.cards[0];
+  const button = screen.getByRole("button", { name: new RegExp(card.name) });
+  button.focus();
+  await user.keyboard("{Enter}");
+  expect(button).toHaveAttribute("aria-pressed", "true");
+  await user.click(screen.getByRole("button", { name: `Abrir ${card.name} no navegador` }));
+  expect(p.openCard).toHaveBeenCalledWith(card.url);
+  screen.getByRole("button", { name: `Mover para ${to.name}` }).focus();
+  await user.keyboard("{Enter}");
+  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(card.id, to.id);
+  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Mover para/ })).not.toBeInTheDocument();
+});
+
+it("offers no move to the list the selected card is already in", async () => {
+  render(TrelloModule, props(full));
+  const [from, to] = full.lists!;
+  await fireEvent.click(screen.getByText(from.cards[0].name));
+  expect(screen.queryByRole("button", { name: `Mover para ${from.name}` })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: `Mover para ${to.name}` })).toBeInTheDocument();
+});
+
+it("still opens cards offline or with a refused credential, offering no move", async () => {
+  for (const data of [offline, invalidJson as TrelloData]) {
+    const p = props(data);
+    const { unmount } = render(TrelloModule, p);
+    const card = data.lists![0].cards[0];
+    const name = card.name || "Título disponível após atualizar";
+    await fireEvent.dblClick(screen.getByText(name));
+    await fireEvent.click(screen.getByText(name));
+    await fireEvent.click(screen.getByRole("button", { name: `Abrir ${name} no navegador` }));
+    expect(p.openCard).toHaveBeenNthCalledWith(2, card.url);
+    expect(screen.queryByRole("button", { name: /^Mover para/ })).not.toBeInTheDocument();
+    unmount();
+  }
+});
+
+it("keeps the selection and focus when a refreshed board arrives", async () => {
+  const { rerender } = render(TrelloModule, props(full));
+  const [from, to] = full.lists!;
+  const button = screen.getByRole("button", { name: new RegExp(from.cards[0].name) });
+  await fireEvent.click(button);
+  button.focus();
+  await rerender({ data: { ...structuredClone(full), refreshing: true } });
+  await rerender({ data: structuredClone(full) });
+  expect(button).toHaveFocus();
+  expect(button).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: `Mover para ${to.name}` })).toBeInTheDocument();
+});
+
+it("drops the selection when the selected card leaves the board", async () => {
+  const p = props(full);
+  const { rerender } = render(TrelloModule, p);
+  const [from, to] = full.lists!;
+  await fireEvent.click(screen.getByText(from.cards[0].name));
+  const archived = structuredClone(full);
+  archived.lists![0].cards.shift();
+  await rerender({ data: archived });
+  expect(screen.queryByRole("button", { name: /^Mover para/ })).not.toBeInTheDocument();
+  await fireEvent.click(column(to.name));
+  expect(p.moveCard).not.toHaveBeenCalled();
+});
+
+it("marks empty lists and explains a board without lists", () => {
+  render(TrelloModule, props(full));
+  expect(within(column("Lista 2")).getByText("Sem cards")).toBeInTheDocument();
+  cleanup();
+  render(TrelloModule, props({ ...full, lists: [] }));
+  expect(screen.getByText("Quadro sem listas")).toBeInTheDocument();
+});
+
+it("shows every card of a dense list with its labels and due date", () => {
+  const dense = structuredClone(overdueJson as TrelloData);
+  const model = dense.lists![0].cards[0];
+  dense.lists![0].cards = Array.from({ length: 40 }, (_, i) => ({ ...model, id: `dense-${i}`, name: `Card denso ${i}` }));
+  render(TrelloModule, props(dense));
+  const list = within(column(dense.lists![0].name));
+  for (let i = 0; i < 40; i++) {
+    const card = list.getByRole("button", { name: new RegExp(`^Card denso ${i} `) });
+    expect(within(card).getAllByTestId("label")).toHaveLength(model.labels.length);
+    expect(within(card).getByText(/Vencido/)).toBeInTheDocument();
+  }
+});
+
+it("selects another card directly while moves are unavailable", async () => {
+  render(TrelloModule, props(offline));
+  const [first, , third] = offline.lists!;
+  await fireEvent.click(screen.getByText(first.cards[0].name));
+  await fireEvent.click(screen.getByText(third.cards[0].name));
+  expect(screen.getByRole("button", { name: `Abrir ${third.cards[0].name} no navegador` })).toBeInTheDocument();
+});
+
+it("keeps each list's scroll position when a refreshed board arrives", async () => {
+  const { rerender } = render(TrelloModule, props(full));
+  const cards = within(column(full.lists![0].name)).getByRole("list");
+  cards.scrollTop = 80;
+  await rerender({ data: structuredClone(full) });
+  expect(within(column(full.lists![0].name)).getByRole("list")).toBe(cards);
+  expect(cards.scrollTop).toBe(80);
 });
