@@ -123,12 +123,19 @@ pub async fn disconnect_trello(
     ask_trello(collector, crate::trello::Command::Disconnect).await
 }
 
-// Async commands run off the main thread while xdg-open hands the URL over.
+/// The collector remembers the key, since the browser closes the panel.
 #[tauri::command]
-pub async fn open_trello_authorization(key: String) -> Result<(), crate::trello::CredentialError> {
-    crate::trello::open_authorization(&crate::ports::SystemProcesses, &key)
+pub async fn open_trello_authorization(
+    key: String,
+    collector: State<'_, crate::trello::Collector>,
+) -> Result<(), crate::trello::CredentialError> {
+    ask_trello(collector, |reply| {
+        crate::trello::Command::Authorize(key, reply)
+    })
+    .await
 }
 
+// Async commands run off the main thread while xdg-open hands the URL over.
 #[tauri::command]
 pub async fn open_trello_card(url: String) {
     crate::trello::open_card(&crate::ports::SystemProcesses, &url);

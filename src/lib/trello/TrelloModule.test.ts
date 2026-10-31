@@ -94,3 +94,9 @@ it("disables refresh while offline", () => {
   expect(screen.getByRole("button", { name: "Atualizar Trello" })).toBeDisabled();
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
 });
+
+it("points back to Settings to paste the token after generating it", () => {
+  render(TrelloModule, props({ ...emptyJson, pendingKey: "0123abcd" }));
+  expect(screen.getByText("Token gerado? Cole-o nas Configurações para concluir.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Configurar" })).toBeInTheDocument();
+});

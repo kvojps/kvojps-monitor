@@ -679,9 +679,10 @@ fn browser_opens_only_vetted_trello_pages() {
         .to_owned();
     assert!(open_card(&launcher, &card));
     assert!(!open_card(&launcher, "https://evil.example/c/abc"));
-    assert_eq!(open_authorization(&launcher, "0123abcd"), Ok(()));
+    let mut trello = Trello::new(NoHttp, FakeClock::at(NOW));
+    assert_eq!(trello.authorize(&launcher, "0123abcd"), Ok(()));
     assert_eq!(
-        open_authorization(&launcher, "abc&return_url=x"),
+        trello.authorize(&launcher, "abc&return_url=x"),
         Err(CredentialError::InvalidCredential)
     );
     open_admin(&launcher);
@@ -690,4 +691,32 @@ fn browser_opens_only_vetted_trello_pages() {
     assert_eq!(calls[0], ["xdg-open", card.as_str()]);
     assert_eq!(calls[1][1], authorization_url("0123abcd").unwrap());
     assert_eq!(calls[2][1], "https://trello.com/apps/admin");
+}
+
+#[test]
+fn generating_a_token_keeps_the_key_in_memory_while_the_panel_is_closed() {
+    let dir = tempfile::tempdir().unwrap();
+    let clock = FakeClock::at(NOW);
+    let mut trello = Trello::new(Api::default(), clock.clone())
+        .with_keyring(Vault::default())
+        .with_persistence(disk(&dir));
+    trello
+        .authorize(&Launcher::default(), " 0123abcd ")
+        .unwrap();
+    // The browser takes focus and the panel webview is destroyed; the next one
+    // reads the key back from the published snapshot.
+    let data = trello.step(true, false).unwrap().data;
+    assert_eq!(data["state"], "missingCredential");
+    assert_eq!(data["pendingKey"], "0123abcd");
+    let restarted = Trello::new(NoHttp, clock).with_persistence(disk(&dir));
+    assert!(restarted.snapshot(false).data.get("pendingKey").is_none());
+    trello.connect("0123abcd", "private-token").unwrap();
+    assert!(trello.snapshot(false).data.get("pendingKey").is_none());
+    trello.authorize(&Launcher::default(), "0123abcd").unwrap();
+    trello.disconnect().unwrap();
+    assert!(trello.snapshot(false).data.get("pendingKey").is_none());
+    for file in ["cache/trello.json", "state/info.log"] {
+        let text = std::fs::read_to_string(dir.path().join(file)).unwrap_or_default();
+        assert!(!text.contains("0123abcd"), "{file}");
+    }
 }

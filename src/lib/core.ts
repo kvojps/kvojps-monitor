@@ -138,4 +138,6 @@ export interface TrelloData {
   boards: { id: string; name: string }[];
   board: { id: string; name: string } | null;
   lists: { id: string; name: string; cards: TrelloCard[] }[] | null;
+  /** Key typed before generating the token; kept in core memory only. */
+  pendingKey?: string;
 }

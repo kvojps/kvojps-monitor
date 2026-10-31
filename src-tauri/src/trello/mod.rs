@@ -75,6 +75,9 @@ pub struct Trello<A, R> {
     /// Identity of a credential refused with 401/403; no request until it changes.
     rejected: Option<u64>,
     lifecycle: Option<crate::lifecycle::Status>,
+    /// Key typed before "Gerar token". The browser closes the panel, so the next
+    /// panel reads it back. Memory only; dropped on connect or disconnect.
+    pending_key: Option<String>,
 }
 impl<A: TrelloApi, R: Clock> Trello<A, R> {
     pub fn new(api: A, clock: R) -> Self {
@@ -94,6 +97,7 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
             retry_at: 0,
             rejected: None,
             lifecycle: None,
+            pending_key: None,
         }
     }
     pub fn with_keyring(mut self, keyring: impl Keyring + 'static) -> Self {
@@ -157,6 +161,7 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
         }
         self.data["account"] = json!({"login": login});
         self.data["boards"] = json!(boards);
+        self.pending_key = None;
         self.refresh_pending = true;
         self.rejected = None;
         self.failures = 0;
@@ -200,6 +205,19 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
         self.refresh_pending = true;
         Ok(())
     }
+    /// Open the token page for the typed key and remember the key for the next panel.
+    pub fn authorize(
+        &mut self,
+        processes: &impl Processes,
+        key: &str,
+    ) -> Result<(), CredentialError> {
+        let url = authorization_url(key).ok_or(CredentialError::InvalidCredential)?;
+        self.pending_key = Some(key.trim().to_owned());
+        processes
+            .execute("xdg-open", &[&url])
+            .map(|_| ())
+            .map_err(|_| CredentialError::Offline)
+    }
     /// Erase key and token and forget the cached board.
     pub fn disconnect(&mut self) -> Result<(), CredentialError> {
         self.keyring
@@ -207,6 +225,7 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
             .map_err(|_| CredentialError::KeyringUnavailable)?;
         self.persistence.clear(Module::Trello);
         self.data = disconnected();
+        self.pending_key = None;
         self.updated_at = None;
         self.rejected = None;
         self.failures = 0;
@@ -236,6 +255,9 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
         let mut data = self.data.clone();
         let paused = self.paused();
         data["refreshing"] = json!(refreshing && !paused);
+        if let Some(key) = &self.pending_key {
+            data["pendingKey"] = json!(key);
+        }
         if paused {
             data["paused"] = json!(true);
             data["lastSuccessAt"] = json!(self.updated_at);
@@ -454,15 +476,6 @@ pub fn open_card(processes: &impl Processes, url: &str) -> bool {
     card_url(url).is_some_and(|url| processes.execute("xdg-open", &[url]).is_ok())
 }
 
-/// Token page for the pasted key; the key is not stored until validated.
-pub fn open_authorization(processes: &impl Processes, key: &str) -> Result<(), CredentialError> {
-    let url = authorization_url(key).ok_or(CredentialError::InvalidCredential)?;
-    processes
-        .execute("xdg-open", &[&url])
-        .map(|_| ())
-        .map_err(|_| CredentialError::Offline)
-}
-
 /// Where the user creates the app and API key.
 pub fn open_admin(processes: &impl Processes) {
     let _ = processes.execute("xdg-open", &["https://trello.com/apps/admin"]);
@@ -474,6 +487,7 @@ pub enum Command {
     Connect(String, String, Reply<String>),
     SelectBoard(String, Reply<()>),
     Disconnect(Reply<()>),
+    Authorize(String, Reply<()>),
 }
 pub struct Collector(pub std::sync::mpsc::Sender<Command>);
 pub fn start(app: tauri::AppHandle) {
@@ -505,6 +519,11 @@ pub fn start(app: tauri::AppHandle) {
                 }
                 Some(Command::SelectBoard(id, reply)) => {
                     let result = trello.select_board(&id);
+                    crate::snapshot::publish(&app, trello.snapshot(false));
+                    let _ = reply.send(result);
+                }
+                Some(Command::Authorize(key, reply)) => {
+                    let result = trello.authorize(&crate::ports::SystemProcesses, &key);
                     crate::snapshot::publish(&app, trello.snapshot(false));
                     let _ = reply.send(result);
                 }

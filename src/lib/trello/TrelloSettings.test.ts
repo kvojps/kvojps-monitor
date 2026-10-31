@@ -87,3 +87,9 @@ it("explains when the keyring refuses to disconnect", async () => {
   await fireEvent.click(screen.getByRole("button", { name: "Desconectar" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível apagar a key e o token");
 });
+
+it("keeps the key typed before generating the token when the panel reopens", async () => {
+  render(TrelloSettings, props({ ...emptyJson, pendingKey: "0123abcd" }));
+  expect(screen.getByLabelText("API key")).toHaveValue("0123abcd");
+  expect(screen.getByRole("button", { name: "Gerar token" })).toBeEnabled();
+});

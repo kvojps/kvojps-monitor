@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import type { TrelloData } from "../core";
   import { t, interpolate } from "../strings";
   let { data, connect, selectBoard, disconnect, openAdmin, authorize }: {
@@ -9,7 +10,8 @@
     openAdmin: () => void;
     authorize: (key: string) => void;
   } = $props();
-  let key = $state("");
+  // The browser closes the panel while the token is generated; restore the key once.
+  let key = $state(untrack(() => data?.pendingKey ?? ""));
   let token = $state("");
   let busy = $state(false);
   let message = $state("");

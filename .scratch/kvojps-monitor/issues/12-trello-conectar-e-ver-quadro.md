@@ -37,3 +37,9 @@ Integração futura autorizada pelo usuário no ticket 10: usar o estado compart
 
 - Corrigidos: keyring travado apagava o cache restaurado; reconectar descartava o quadro; leitura de quadros a cada atualização; `xdg-open` fora de porta; `Keyring::delete` com padrão silencioso.
 - Mantidos de propósito: 5xx/429 na validação aparecem como "Sem conexão" e a faixa de credencial inválida some enquanto offline, iguais ao GitHub. A lógica de backoff/pausa/loop duplica a do GitHub; extrair um coletor remoto compartilhado fica como refatoração futura (tocaria o ticket 11 já entregue).
+
+### Correção após uso real (31/10/2026)
+
+- Relato: ao clicar "Gerar token", o navegador abre, o Painel perde o foco e fecha (a webview é destruída, ticket 01); ao reabrir, a key digitada tinha sumido e o Módulo dizia "Trello não conectado".
+- Correção: "Gerar token" passa pelo coletor, que guarda a key só em memória (`pendingKey` no snapshot; nunca em cache, log ou keyring) até conectar ou desconectar. As Configurações reabrem com a key preenchida e o Módulo vazio orienta a colar o token. O texto do passo 2 avisa que o painel fecha.
+- `cargo test` (150) e `npm test` (71) aprovados.

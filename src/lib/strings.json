@@ -129,7 +129,7 @@
     "keyStep": "1. Crie um app em trello.com/apps/admin e gere uma API key na aba Trello Auth.",
     "openAdmin": "Abrir trello.com/apps/admin",
     "keyLabel": "API key",
-    "tokenStep": "2. Gere um token e cole abaixo.",
+    "tokenStep": "2. Gere um token. O navegador abre e o painel fecha; reabra o painel para colar o token, a key continua preenchida.",
     "generateToken": "Gerar token",
     "tokenLabel": "Token",
     "save": "Validar e salvar",
@@ -144,6 +144,7 @@
       "offline": "Sem conexão, tente de novo",
       "keyringUnavailable": "GNOME Keyring indisponível. Ative ou desbloqueie o chaveiro para salvar; a key e o token não foram salvos."
     },
-    "disconnectFailed": "Não foi possível apagar a key e o token: GNOME Keyring indisponível."
+    "disconnectFailed": "Não foi possível apagar a key e o token: GNOME Keyring indisponível.",
+    "pendingToken": "Token gerado? Cole-o nas Configurações para concluir."
   }
 }

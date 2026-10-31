@@ -33,6 +33,7 @@
   {#if data.refreshing}<span role="status">{t.trello.refreshing}</span>{/if}
   {#if data.state === "missingCredential"}
     <p>{t.trello.missingCredential}</p>
+    {#if data.pendingKey}<p class="secondary">{t.trello.pendingToken}</p>{/if}
     <button onclick={configure}>{t.trello.configure}</button>
   {:else if data.state === "chooseBoard"}
     <p>{t.trello.chooseBoard}</p>
