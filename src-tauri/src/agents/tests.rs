@@ -555,3 +555,75 @@ fn claude_switches_suppress_each_event_without_replaying_it_when_reenabled() {
         "Aguardando aprovação: Bash"
     );
 }
+
+#[test]
+fn hooks_publish_waiting_immediately_and_claude_polling_still_reconciles() {
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let mut monitor = Monitor::new(process.clone(), clock.clone());
+    monitor.hooks_enabled = true;
+    monitor.step().unwrap();
+    let event = |provider, id: &str, state| hooks::Metadata {
+        provider,
+        id: id.into(),
+        state,
+        tool: Some("Bash".into()),
+        cwd: "/tmp/project".into(),
+        interrupted: false,
+    };
+    let data = monitor.hook(event(Provider::Codex, "abc", SessionState::Waiting));
+    assert!(data.accent_dot);
+    assert!(!data.codex_waiting_unavailable);
+    assert_eq!(data.sessions[0].id, "codex:abc");
+    assert!(monitor.step().is_none());
+    let data = monitor.hook(event(Provider::Codex, "abc", SessionState::Closed));
+    assert!(data.sessions.is_empty());
+    assert_eq!(data.closed[0].last_state, Some(SessionState::Waiting));
+    monitor.hook(event(
+        Provider::Claude,
+        "claude-test",
+        SessionState::Working,
+    ));
+    clock.advance(2000);
+    let data = monitor.step().unwrap();
+    assert!(data.sessions.is_empty());
+    assert_eq!(data.closed.len(), 2);
+}
+
+#[test]
+fn codex_waiting_survives_polling_until_a_hook_or_rollout_finishes_the_turn() {
+    let source = codex::tests::source();
+    let files = source.test_files();
+    let clock = FakeClock::at(1800000000000);
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let mut monitor = Monitor::new(process, clock.clone()).with_codex(source);
+    monitor.hooks_enabled = true;
+    let data = monitor.step().unwrap();
+    let id = data.sessions[0]
+        .id
+        .strip_prefix("codex:")
+        .unwrap()
+        .to_string();
+    monitor.hook(hooks::Metadata {
+        provider: Provider::Codex,
+        id,
+        state: SessionState::Waiting,
+        tool: Some("Bash".into()),
+        cwd: "/tmp/project".into(),
+        interrupted: false,
+    });
+    clock.advance(2000);
+    assert_eq!(
+        monitor.step().unwrap().sessions[0].state,
+        SessionState::Waiting
+    );
+    files.write(
+        "/rollout.jsonl",
+        include_str!("../../fixtures/agents/codex/task_complete.jsonl"),
+    );
+    clock.advance(2000);
+    assert_eq!(
+        monitor.step().unwrap().sessions[0].state,
+        SessionState::Done
+    );
+}

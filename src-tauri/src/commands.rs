@@ -218,3 +218,17 @@ pub fn set_agent_notifications(
 ) {
     state.lock().unwrap().set_agent_notifications(preferences);
 }
+
+/// Hook files change only in response to the explicit settings click.
+#[tauri::command]
+pub async fn set_agent_hooks(
+    enabled: bool,
+    collector: State<'_, crate::agents::Collector>,
+) -> Result<(), String> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    collector
+        .0
+        .send((enabled, tx))
+        .map_err(|_| "collectorUnavailable".to_string())?;
+    rx.await.map_err(|_| "collectorUnavailable".to_string())?
+}

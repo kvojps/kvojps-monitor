@@ -1,11 +1,12 @@
 //! Local Claude and Codex session polling. Session metadata stays in memory only.
 mod codex;
 mod desktop;
+pub mod hooks;
 pub mod notifications;
 use crate::ports::{Clock, Processes};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SessionState {
     Working,
@@ -14,7 +15,7 @@ pub enum SessionState {
     Failed,
     Closed,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum Provider {
     Claude,
@@ -43,6 +44,7 @@ pub struct Session {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Data {
+    hooks_enabled: bool,
     sessions: Vec<Session>,
     closed: Vec<Session>,
     notification_preferences: notifications::Preferences,
@@ -107,6 +109,7 @@ impl Record {
     }
 }
 pub struct Monitor<P, C> {
+    hooks_enabled: bool,
     notifications: notifications::Policy,
     codex: Option<Box<dyn codex::Source>>,
     process: P,
@@ -118,6 +121,7 @@ pub struct Monitor<P, C> {
 impl<P: Processes, C: Clock> Monitor<P, C> {
     pub fn new(process: P, clock: C) -> Self {
         Self {
+            hooks_enabled: false,
             notifications: Default::default(),
             codex: None,
             process,
@@ -137,6 +141,66 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
     }
     pub fn set_notification_preferences(&mut self, preferences: notifications::Preferences) {
         self.notifications.preferences = preferences;
+    }
+    fn hook(&mut self, event: hooks::Metadata) -> Data {
+        let now = self.clock.now();
+        let id = if event.provider == Provider::Codex {
+            format!("codex:{}", event.id)
+        } else {
+            event.id
+        };
+        let previous = self.sessions.clone();
+        let index = self
+            .sessions
+            .iter()
+            .position(|s| s.id == id && s.provider == event.provider);
+        if event.state == SessionState::Closed {
+            if let Some(index) = index {
+                let mut session = self.sessions.remove(index);
+                session.last_state = Some(session.state);
+                session.state = SessionState::Closed;
+                session.closed_at = Some(now);
+                session.waiting_for = None;
+                self.closed.push(session);
+            }
+        } else {
+            let mut session = index
+                .map(|i| self.sessions[i].clone())
+                .unwrap_or_else(|| Session {
+                    id: id.clone(),
+                    provider: event.provider,
+                    state: event.state,
+                    project: std::path::Path::new(&event.cwd)
+                        .file_name()
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .unwrap_or(event.cwd),
+                    name: None,
+                    branch: None,
+                    started_at: now,
+                    updated_at: None,
+                    closed_at: None,
+                    last_state: None,
+                    waiting_for: None,
+                    interrupted: false,
+                    turn_duration: None,
+                });
+            session.state = event.state;
+            session.waiting_for = if event.state == SessionState::Waiting {
+                event.tool
+            } else {
+                None
+            };
+            session.interrupted = event.interrupted;
+            session.turn_duration = None;
+            if let Some(index) = index {
+                self.sessions[index] = session;
+            } else {
+                self.sessions.push(session);
+            }
+            self.closed.retain(|s| s.id != id);
+        }
+        self.notifications.observe(&previous, &self.sessions, now);
+        self.data(false)
     }
     pub fn step(&mut self) -> Option<Data> {
         let now = self.clock.now();
@@ -185,6 +249,25 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
                 }
             }
         }
+        // Codex polling has no waiting state: retain a hook's approval state while
+        // the rollout still reports an active turn. Terminal outcomes win.
+        if self.hooks_enabled {
+            for (session, live) in &mut sessions {
+                if *live
+                    && session.provider == Provider::Codex
+                    && session.state == SessionState::Working
+                {
+                    if let Some(previous) = self
+                        .sessions
+                        .iter()
+                        .find(|s| s.id == session.id && s.state == SessionState::Waiting)
+                    {
+                        session.state = SessionState::Waiting;
+                        session.waiting_for = previous.waiting_for.clone();
+                    }
+                }
+            }
+        }
         {
             let outcomes: std::collections::HashMap<_, _> = sessions
                 .iter()
@@ -217,13 +300,17 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             self.notifications.observe(&self.sessions, &live, now);
             self.sessions = live;
         }
+        Some(self.data(failed))
+    }
+    fn data(&mut self, failed: bool) -> Data {
+        let now = self.clock.now();
         self.closed
             .retain(|s| now.saturating_sub(s.closed_at.unwrap()) < 7_200_000);
         self.closed.sort_by_key(|s| std::cmp::Reverse(s.closed_at));
         self.closed.truncate(5);
         self.sessions
             .sort_by_key(|s| (s.state != SessionState::Waiting, s.started_at, s.id.clone()));
-        Some(Data {
+        Data {
             notification_preferences: self.notifications.preferences,
             accent_dot: self
                 .sessions
@@ -233,46 +320,93 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             closed: self.closed.clone(),
             failed,
             observed_at: now,
-            codex_waiting_unavailable: true,
-        })
+            hooks_enabled: self.hooks_enabled,
+            codex_waiting_unavailable: !self.hooks_enabled,
+        }
     }
 }
+pub struct Collector(
+    pub std::sync::mpsc::Sender<(bool, tokio::sync::oneshot::Sender<Result<(), String>>)>,
+);
+
 pub fn start(app: tauri::AppHandle) {
+    use crate::ports::HookSocket;
+    use tauri::Manager;
+    let (sender, receiver) =
+        std::sync::mpsc::channel::<(bool, tokio::sync::oneshot::Sender<Result<(), String>>)>();
+    app.manage(Collector(sender));
     std::thread::spawn(move || {
+        let Some(home) = dirs::home_dir() else {
+            return;
+        };
+        let executable = std::env::current_exe()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
+        let mut configuration =
+            hooks::Configuration::new(crate::persistence::DiskStorage(home.clone()), executable);
+        let mut socket =
+            hooks::socket_path().and_then(|path| crate::ports::UnixHookSocket::bind(&path).ok());
         let mut monitor = Monitor::new(crate::ports::SystemProcesses, crate::ports::SystemClock)
             .with_codex(codex::Adapter::new(
-                dirs::home_dir().unwrap_or_default().join(".codex"),
+                home.join(".codex"),
                 crate::ports::RootFilesystem::system(),
             ))
             .with_notifications(desktop::Desktop::new(app.clone()));
+        monitor.hooks_enabled = configuration.enabled();
         loop {
-            let preferences =
-                tauri::Manager::state::<std::sync::Mutex<crate::state::AppState>>(&app)
-                    .lock()
-                    .unwrap()
-                    .agent_notifications();
+            for (enabled, reply) in receiver.try_iter() {
+                let result = if enabled && socket.is_none() {
+                    Err("socketUnavailable".to_string())
+                } else {
+                    configuration
+                        .set_enabled(enabled)
+                        .map_err(|_| "configurationFailed".to_string())
+                };
+                monitor.hooks_enabled = configuration.enabled();
+                monitor.next = None;
+                let _ = reply.send(result);
+            }
+            let preferences = app
+                .state::<std::sync::Mutex<crate::state::AppState>>()
+                .lock()
+                .unwrap()
+                .agent_notifications();
             monitor.set_notification_preferences(preferences);
             if let Some(data) = monitor.step() {
-                if let Some(handle) =
-                    tauri::Manager::try_state::<ksni::Handle<crate::indicator::Indicator>>(&app)
-                {
-                    let dot = data.accent_dot;
-                    tauri::async_runtime::block_on(
-                        handle.update(move |i| i.state.accent_dot = dot),
-                    );
-                }
-                crate::snapshot::publish(
-                    &app,
-                    crate::snapshot::Snapshot {
-                        module: crate::module::Module::Agents,
-                        updated_at: Some(data.observed_at),
-                        data: serde_json::to_value(data).unwrap(),
-                    },
-                );
+                publish(&app, data);
             }
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            if let Some(socket) = &mut socket {
+                for _ in 0..64 {
+                    let Some(bytes) = socket.receive() else {
+                        break;
+                    };
+                    if monitor.hooks_enabled {
+                        if let Ok(event) = serde_json::from_slice::<hooks::Metadata>(&bytes) {
+                            publish(&app, monitor.hook(event));
+                        }
+                    }
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
         }
     });
+}
+fn publish(app: &tauri::AppHandle, data: Data) {
+    if let Some(handle) =
+        tauri::Manager::try_state::<ksni::Handle<crate::indicator::Indicator>>(app)
+    {
+        let dot = data.accent_dot;
+        tauri::async_runtime::block_on(handle.update(move |i| i.state.accent_dot = dot));
+    }
+    crate::snapshot::publish(
+        app,
+        crate::snapshot::Snapshot {
+            module: crate::module::Module::Agents,
+            updated_at: Some(data.observed_at),
+            data: serde_json::to_value(data).unwrap(),
+        },
+    );
 }
 #[cfg(test)]
 mod tests;

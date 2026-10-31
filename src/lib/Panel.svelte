@@ -114,7 +114,7 @@
         <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
       {/if}
       {#if view === "settings"}
-        <AgentSettings data={snapshots.agents?.data as AgentsData | undefined} save={(preferences) => core.setAgentNotifications?.(preferences)} />
+        <AgentSettings setHooks={core.setAgentHooks} data={snapshots.agents?.data as AgentsData | undefined} save={(preferences) => core.setAgentNotifications?.(preferences)} />
         <AiSettings data={snapshots.ai?.data as AiData | undefined}
           connect={() => core.connectClaude ? core.connectClaude() : Promise.reject("unwritable")}
           disconnect={() => core.disconnectClaude ? core.disconnectClaude() : Promise.reject("unwritable")}

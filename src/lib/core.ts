@@ -48,6 +48,7 @@ export interface AgentNotificationPreferences { waiting: boolean; done: boolean;
 
 export interface Core {
   listenAgentTarget?(cb: (session: string) => void): Promise<() => void>;
+  setAgentHooks?(enabled: boolean): Promise<void>;
   setAgentNotifications?(preferences: AgentNotificationPreferences): void;
   initialState(): Promise<InitialState>;
   listenSnapshots(cb: (s: Snapshot) => void): Promise<() => void>;
@@ -78,6 +79,7 @@ export interface Core {
 
 export const tauriCore: Core = {
   listenAgentTarget: (cb) => listen<string>("agent-target", (e) => cb(e.payload)),
+  setAgentHooks: (enabled) => invoke<void>("set_agent_hooks", { enabled }),
   setAgentNotifications: (preferences) => void invoke("set_agent_notifications", { preferences }),
   initialState: () => invoke<InitialState>("initial_state"),
   async listenSnapshots(cb) {
@@ -217,6 +219,7 @@ export interface AgentSession {
   lastState?: "working" | "waiting" | "done" | "failed" | null;
 }
 export interface AgentsData {
+  hooksEnabled?: boolean;
   notificationPreferences?: AgentNotificationPreferences;
   codexWaitingUnavailable?: boolean;
   sessions: AgentSession[];

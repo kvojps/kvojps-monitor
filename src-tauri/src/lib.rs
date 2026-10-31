@@ -90,6 +90,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::initial_state,
             commands::set_agent_notifications,
+            commands::set_agent_hooks,
             commands::report_module_visible,
             commands::close_panel,
             commands::refresh_ai,
@@ -120,4 +121,9 @@ pub fn run() {
                 api.prevent_exit();
             }
         });
+}
+
+/// Best-effort hook subprocess entry point, before GUI/single-instance setup.
+pub fn run_hook(provider: &str, event: &str) {
+    agents::hooks::run(provider, event);
 }

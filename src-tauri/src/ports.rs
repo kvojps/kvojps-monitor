@@ -523,3 +523,39 @@ mod tests {
         assert!(!watch.changed());
     }
 }
+
+/// Nonblocking, best-effort metadata channel between hook subprocesses and core.
+pub trait HookSocket: Send {
+    fn send(&mut self, bytes: &[u8]) -> io::Result<()>;
+    fn receive(&mut self) -> Option<Vec<u8>>;
+}
+pub struct UnixHookSocket(std::os::unix::net::UnixDatagram);
+impl UnixHookSocket {
+    pub fn sender(path: &std::path::Path) -> io::Result<Self> {
+        let socket = std::os::unix::net::UnixDatagram::unbound()?;
+        socket.set_nonblocking(true)?;
+        socket.connect(path)?;
+        Ok(Self(socket))
+    }
+    pub fn bind(path: &std::path::Path) -> io::Result<Self> {
+        use std::os::unix::fs::PermissionsExt;
+        if path.exists() {
+            std::fs::remove_file(path)?;
+        }
+        let socket = std::os::unix::net::UnixDatagram::bind(path)?;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
+        socket.set_nonblocking(true)?;
+        Ok(Self(socket))
+    }
+}
+impl HookSocket for UnixHookSocket {
+    fn send(&mut self, bytes: &[u8]) -> io::Result<()> {
+        self.0.send(bytes).map(|_| ())
+    }
+    fn receive(&mut self) -> Option<Vec<u8>> {
+        let mut bytes = vec![0; 65536];
+        let length = self.0.recv(&mut bytes).ok()?;
+        bytes.truncate(length);
+        Some(bytes)
+    }
+}
