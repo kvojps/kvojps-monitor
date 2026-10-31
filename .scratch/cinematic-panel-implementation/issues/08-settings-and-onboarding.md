@@ -33,3 +33,13 @@ Implementação inicial commitada em `d86fbd9`, sobre `e71e841`. Complemento e r
 - **Falhas recuperáveis:** erro ao carregar Geral oferece “Tentar novamente”; falha ao salvar checagem de versão aparece junto do interruptor. Aparência informa falha e restaura a escolha confirmada. Comandos de preferências propagam falhas de gravação; o núcleo também restaura os valores anteriores.
 - **Cobertura adicional:** testes da UI pelos comandos/fixtures existentes; núcleo pelas portas de persistência, arquivos, processos e portal. Nenhuma alteração em credenciais ou conteúdo sensível.
 - **Evidência ainda incompleta:** `appearance/portal.json` contém leitura real inicial, mas sequência de mudanças construída; `releases/newer.json` deriva de resposta real de outro repositório. Os READMEs deixam essa origem explícita. Falta capturar sinais reais ao alternar o tema e uma release positiva deste app quando existir; testes controlados não comprovam essas integrações. Ver ticket 10. O ticket permanece `ready-for-human` até validar a evidência nativa, sem declarar a validação concluída.
+
+## Revisão final e validação (2026-10-31)
+
+Complemento commitado em `418065c` (`fix: complete settings error recovery and live updates`). Revisões independentes sobre `d86fbd9...418065c`:
+
+- **Padrões:** nenhum achado novo; E/S nas portas injetáveis e guardrails preservados.
+- **Spec:** nenhum defeito novo ou expansão de escopo; a evidência nativa permanece parcial, explicitamente registrada acima e no ticket 10.
+- **Validação automatizada:** `npm run check` sem erros/avisos; `npm test` com 207 testes; `npm run build` aprovado; `cargo test --manifest-path src-tauri/Cargo.toml` com 271 testes de núcleo e 3 de integração. A suíte de integração foi executada fora do sandbox, que bloqueia criação de sockets Unix.
+
+Total da revisão final: 0 achados de padrões e 0 defeitos novos de spec. Nenhuma medição nativa ou captura real pendente foi declarada concluída.
