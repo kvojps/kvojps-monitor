@@ -96,7 +96,7 @@
     {#if moveFailed}<p role="alert" class="notice alert">{t.trello.moveFailed}</p>{/if}
     {#if data.board}<h3 class="board">{data.board.name}</h3>{/if}
     {#if lists.length === 0}<p class="blank">{t.trello.noLists}</p>{:else}
-    <div class="columns" data-stale={stale} class:dimmed={stale}>
+    <div class="columns" data-stale={stale}>
       {#each lists as list (list.id)}
         {@const target = movable && selected != null && listOf(selected) !== list.id}
         <!-- Clicking anywhere in a column is a mouse shortcut; the header button is the keyboard path. -->
@@ -155,7 +155,7 @@
   .trello { padding: 16px 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 12px; flex: 1; font-size: 12px; }
   .board { font: 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
   h4 { font-size: 12px; font-weight: 600; margin-bottom: 8px; overflow-wrap: anywhere; }
-  .dimmed { opacity: .5; }
+  .columns[data-stale="true"] { color: var(--muted); }
   .secondary { color: var(--muted); }
   /* Long lists scroll inside their column; no card is hidden to keep the rows even. */
   .columns { display: flex; gap: 8px; overflow-x: auto; align-items: flex-start; padding-bottom: 4px; min-height: 240px; }

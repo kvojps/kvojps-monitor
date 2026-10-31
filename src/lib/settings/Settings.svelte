@@ -166,7 +166,7 @@
     font: 13px var(--mono);
     color: var(--text);
     background: var(--surface);
-    border: 1px solid var(--line);
+    border: 1px solid var(--control-line);
     border-radius: 6px;
   }
   .settings :global(input[aria-invalid="true"]) { border-color: var(--bad); }
@@ -178,7 +178,7 @@
     min-height: 36px;
     margin: 8px 8px 0 0;
     padding: 8px 16px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--control-line);
     border-radius: 0 18px 18px 0;
     background: var(--surface-2);
     color: var(--text);

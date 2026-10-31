@@ -8,10 +8,12 @@
   --surface: #06111d;
   --surface-2: #0a1d2c;
   --line: #173c51;
+  --control-line: #7191a5;
   --text: #d8f5ff;
   --muted: #9bb9c7;
   --faint: #8ba6b8;
   --accent: #4ce5ff;
+  --chart-secondary: #718fce;
   --accent-dim: #4ce5ff22;
   /* Semantic colors for states only: success, warning and failure. */
   --ok: #4ade80;
@@ -42,10 +44,12 @@
   --surface: #e4edf5;
   --surface-2: #d5e3ef;
   --line: #9ab2c6;
+  --control-line: #526e84;
   --text: #132c40;
   --muted: #38566b;
   --faint: #4a6579;
   --accent: #00687f;
+  --chart-secondary: #4c66a0;
   --accent-dim: #00687f1f;
   --ok: #17663f;
   --warn: #7a4f00;

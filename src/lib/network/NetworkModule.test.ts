@@ -243,3 +243,16 @@ it("labels each chart series with its own line style next to the chart", () => {
   expect(within(traffic).getByText("Descida").closest("div")!.querySelector("svg line.download")).not.toBeNull();
   expect(within(traffic).getByText("Subida").closest("div")!.querySelector("svg line.upload")).not.toBeNull();
 });
+
+it("exposes both measured speed values and units to assistive technology", () => {
+  after(full, 60_000);
+  render(NetworkModule, { data: dataOf(full) });
+  expect(screen.getByRole("button", { name: "Testar velocidade" }))
+    .toHaveAccessibleDescription(/Descida: 8 Mbps.*Subida: 3 Mbps/);
+});
+
+it("describes the absence of a speed measurement when the action name replaces its contents", () => {
+  render(NetworkModule, { data: dataOf(running) });
+  expect(screen.getByRole("button", { name: "Testando velocidade…" }))
+    .toHaveAccessibleDescription("Sem teste de velocidade");
+});

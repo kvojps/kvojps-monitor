@@ -116,7 +116,7 @@
       <div class="speed-instrument" role="group" aria-label={t.network.speed}>
         <button class="speed" disabled={!data.speedAvailable || data.speedRunning} onclick={runSpeed}
           aria-label={data.speedRunning ? t.network.testingSpeed : t.network.testSpeed}
-          aria-describedby={speedAge ? "network-speed-age" : undefined}>
+          aria-describedby={speedAge ? "network-speed-age network-speed-values" : "network-speed-values"}>
           {#if speed}
             <span class="speed-values num"><b>↓ {number.format(speed.download)}</b><b>↑ {number.format(speed.upload)}</b></span>
           {:else}
@@ -124,6 +124,11 @@
           {/if}
           <span class="caption">{t.network.capacity} · <span aria-hidden="true">{data.speedRunning ? "◌" : "↻"}&nbsp;</span>{data.speedRunning ? t.network.testingSpeed : t.network.testSpeed}</span>
         </button>
+        {#if speed}
+          <span id="network-speed-values" class="sr-only">{t.network.download}: {number.format(speed.download)} Mbps. {t.network.upload}: {number.format(speed.upload)} Mbps.</span>
+        {:else}
+          <span id="network-speed-values" class="sr-only">{t.network.noSpeed}</span>
+        {/if}
         {#if speedAge}<span id="network-speed-age" class="when num" class:shown={speedOld} class:old={speedStale}>{speedAge}</span>{/if}
         {#if !data.speedAvailable && !data.speedRunning}
           <p class="note"><span aria-hidden="true">⊘&nbsp;</span>{t.network.speedUnavailable}</p>
@@ -187,6 +192,7 @@
 
 <style>
   .network { padding: 16px 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 12px; flex: 1; font-size: 12px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .blank { display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
   .axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
   .axis { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--surface-2); border-left: 4px solid var(--line); }
@@ -216,7 +222,7 @@
   .speed-none { font-size: 13px; color: var(--muted); }
   /* Test age and date: on pointer and keyboard focus, always when old or not repeatable now. */
   .when { display: none; font-size: 11px; color: var(--muted); }
-  .when.shown, .speed:hover + .when, .speed:focus-visible + .when { display: block; }
+  .when.shown, .speed:hover ~ .when, .speed:focus-visible ~ .when { display: block; }
   .when.old { color: var(--warn); }
   .note { font-size: 11px; color: var(--muted); }
   .note.warn { color: var(--warn); }
@@ -229,9 +235,9 @@
   .grid { stroke: var(--line); stroke-dasharray: 2 4; fill: none; }
   polyline, .key line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
   polyline.download, .key .download { stroke: var(--accent); }
-  polyline.upload, .key .upload { stroke: var(--band-blue); stroke-dasharray: 5 3; }
+  polyline.upload, .key .upload { stroke: var(--chart-secondary); stroke-dasharray: 5 3; }
   .key { width: 18px; height: 6px; margin-right: 6px; vertical-align: middle; }
-  circle.download { fill: var(--accent); } rect.upload { fill: var(--band-blue); }
+  circle.download { fill: var(--accent); } rect.upload { fill: var(--chart-secondary); }
   .rates { display: flex; justify-content: space-between; gap: 12px; margin: 6px 0 0; font-size: 12px; }
   .rates div { display: flex; gap: 6px; }
   .rates dt { color: var(--muted); }
@@ -244,6 +250,6 @@
   .app.others .name { color: var(--muted); }
   .bars { display: grid; gap: 3px; }
   .bars i { display: block; height: 4px; min-width: 1px; background: var(--accent); border-radius: 0 4px 4px 0; }
-  .bars i.up { background: var(--band-blue); }
+  .bars i.up { background: var(--chart-secondary); }
   .app-rates { display: flex; flex-direction: column; font-size: 11px; color: var(--muted); text-align: right; }
 </style>

@@ -58,7 +58,7 @@
       <p class="notice" role="status"><span aria-hidden="true">◷ </span>{interpolate(t.system.stale, { age: age(staleSince) })}</p>
     {/if}
 
-    <div class="readings" class:dimmed={staleSince !== null}>
+    <div class="readings">
       <div class="top">
         <div class="cpu" role="group" aria-labelledby="system-cpu">
           {#if cpu.usage === null}
@@ -132,7 +132,6 @@
   .blank { display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
   .notice { font-size: 11px; color: var(--warn); }
   .readings { display: flex; flex-direction: column; gap: 14px; flex: 1; }
-  .readings.dimmed { opacity: 0.75; }
   .top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
   .cpu, .temperature { display: flex; flex-direction: column; gap: 4px; }
   .temperature { align-items: flex-end; text-align: right; }

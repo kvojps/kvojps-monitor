@@ -644,3 +644,28 @@ it("restores choreography only after a recreated webview receives native state",
   render(Panel, { core: visibleCore });
   await vi.waitFor(() => expect(document.documentElement.dataset.decoration).toBe("running"));
 });
+
+it("recovers one source without replacing another source's reading or selected card", async () => {
+  const invalidGithub = { ...githubFull, state: "invalidCredential" };
+  const { core, publish } = fakeCore({ snapshots: [
+    { module: "ai", updatedAt: 1, data: aiFull },
+    { module: "github", updatedAt: 1, data: invalidGithub },
+    { module: "trello", updatedAt: 1, data: trelloFull },
+  ] });
+  render(Panel, { core });
+  const meter = await screen.findByRole("meter", { name: "Codex · janela de 5 h" });
+  const value = meter.getAttribute("aria-valuenow");
+  const card = within(section("Trello")).getByRole("button", { name: new RegExp(trelloFull.lists[0].cards[0].name) });
+  await userEvent.click(card);
+  const scroller = screen.getByRole("main");
+  scroller.scrollTop = 180;
+  expect(within(section("GitHub")).getByRole("button", { name: "Reconectar" })).toBeInTheDocument();
+
+  await publish({ module: "github", updatedAt: 2, data: githubFull });
+
+  expect(within(section("GitHub")).queryByRole("button", { name: "Reconectar" })).not.toBeInTheDocument();
+  expect(meter).toHaveAttribute("aria-valuenow", value);
+  expect(card).toHaveAttribute("aria-pressed", "true");
+  expect(card).toHaveFocus();
+  expect(scroller.scrollTop).toBe(180);
+});

@@ -780,7 +780,14 @@ mod tests {
     fn ui_snapshot_fixtures_come_from_core() {
         let dir =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/lib/system/fixtures");
-        for name in ["notebook", "desktop", "no-sensor", "warning", "missing", "starting"] {
+        for name in [
+            "notebook",
+            "desktop",
+            "no-sensor",
+            "warning",
+            "missing",
+            "starting",
+        ] {
             let (when, data) = ui_scenario(name);
             let json = serde_json::to_string_pretty(&snapshot(when, &data)).unwrap() + "\n";
             let file = dir.join(format!("{name}.json"));

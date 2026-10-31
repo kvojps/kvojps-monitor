@@ -96,7 +96,7 @@
     {#if data?.lastSuccessAt != null && (data.state !== "ready" || paused)}
       <p class="notice num">{interpolate(t.github.updatedAge, { age: age(data.lastSuccessAt) })}</p>
     {/if}
-    <div class="readings" data-stale={invalid} class:dimmed={invalid}>
+    <div class="readings" data-stale={invalid}>
       {#if activity}
         {@const { eight, fourteen } = activity}
         <div class="lead">
@@ -162,8 +162,8 @@
 
 <style>
   .github { padding: 16px 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+  .readings[data-stale="true"] { --text: var(--muted); --accent: var(--muted); color: var(--muted); }
   .readings { display: flex; flex-direction: column; gap: 12px; flex: 1; }
-  .dimmed { opacity: 0.5; }
   .lead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
   .annual { display: flex; flex-direction: column; gap: 2px; }
   strong { font-size: 36px; font-weight: 300; line-height: 1.1; }
@@ -173,7 +173,7 @@
   .heatmap span { background: color-mix(in srgb, var(--accent) calc(var(--intensity) * 100%), transparent); border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); }
   .bars { display: flex; align-items: flex-end; gap: 5px; height: 90px; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--line); }
   .bars li { flex: 1; height: 100%; display: flex; align-items: flex-end; }
-  .bars i { display: block; width: 100%; background: var(--band-cyan); border-radius: 4px 4px 0 0; }
+  .bars i { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; }
   .caption { font-size: 11px; color: var(--muted); }
   .repo { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); min-width: 0; }
   h3 { font: 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }

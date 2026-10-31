@@ -134,5 +134,5 @@
 
   .flow { display: flex; flex-direction: column; margin-top: auto; }
   .flow div { display: flex; justify-content: space-between; gap: 8px; padding: 9px 4px; border-bottom: 3px solid var(--surface-2); font-size: 11px; color: var(--muted); }
-  .flow dd { color: var(--band-violet); font-weight: 600; }
+  .flow dd { color: var(--band-lavender-text); font-weight: 600; }
 </style>
