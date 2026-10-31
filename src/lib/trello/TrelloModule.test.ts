@@ -10,7 +10,9 @@ import invalidJson from "./fixtures/invalid-credential.json";
 import errorJson from "./fixtures/error.json";
 
 const full = fullJson as TrelloData;
-const props = (data: unknown) => ({ data: data as TrelloData, refresh: vi.fn(), configure: vi.fn(), openCard: vi.fn() });
+const props = (data: unknown, moveCard = vi.fn(() => new Promise<void>(() => {}))) =>
+  ({ data: data as TrelloData, refresh: vi.fn(), configure: vi.fn(), openCard: vi.fn(), moveCard });
+const column = (name: string) => screen.getByRole("region", { name });
 
 it("shows each list as a column with its cards", () => {
   render(TrelloModule, props(full));
@@ -99,4 +101,89 @@ it("points back to Settings to paste the token after generating it", () => {
   render(TrelloModule, props({ ...emptyJson, pendingKey: "0123abcd" }));
   expect(screen.getByText("Token gerado? Cole-o nas Configurações para concluir.")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Configurar" })).toBeInTheDocument();
+});
+
+it("moves a selected card to the clicked list right away", async () => {
+  const p = props(full);
+  render(TrelloModule, p);
+  const [from, to] = full.lists!;
+  const card = from.cards[0];
+  await fireEvent.click(screen.getByText(card.name));
+  await fireEvent.click(column(to.name));
+  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(card.id, to.id);
+  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
+  expect(within(column(from.name)).queryByText(card.name)).not.toBeInTheDocument();
+});
+
+it("puts the card back and explains when the move fails", async () => {
+  const p = props(full, vi.fn(() => Promise.reject("failed")));
+  render(TrelloModule, p);
+  const [from, to] = full.lists!;
+  const card = from.cards[0];
+  await fireEvent.click(screen.getByText(card.name));
+  await fireEvent.click(column(to.name));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível mover");
+  expect(within(column(from.name)).getByText(card.name)).toBeInTheDocument();
+  expect(within(column(to.name)).queryByText(card.name)).not.toBeInTheDocument();
+});
+
+it("cancels a selection by clicking the card again or its own list", async () => {
+  const p = props(full);
+  render(TrelloModule, p);
+  const [from, to] = full.lists!;
+  const card = screen.getByText(from.cards[0].name);
+  const cancelThenTarget = async (cancel: () => Promise<unknown>) => {
+    await fireEvent.click(card);
+    await cancel();
+    await fireEvent.click(column(to.name));
+  };
+  await cancelThenTarget(() => fireEvent.click(card));
+  await cancelThenTarget(() => fireEvent.click(column(from.name)));
+  expect(p.moveCard).not.toHaveBeenCalled();
+  expect(within(column(from.name)).getByText(from.cards[0].name)).toBeInTheDocument();
+});
+
+it("does not move cards while offline or with a refused credential", async () => {
+  for (const data of [{ ...full, paused: true, lastSuccessAt: 1 }, invalidJson]) {
+    const p = props(data);
+    const { unmount } = render(TrelloModule, p);
+    const [from, to] = (data as TrelloData).lists!;
+    await fireEvent.click(screen.getByText(from.cards[0].name));
+    await fireEvent.click(column(to.name));
+    expect(p.moveCard).not.toHaveBeenCalled();
+    unmount();
+  }
+});
+
+it("keeps a moved card in place until the core publishes the reread board", async () => {
+  let done!: () => void;
+  const p = props(full, vi.fn(() => new Promise<void>((resolve) => done = resolve)));
+  const { rerender } = render(TrelloModule, p);
+  const [from, to] = full.lists!;
+  const card = from.cards[0];
+  await fireEvent.click(screen.getByText(card.name));
+  await fireEvent.click(column(to.name));
+  done();
+  await new Promise((settle) => setTimeout(settle));
+  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
+  const moved = structuredClone(full);
+  moved.lists![1].cards.push(moved.lists![0].cards.shift()!);
+  await rerender({ data: moved });
+  expect(within(column(to.name)).getAllByText(card.name)).toHaveLength(1);
+  expect(within(column(from.name)).queryByText(card.name)).not.toBeInTheDocument();
+});
+
+it("shows the latest destination when a card is moved again before the core answers", async () => {
+  const replies: (() => void)[] = [];
+  const p = props(full, vi.fn(() => new Promise<void>((_, reject) => replies.push(() => reject("failed")))));
+  render(TrelloModule, p);
+  const [from, second, third] = full.lists!;
+  const card = from.cards[0];
+  await fireEvent.click(screen.getByText(card.name));
+  await fireEvent.click(column(second.name));
+  await fireEvent.click(screen.getByText(card.name));
+  await fireEvent.click(column(third.name));
+  replies[0]();
+  await screen.findByRole("alert");
+  expect(within(column(third.name)).getByText(card.name)).toBeInTheDocument();
 });

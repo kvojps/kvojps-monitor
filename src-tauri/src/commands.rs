@@ -135,6 +135,22 @@ pub async fn open_trello_authorization(
     .await
 }
 
+/// Rejects when Trello refuses or cannot be reached; the panel then undoes its
+/// optimistic move.
+#[tauri::command]
+pub async fn move_trello_card(
+    card: String,
+    list: String,
+    collector: State<'_, crate::trello::Collector>,
+) -> Result<(), crate::trello::MoveError> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    collector
+        .0
+        .send(crate::trello::Command::Move(card, list, tx))
+        .map_err(|_| crate::trello::MoveError)?;
+    rx.await.map_err(|_| crate::trello::MoveError)?
+}
+
 // Async commands run off the main thread while xdg-open hands the URL over.
 #[tauri::command]
 pub async fn open_trello_card(url: String) {

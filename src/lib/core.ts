@@ -60,6 +60,8 @@ export interface Core {
   openTrelloAdmin?(): void;
   openTrelloAuthorization?(key: string): void;
   openTrelloCard?(url: string): void;
+  /** Rejects when Trello refuses or cannot be reached. */
+  moveTrelloCard?(card: string, list: string): Promise<void>;
   closePanel(): void;
 }
 
@@ -81,6 +83,7 @@ export const tauriCore: Core = {
   openTrelloAdmin: () => void invoke("open_trello_admin"),
   openTrelloAuthorization: (key) => void invoke("open_trello_authorization", { key }),
   openTrelloCard: (url) => void invoke("open_trello_card", { url }),
+  moveTrelloCard: (card, list) => invoke<void>("move_trello_card", { card, list }),
   closePanel: () => void invoke("close_panel"),
 };
 

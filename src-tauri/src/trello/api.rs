@@ -30,36 +30,51 @@ pub fn authorization_url(key: &str) -> Option<String> {
     })
 }
 
-/// GET relative to https://api.trello.com/1, e.g. /members/me.
+/// Requests relative to https://api.trello.com/1, e.g. /members/me.
 pub trait TrelloApi: Send {
     fn get(&self, auth: &Auth, path: &str) -> Result<Value, HttpError>;
+    /// Update with query parameters; the response body is not needed.
+    fn put(&self, auth: &Auth, path: &str) -> Result<(), HttpError>;
 }
 
 pub struct TrelloHttp;
-impl TrelloApi for TrelloHttp {
-    fn get(&self, auth: &Auth, path: &str) -> Result<Value, HttpError> {
+impl TrelloHttp {
+    fn send(
+        method: reqwest::Method,
+        auth: &Auth,
+        path: &str,
+    ) -> Result<reqwest::blocking::Response, HttpError> {
         let response = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .map_err(|_| HttpError::default())?
-            .get(format!("https://api.trello.com/1{path}"))
+            .request(method, format!("https://api.trello.com/1{path}"))
             .header("Authorization", auth.header())
             .send()
             .map_err(|_| HttpError::default())?;
-        let status = response.status().as_u16();
         if !response.status().is_success() {
             return Err(HttpError::response(
-                status,
+                response.status().as_u16(),
                 response
                     .headers()
                     .get("retry-after")
                     .and_then(|value| value.to_str().ok()),
             ));
         }
+        Ok(response)
+    }
+}
+impl TrelloApi for TrelloHttp {
+    fn get(&self, auth: &Auth, path: &str) -> Result<Value, HttpError> {
+        let response = Self::send(reqwest::Method::GET, auth, path)?;
+        let status = response.status().as_u16();
         response.json().map_err(|_| HttpError {
             status: Some(status),
             ..HttpError::default()
         })
+    }
+    fn put(&self, auth: &Auth, path: &str) -> Result<(), HttpError> {
+        Self::send(reqwest::Method::PUT, auth, path).map(|_| ())
     }
 }
 

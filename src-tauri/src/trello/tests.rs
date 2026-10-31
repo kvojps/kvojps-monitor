@@ -10,6 +10,9 @@ impl TrelloApi for NoHttp {
     fn get(&self, _: &Auth, _: &str) -> Result<Value, HttpError> {
         panic!("HTTP must not be called without credentials")
     }
+    fn put(&self, _: &Auth, _: &str) -> Result<(), HttpError> {
+        panic!("HTTP must not be called without credentials")
+    }
 }
 
 #[test]
@@ -32,6 +35,8 @@ struct Api {
     status: Arc<Mutex<Option<u16>>>,
     lists: Arc<Mutex<Option<Value>>>,
     calls: Arc<Mutex<Vec<String>>>,
+    /// Status of the next card update; Some(0) is a network failure.
+    put_status: Arc<Mutex<Option<u16>>>,
 }
 impl Api {
     fn fail(&self, status: Option<u16>) {
@@ -59,6 +64,16 @@ impl TrelloApi for Api {
                 .unwrap_or_else(|| fixture("lists")),
             _ => panic!("unexpected route {route}"),
         })
+    }
+    fn put(&self, _: &Auth, path: &str) -> Result<(), HttpError> {
+        self.calls.lock().unwrap().push(format!("PUT {path}"));
+        match *self.put_status.lock().unwrap() {
+            Some(status) => Err(HttpError {
+                status: (status != 0).then_some(status),
+                ..HttpError::default()
+            }),
+            None => Ok(()),
+        }
     }
 }
 
@@ -345,6 +360,9 @@ impl TrelloApi for RateLimited {
             return Err(HttpError::response(429, Some("180")));
         }
         Api::default().get(auth, path)
+    }
+    fn put(&self, auth: &Auth, path: &str) -> Result<(), HttpError> {
+        Api::default().put(auth, path)
     }
 }
 
@@ -730,4 +748,161 @@ fn generating_a_token_keeps_the_key_in_memory_while_the_panel_is_closed() {
         let text = std::fs::read_to_string(dir.path().join(file)).unwrap_or_default();
         assert!(!text.contains("0123abcd"), "{file}");
     }
+}
+
+const CARD: &str = "000000000000000000000004";
+const FIRST_LIST: &str = "000000000000000000000003";
+const EMPTY_LIST: &str = "00000000000000000000000a";
+
+fn card_ids(data: &Value, list: usize) -> Vec<String> {
+    data["lists"][list]["cards"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|card| card["id"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+/// The recorded board after the first card moved to the empty second list.
+fn moved_lists() -> Value {
+    let mut lists = fixture("lists");
+    let card = lists[0]["cards"].as_array_mut().unwrap().remove(0);
+    lists[1]["cards"].as_array_mut().unwrap().push(card);
+    lists
+}
+
+#[test]
+fn moving_a_card_updates_its_list_then_rereads_the_board_and_restarts_the_clock() {
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), clock.clone());
+    trello.step(true, false).unwrap();
+    clock.advance(20_000);
+    api.calls.lock().unwrap().clear();
+    *api.lists.lock().unwrap() = Some(moved_lists());
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Ok(()));
+    let calls = api.calls.lock().unwrap().clone();
+    assert_eq!(
+        calls[0],
+        format!("PUT /cards/{CARD}?idList={EMPTY_LIST}&pos=bottom")
+    );
+    assert!(calls[1].starts_with(&format!("/boards/{}/lists?", board_id(0))));
+    let snapshot = trello.snapshot(false);
+    assert_eq!(snapshot.updated_at, Some(NOW + 20_000));
+    assert!(!card_ids(&snapshot.data, 0).contains(&CARD.to_owned()));
+    assert_eq!(card_ids(&snapshot.data, 1), [CARD]);
+    clock.advance(29_999);
+    assert!(trello.step(true, false).is_none());
+    clock.advance(1);
+    assert!(trello.step(true, false).is_some());
+}
+
+#[test]
+fn failed_move_keeps_the_last_board_and_its_clock_and_logs_only_metadata() {
+    for status in [Some(500), Some(0)] {
+        let dir = tempfile::tempdir().unwrap();
+        let clock = FakeClock::at(NOW);
+        let api = Api::default();
+        let vault = Vault::default();
+        let mut trello = Trello::new(api.clone(), clock.clone())
+            .with_keyring(vault.clone())
+            .with_persistence(disk(&dir));
+        trello.connect("0123abcd", "private-token").unwrap();
+        trello.select_board(&board_id(0)).unwrap();
+        let before = trello.step(true, false).unwrap();
+        clock.advance(20_000);
+        api.calls.lock().unwrap().clear();
+        *api.put_status.lock().unwrap() = status;
+        assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+        assert_eq!(api.calls.lock().unwrap().len(), 1, "no re-read");
+        let after = trello.snapshot(false);
+        assert_eq!(after.data, before.data);
+        assert_eq!(after.updated_at, Some(NOW));
+        let log = std::fs::read_to_string(dir.path().join("state/info.log")).unwrap();
+        assert!(log.lines().last().unwrap().contains("failed"));
+        for secret in [CARD, EMPTY_LIST, "private-token", "0123abcd", "Card 1.1"] {
+            assert!(!log.contains(secret), "{secret}");
+        }
+        clock.advance(10_000);
+        assert!(trello.step(true, false).is_some(), "regular 30 s cadence");
+    }
+}
+
+#[test]
+fn refused_move_marks_the_credential_invalid_and_stops_requests() {
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), clock.clone());
+    trello.step(true, false).unwrap();
+    *api.put_status.lock().unwrap() = Some(401);
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+    assert_eq!(trello.snapshot(false).data["state"], "invalidCredential");
+    api.calls.lock().unwrap().clear();
+    clock.advance(600_000);
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+    assert!(trello.step(true, true).is_none());
+    assert!(api.calls.lock().unwrap().is_empty());
+}
+
+#[test]
+fn moves_wait_for_the_backoff_after_a_failed_read() {
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), clock.clone());
+    trello.step(true, false).unwrap();
+    clock.advance(30_000);
+    api.fail(Some(503));
+    trello.step(true, false).unwrap();
+    api.fail(None);
+    api.calls.lock().unwrap().clear();
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+    assert!(api.calls.lock().unwrap().is_empty());
+    clock.advance(30_000);
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Ok(()));
+}
+
+#[test]
+fn moves_only_cards_and_lists_of_the_shown_board_while_online() {
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), clock.clone());
+    assert_eq!(
+        trello.move_card(CARD, EMPTY_LIST),
+        Err(MoveError),
+        "board not read yet"
+    );
+    trello.step(true, false).unwrap();
+    api.calls.lock().unwrap().clear();
+    for (card, list) in [
+        ("000000000000000000000999", EMPTY_LIST),
+        (CARD, "000000000000000000000999"),
+        (CARD, "a&idBoard=x"),
+        (CARD, FIRST_LIST),
+    ] {
+        assert_eq!(
+            trello.move_card(card, list),
+            Err(MoveError),
+            "{card} {list}"
+        );
+    }
+    trello.lifecycle(crate::lifecycle::Status::default());
+    assert_eq!(
+        trello.move_card(CARD, EMPTY_LIST),
+        Err(MoveError),
+        "offline"
+    );
+    assert!(api.calls.lock().unwrap().is_empty());
+}
+
+#[test]
+fn a_move_stays_visible_when_the_reread_fails() {
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), clock.clone());
+    trello.step(true, false).unwrap();
+    api.fail(Some(503));
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Ok(()));
+    let data = trello.snapshot(false).data;
+    assert!(!card_ids(&data, 0).contains(&CARD.to_owned()));
+    assert_eq!(card_ids(&data, 1), [CARD]);
 }

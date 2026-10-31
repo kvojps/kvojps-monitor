@@ -56,6 +56,10 @@ pub enum CredentialError {
     KeyringUnavailable,
 }
 
+/// The card stays where the last board shows it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct MoveError;
+
 pub struct Trello<A, R> {
     api: A,
     clock: R,
@@ -231,6 +235,58 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
         self.failures = 0;
         self.failure_since = None;
         self.retry_at = 0;
+        Ok(())
+    }
+    /// Move a card to another list of the shown board. On success the board is read
+    /// again, which restarts the 30 s clock; on failure nothing changes, so the
+    /// panel's optimistic move falls back to the last board.
+    pub fn move_card(&mut self, card: &str, list: &str) -> Result<(), MoveError> {
+        // Ids come from the panel: only cards and lists of the shown board reach the URL.
+        let lists = self.data["lists"].as_array().ok_or(MoveError)?;
+        let position = |id: &str, items: &[Value]| items.iter().position(|item| item["id"] == id);
+        let to = position(list, lists).ok_or(MoveError)?;
+        let (from, index) = lists
+            .iter()
+            .enumerate()
+            .find_map(|(from, source)| {
+                position(card, source["cards"].as_array()?).map(|index| (from, index))
+            })
+            .ok_or(MoveError)?;
+        // Same pauses as polling: offline, backoff, refused credential.
+        if from == to
+            || self.paused()
+            || self.rejected.is_some()
+            || self.clock.now() < self.retry_at
+        {
+            return Err(MoveError);
+        }
+        let credential = self.credential().ok().flatten().ok_or(MoveError)?;
+        let auth = Auth::new(&credential.key, &credential.token);
+        let started_at = self.clock.now();
+        if let Err(error) = self
+            .api
+            .put(&auth, &format!("/cards/{card}?idList={list}&pos=bottom"))
+        {
+            if matches!(error.status, Some(401 | 403)) {
+                self.rejected = Some(credential_id(&credential));
+                self.data["state"] = json!("invalidCredential");
+                self.log(Event::InvalidCredential, error.status, started_at);
+            } else {
+                self.log(Event::Failed, error.status, started_at);
+            }
+            return Err(MoveError);
+        }
+        // Keep the move even if the read below fails.
+        let moved = self.data["lists"][from]["cards"]
+            .as_array_mut()
+            .unwrap()
+            .remove(index);
+        self.data["lists"][to]["cards"]
+            .as_array_mut()
+            .unwrap()
+            .push(moved);
+        self.attempt_at = Some(self.clock.now());
+        self.refresh();
         Ok(())
     }
     /// Each new connectivity generation (login, reconnect, resume) refreshes once.
@@ -488,6 +544,12 @@ pub enum Command {
     SelectBoard(String, Reply<()>),
     Disconnect(Reply<()>),
     Authorize(String, Reply<()>),
+    /// Card and destination list.
+    Move(
+        String,
+        String,
+        tokio::sync::oneshot::Sender<Result<(), MoveError>>,
+    ),
 }
 pub struct Collector(pub std::sync::mpsc::Sender<Command>);
 pub fn start(app: tauri::AppHandle) {
@@ -524,6 +586,11 @@ pub fn start(app: tauri::AppHandle) {
                 }
                 Some(Command::Authorize(key, reply)) => {
                     let result = trello.authorize(&crate::ports::SystemProcesses, &key);
+                    crate::snapshot::publish(&app, trello.snapshot(false));
+                    let _ = reply.send(result);
+                }
+                Some(Command::Move(card, list, reply)) => {
+                    let result = trello.move_card(&card, &list);
                     crate::snapshot::publish(&app, trello.snapshot(false));
                     let _ = reply.send(result);
                 }

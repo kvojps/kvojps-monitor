@@ -91,6 +91,7 @@ pub fn run() {
             commands::select_trello_board,
             commands::disconnect_trello,
             commands::open_trello_authorization,
+            commands::move_trello_card,
             commands::open_trello_card,
             commands::open_trello_admin,
             commands::run_speed_test,

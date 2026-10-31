@@ -147,3 +147,14 @@ it("opens Trello settings from the empty module and sends key and token to the c
   expect(connectTrello).toHaveBeenCalledWith("0123abcd", "private-token");
   expect(await within(trello).findByText("Conectado como exemplo")).toBeInTheDocument();
 });
+
+it("sends a Trello move to the core with card and destination list", async () => {
+  const { default: full } = await import("./trello/fixtures/full.json");
+  const { core } = fakeCore({ lastModule: "trello", snapshots: [{ module: "trello", updatedAt: 1, data: full }] });
+  const moveTrelloCard = vi.fn().mockResolvedValue(undefined);
+  render(Panel, { core: { ...core, moveTrelloCard } });
+  const [from, to] = full.lists;
+  await userEvent.click(await screen.findByText(from.cards[0].name));
+  await userEvent.click(screen.getByRole("region", { name: to.name }));
+  expect(moveTrelloCard).toHaveBeenCalledExactlyOnceWith(from.cards[0].id, to.id);
+});

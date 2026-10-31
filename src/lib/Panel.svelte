@@ -83,7 +83,8 @@
       {/if}
       {#if view === "trello" && snapshots.trello}
         <TrelloModule data={snapshots.trello.data as TrelloData} refresh={() => core.refreshTrello?.()}
-          configure={() => selecionar("settings")} openCard={(url) => core.openTrelloCard?.(url)} />
+          configure={() => selecionar("settings")} openCard={(url) => core.openTrelloCard?.(url)}
+          moveCard={(card, list) => core.moveTrelloCard ? core.moveTrelloCard(card, list) : Promise.reject("offline")} />
       {/if}
       {#if view === "network" && snapshots.network?.data}
         <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
