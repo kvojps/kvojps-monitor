@@ -6,13 +6,21 @@ Esta fatia **define o padrão do núcleo** que as outras seguem: portas injetáv
 
 **Blocked by:** 01 (Esqueleto: Indicador, Painel e trilho)
 
-**Status:** ready-for-agent
+**Status:** feito
 
-- [ ] CPU de `/proc/stat` a cada 2 s com mini‑gráfico de ~60 s; temperatura via hwmon (`k10temp`/`coretemp`), linha some sem sensor
-- [ ] RAM usada = total − `MemAvailable`; swap só se configurado
-- [ ] Discos de `/proc/self/mountinfo` + `statvfs` a cada 30 s, excluindo tmpfs, squashfs/snap, overlay, efivarfs e `/boot*`
-- [ ] Bateria via UPower `DisplayDevice` por sinal; bloco oculto sem bateria
-- [ ] Atenção: disco > 90%, bateria < 15%, temperatura ≥ `temp*_crit` do sensor ou 90 °C
-- [ ] Coleta só com o Módulo visível; para ao ocultar
-- [ ] Testes do núcleo com raiz falsa de `/proc`/hwmon, UPower falso e relógio falso a partir de amostras reais gravadas
-- [ ] Testes de UI a partir de fixtures de snapshot (notebook, desktop sem bateria, sem sensor, atenção)
+- [x] CPU de `/proc/stat` a cada 2 s com mini‑gráfico de ~60 s; temperatura via hwmon (`k10temp`/`coretemp`), linha some sem sensor
+- [x] RAM usada = total − `MemAvailable`; swap só se configurado
+- [x] Discos de `/proc/self/mountinfo` + `statvfs` a cada 30 s, excluindo tmpfs, squashfs/snap, overlay, efivarfs e `/boot*`
+- [x] Bateria via UPower `DisplayDevice` por sinal; bloco oculto sem bateria
+- [x] Atenção: disco > 90%, bateria < 15%, temperatura ≥ `temp*_crit` do sensor ou 90 °C
+- [x] Coleta só com o Módulo visível; para ao ocultar
+- [x] Testes do núcleo com raiz falsa de `/proc`/hwmon, UPower falso e relógio falso a partir de amostras reais gravadas
+- [x] Testes de UI a partir de fixtures de snapshot (notebook, desktop sem bateria, sem sensor, atenção)
+
+## Notas da implementação
+
+- **Disco real** = origem em `/dev/*`, fora das exclusões do ticket e de `/snap/*`, uma barra por origem (subvolumes btrfs e bind mounts não duplicam). Raízes ZFS (origem `rpool/...`) ficam de fora; revisitar se alguém usar ZFS.
+- **Temperatura**: lida como "≥ `temp*_crit` se o sensor informa, senão ≥ 90 °C" (um `coretemp` com crit 100 °C a 95 °C não pede atenção). A outra leitura possível é "≥ crit **ou** ≥ 90 °C"; em aberto até decisão do usuário.
+- **Fixtures**: `/proc`, hwmon, `statvfs` e o UPower "carregada" foram gravados nesta máquina (notebook AMD, `k10temp`). Sem como gravar aqui, `notebook-descarregando.json` e `desktop.json` derivam da gravação real trocando só os campos usados; o layout `coretemp` é montado no teste.
+- **Contrato núcleo → UI**: as fixtures de snapshot da UI (`src/lib/sistema/fixtures/`) são geradas pelo núcleo; `ATUALIZAR_FIXTURES=1 cargo test` regrava e o teste falha se divergirem.
+

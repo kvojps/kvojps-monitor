@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use tauri::{AppHandle, State};
 
+use crate::coleta;
 use crate::estado::Estado;
 use crate::modulo::Modulo;
 use crate::painel;
@@ -27,8 +28,13 @@ pub fn estado_inicial(estado: State<Mutex<Estado>>, snapshots: State<Snapshots>)
 
 /// `None` quando a UI mostra as Configurações.
 #[tauri::command]
-pub fn informar_modulo_visivel(modulo: Option<Modulo>, estado: State<Mutex<Estado>>) {
+pub fn informar_modulo_visivel(
+    modulo: Option<Modulo>,
+    estado: State<Mutex<Estado>>,
+    app: AppHandle,
+) {
     estado.lock().unwrap().mostrar(modulo);
+    coleta::visibilidade_mudou(&app);
 }
 
 #[tauri::command]

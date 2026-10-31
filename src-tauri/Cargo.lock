@@ -1917,12 +1917,14 @@ version = "0.1.0"
 dependencies = [
  "dirs 6.0.0",
  "ksni",
+ "rustix",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-single-instance",
  "tempfile",
+ "zbus",
 ]
 
 [[package]]

@@ -20,5 +20,26 @@
   "cabecalho": {
     "atualizado": "atualizado {hora}",
     "semDados": "sem dados ainda"
+  },
+  "sistema": {
+    "cpu": "CPU",
+    "graficoCpu": "Uso de CPU nos últimos 60 s",
+    "temperatura": "Temperatura",
+    "ram": "RAM",
+    "swap": "Swap",
+    "discos": "Discos",
+    "livres": "{valor} livres",
+    "bateria": "Bateria",
+    "estadosBateria": {
+      "carregando": "carregando",
+      "descarregando": "na bateria",
+      "cheia": "carregada",
+      "vazia": "vazia",
+      "naTomada": "na tomada",
+      "desconhecido": "estado desconhecido"
+    },
+    "paraCarregar": "{tempo} p/ carregar",
+    "restantes": "{tempo} restantes",
+    "semValor": "—"
   }
 }

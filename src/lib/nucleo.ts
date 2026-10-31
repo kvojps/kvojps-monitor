@@ -12,6 +12,32 @@ export interface Snapshot {
   dados: unknown;
 }
 
+/** Bytes. */
+export interface Memoria {
+  usada: number;
+  total: number;
+}
+
+/** `dados` do snapshot do Módulo Sistema. As regras de atenção vêm prontas do núcleo. */
+export interface DadosSistema {
+  cpu: {
+    /** %; null até haver duas amostras. */
+    uso: number | null;
+    /** Uma amostra a cada 2 s, da mais antiga à mais recente. */
+    historico: number[];
+    temperatura: { celsius: number; atencao: boolean } | null;
+  };
+  ram: Memoria;
+  swap: Memoria | null;
+  discos: { ponto: string; usado: number; total: number; livre: number; atencao: boolean }[];
+  bateria: {
+    percentual: number;
+    estado: "carregando" | "descarregando" | "cheia" | "vazia" | "naTomada" | "desconhecido";
+    segundosRestantes: number | null;
+    atencao: boolean;
+  } | null;
+}
+
 export interface EstadoInicial {
   ultimoModulo: Modulo;
   snapshots: Snapshot[];

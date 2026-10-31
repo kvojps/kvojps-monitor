@@ -1,10 +1,13 @@
 mod autostart;
+mod coleta;
 mod comandos;
 mod estado;
 mod icone;
 mod indicador;
 mod modulo;
 mod painel;
+mod portas;
+mod sistema;
 mod snapshot;
 mod strings;
 
@@ -42,6 +45,7 @@ pub fn run() {
                 estado.concluir_primeira_execucao();
             }
             app.manage(Mutex::new(estado));
+            coleta::iniciar(app.handle());
 
             let indicador = Indicador {
                 app: app.handle().clone(),

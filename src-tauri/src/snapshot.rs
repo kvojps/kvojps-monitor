@@ -31,8 +31,7 @@ impl Snapshots {
     }
 }
 
-/// Guarda o snapshot e o empurra para a UI. Os coletores dos Módulos chegam nos próximos tickets.
-#[allow(dead_code)]
+/// Guarda o snapshot e o empurra para a UI.
 pub fn publicar(app: &AppHandle, snapshot: Snapshot) {
     let evento = format!("snapshot:{}", snapshot.modulo.id());
     app.state::<Snapshots>().guardar(snapshot.clone());

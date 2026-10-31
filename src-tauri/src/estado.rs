@@ -73,7 +73,6 @@ impl Estado {
     }
 
     /// O Módulo que o usuário está vendo; a coleta de alguns Módulos depende disso.
-    #[allow(dead_code)] // primeiros consumidores: coletores do ticket 03 em diante
     pub fn modulo_visivel(&self) -> Option<Modulo> {
         self.vista.filter(|_| self.painel_aberto)
     }

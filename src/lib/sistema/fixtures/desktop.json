@@ -1,0 +1,35 @@
+{
+  "modulo": "sistema",
+  "atualizadoEm": 1793457124000,
+  "dados": {
+    "bateria": null,
+    "cpu": {
+      "historico": [
+        2.3,
+        2.0
+      ],
+      "temperatura": {
+        "atencao": false,
+        "celsius": 47.4
+      },
+      "uso": 2.0
+    },
+    "discos": [
+      {
+        "atencao": false,
+        "livre": 73683107840,
+        "ponto": "/",
+        "total": 157396975616,
+        "usado": 75644026880
+      }
+    ],
+    "ram": {
+      "total": 15588483072,
+      "usada": 6113652736
+    },
+    "swap": {
+      "total": 4294963200,
+      "usada": 402124800
+    }
+  }
+}

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Painel from "./Painel.svelte";
 import type { Modulo, Nucleo, Snapshot } from "./nucleo";
+import notebook from "./sistema/fixtures/notebook.json";
 
 function nucleoFalso(inicial: { ultimoModulo?: Modulo; snapshots?: Snapshot[] } = {}) {
   let ouvinte: ((s: Snapshot) => void) | undefined;
@@ -90,5 +91,16 @@ describe("trilho do Painel", () => {
     await userEvent.keyboard("{Escape}");
 
     expect(nucleo.fecharPainel).toHaveBeenCalledOnce();
+  });
+
+  it("mostra o Módulo Sistema com o snapshot empurrado pelo núcleo", async () => {
+    const { nucleo, publicar } = nucleoFalso({ ultimoModulo: "sistema" });
+    render(Painel, { nucleo });
+    await screen.findByRole("heading", { name: "Sistema" });
+    expect(screen.queryByRole("region", { name: "CPU" })).not.toBeInTheDocument();
+
+    publicar(notebook as Snapshot);
+
+    expect(await screen.findByRole("region", { name: "CPU" })).toBeInTheDocument();
   });
 });
