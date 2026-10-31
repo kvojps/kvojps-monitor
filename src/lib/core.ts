@@ -231,4 +231,6 @@ export interface AgentsData {
   accentDot: boolean;
   failed: boolean;
   observedAt: number;
+  /** Last successful read; after a failure the sessions shown are this old. */
+  lastSuccessAt?: number | null;
 }

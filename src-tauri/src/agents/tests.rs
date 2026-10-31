@@ -647,3 +647,62 @@ fn a_slow_poll_cannot_overwrite_a_newer_hook_event() {
     assert_eq!(data.sessions.len(), 1);
     assert_eq!(data.sessions[0].state, SessionState::Waiting);
 }
+
+#[test]
+fn a_failed_read_keeps_usable_sessions_with_the_time_of_the_last_good_read() {
+    let process = Process(Arc::new(Mutex::new(Ok(include_str!(
+        "../../fixtures/agents/recorded.json"
+    )
+    .into()))));
+    let clock = FakeClock::at(1800000000000);
+    let mut monitor = Monitor::new(process.clone(), clock.clone());
+    let data = monitor.step().unwrap();
+    assert_eq!(data.last_success_at, Some(1800000000000));
+    *process.0.lock().unwrap() = Err(());
+    clock.advance(2000);
+    let data = monitor.step().unwrap();
+    assert!(data.failed);
+    assert_eq!(data.sessions[0].project, "example-project");
+    assert_eq!(data.last_success_at, Some(1800000000000));
+    let json = serde_json::to_value(&data).unwrap();
+    assert_eq!(json["lastSuccessAt"], 1800000000000u64);
+}
+
+#[test]
+fn hook_content_never_reaches_notifications_or_the_published_snapshot() {
+    #[derive(Default)]
+    struct Socket(Vec<Vec<u8>>);
+    impl crate::ports::HookSocket for Socket {
+        fn send(&mut self, bytes: &[u8]) -> std::io::Result<()> {
+            self.0.push(bytes.to_vec());
+            Ok(())
+        }
+        fn receive(&mut self) -> Option<Vec<u8>> {
+            self.0.pop()
+        }
+    }
+    let mut socket = Socket::default();
+    hooks::forward(
+        "codex",
+        "PermissionRequest",
+        include_str!("../../fixtures/agents/hooks/codex-permission.json"),
+        &mut socket,
+    );
+    let event: hooks::Metadata =
+        serde_json::from_slice(&crate::ports::HookSocket::receive(&mut socket).unwrap()).unwrap();
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let notifications = Notifications::default();
+    let mut monitor = Monitor::new(process, FakeClock::at(1800000000000))
+        .with_notifications(notifications.clone());
+    monitor.hooks_enabled = true;
+    monitor.step().unwrap();
+    let data = monitor.hook(event);
+    assert_eq!(data.sessions[0].state, SessionState::Waiting);
+    // A hook event is not a read of the session source.
+    assert_eq!(data.last_success_at, Some(1800000000000));
+    let calls = notifications.0.lock().unwrap();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(calls[0].session, "codex:hook-codex");
+    let published = serde_json::to_string(&data).unwrap();
+    assert!(!format!("{calls:?}{published}").contains("PRIVATE_"));
+}

@@ -297,9 +297,11 @@ it("mirrors and clears the waiting alert on the Agents navigation item", async (
   const { core, publish } = fakeCore({ snapshots: [{ module: "agents", updatedAt: 1, data: waitingAgents }] });
   render(Panel, { core });
   await screen.findByRole("region", { name: "IA" });
-  expect(await within(nav()).findByLabelText("Aguardando você")).toBeInTheDocument();
-  await publish({ module: "agents", updatedAt: 2, data: empty });
-  expect(within(nav()).queryByLabelText("Aguardando você")).not.toBeInTheDocument();
+  expect(await within(nav()).findByLabelText("1 aguardando você")).toBeInTheDocument();
+  await publish({ module: "agents", updatedAt: 2, data: { ...waitingAgents, sessions: [waitingAgents.sessions[0], { ...waitingAgents.sessions[0], id: "second" }] } });
+  expect(within(nav()).getByLabelText("2 aguardando você")).toBeInTheDocument();
+  await publish({ module: "agents", updatedAt: 3, data: empty });
+  expect(within(nav()).queryByLabelText(/aguardando você/)).not.toBeInTheDocument();
 });
 
 it("opens at Agents for a notification target without changing the last anchor", async () => {
@@ -308,7 +310,7 @@ it("opens at Agents for a notification target without changing the last anchor",
     snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
   render(Panel, { core });
   await screen.findByRole("region", { name: "Agentes" });
-  await vi.waitFor(() => expect(scroll.mock.contexts.at(-1)).toBe(section("Agentes")));
+  await vi.waitFor(() => expect(scroll.mock.contexts).toContain(section("Agentes")));
   expect(core.chooseAnchor).not.toHaveBeenCalled();
 });
 
@@ -334,8 +336,12 @@ it("brings an already open panel, even in Settings, to the session targeted by a
 
   await act(() => target?.(waitingAgents.sessions[0].id));
 
-  await vi.waitFor(() => expect(scroll.mock.contexts.at(-1)).toBe(section("Agentes")));
+  await vi.waitFor(() => expect(scroll.mock.contexts).toContain(section("Agentes")));
   expect(screen.queryByRole("heading", { name: "Configurações" })).not.toBeInTheDocument();
+  const targeted = await screen.findByRole("listitem", { current: true });
+  expect(within(targeted).getByText("Minha sessão")).toBeInTheDocument();
+  await vi.waitFor(() => expect(scroll.mock.contexts).toContain(targeted));
+  expect(core.chooseAnchor).not.toHaveBeenCalled();
 });
 
 it("keeps focus on a module chosen in the navigation when a snapshot arrives", async () => {
@@ -391,5 +397,46 @@ describe("AI module in the panel", () => {
     await userEvent.click(reconnect);
     expect(connectClaude).toHaveBeenCalledOnce();
     expect(await screen.findByRole("heading", { name: "Configurações" })).toBeInTheDocument();
+  });
+});
+
+describe("Agents module in the panel", () => {
+  it("explains there is no reading yet before the first snapshot", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    const agents = await screen.findByRole("region", { name: "Agentes" });
+    expect(within(agents).getByText("Sem leitura das sessões de agente ainda")).toBeInTheDocument();
+  });
+
+  it("shows the sessions and the intervention count from the snapshot", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "agents", updatedAt: 1, data: waitingAgents }] });
+    render(Panel, { core });
+    const agents = await screen.findByRole("region", { name: "Agentes" });
+    expect(within(agents).getByRole("group", { name: "Intervenção" })).toHaveTextContent("01");
+    expect(within(within(agents).getByRole("list", { name: "Sessões de agente" })).getByText("Minha sessão")).toBeInTheDocument();
+  });
+
+  it("highlights the notified session when the webview is recreated with a target", async () => {
+    const scroll = vi.mocked(Element.prototype.scrollIntoView);
+    const { core } = fakeCore({ lastAnchor: "network", agentTarget: waitingAgents.sessions[0].id,
+      snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
+    render(Panel, { core });
+    const targeted = await screen.findByRole("listitem", { current: true });
+    expect(within(targeted).getByText("Da notificação")).toBeInTheDocument();
+    await vi.waitFor(() => expect(scroll.mock.contexts).toContain(targeted));
+    expect(within(nav()).getByRole("button", { name: /Agentes/ })).toHaveAttribute("aria-current", "location");
+    expect(core.chooseAnchor).not.toHaveBeenCalled();
+  });
+
+  it("drops the notification highlight once the user chooses a module by keyboard", async () => {
+    const { core } = fakeCore({ agentTarget: waitingAgents.sessions[0].id,
+      snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
+    render(Panel, { core });
+    await screen.findByRole("listitem", { current: true });
+    within(nav()).getByRole("button", { name: /Agentes/ }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(section("Agentes")).toHaveFocus();
+    expect(core.chooseAnchor).toHaveBeenLastCalledWith("agents");
+    expect(screen.queryByRole("listitem", { current: true })).not.toBeInTheDocument();
   });
 });

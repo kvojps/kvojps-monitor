@@ -243,6 +243,19 @@
       "done": "Turno concluído",
       "failed": "Com falha",
       "closed": "Encerrada"
+    },
+    "noReading": "Sem leitura das sessões de agente ainda",
+    "list": "Sessões de agente",
+    "intervention": "Intervenção",
+    "noIntervention": "Nenhuma intervenção pendente",
+    "summary": "Resumo das sessões",
+    "notified": "Da notificação",
+    "lastState": "Última situação: {state}",
+    "lastRead": "última leitura às {time}",
+    "waitingCount": "{count} aguardando você",
+    "providerCodes": {
+      "claude": "CC",
+      "codex": "CX"
     }
   },
   "agentNotifications": {

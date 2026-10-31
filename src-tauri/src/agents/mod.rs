@@ -51,6 +51,9 @@ pub struct Data {
     accent_dot: bool,
     failed: bool,
     observed_at: u64,
+    /// Time of the last successful poll (hook events do not count); sessions shown
+    /// after a failure are this old.
+    last_success_at: Option<u64>,
     codex_waiting_unavailable: bool,
 }
 #[derive(Deserialize)]
@@ -124,6 +127,7 @@ pub struct Monitor<P, C> {
     next: Option<u64>,
     sessions: Vec<Session>,
     closed: Vec<Session>,
+    last_success_at: Option<u64>,
 }
 impl<P: Processes, C: Clock> Monitor<P, C> {
     pub fn new(process: P, clock: C) -> Self {
@@ -137,6 +141,7 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             next: None,
             sessions: vec![],
             closed: vec![],
+            last_success_at: None,
         }
     }
     pub fn with_notifications(mut self, sink: impl notifications::Sink + 'static) -> Self {
@@ -340,6 +345,9 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             self.notifications.observe(&self.sessions, &live, now);
             self.sessions = live;
         }
+        if !failed {
+            self.last_success_at = Some(now);
+        }
         self.data(failed)
     }
     fn data(&mut self, failed: bool) -> Data {
@@ -360,6 +368,7 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             closed: self.closed.clone(),
             failed,
             observed_at: now,
+            last_success_at: self.last_success_at,
             hooks_enabled: self.hooks_enabled,
             codex_waiting_unavailable: !self.hooks_enabled,
         }

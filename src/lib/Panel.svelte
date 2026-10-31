@@ -2,6 +2,7 @@
   import { onMount, tick, type Snippet } from "svelte";
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type Module, type Core, type Snapshot } from "./core";
   import AgentSettings from "./agents/AgentSettings.svelte";
+  import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
   import AiSettings from "./ai/AiSettings.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
@@ -99,7 +100,10 @@
 
   const NO_AI_READING: AiData = { refreshing: false, codex: { state: "empty", plan: null, reading: null } };
   /** Module contents arrive with their instrument slices (tickets 02–07). */
-  const bodies: Partial<Record<Module, Snippet>> = { ai };
+  const bodies: Partial<Record<Module, Snippet>> = { ai, agents };
+
+  const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
+  const waitingCount = $derived(agentsData?.sessions.filter((s) => s.state === "waiting").length ?? 0);
 
   const stationOf = (module: Module) => stations.find((s) => s.modules.includes(module))!.key;
   /** Decorative module number, as in the navigation. */
@@ -158,6 +162,10 @@
     reconnect={() => void (core.connectClaude?.() ?? Promise.reject()).catch(openSettings)} />
 {/snippet}
 
+{#snippet agents()}
+  <AgentsModule data={agentsData} notified={agentTarget} />
+{/snippet}
+
 {#snippet moduleSection(module: Module, body?: Snippet)}
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
     tabindex="-1" bind:this={sections[module]}>
@@ -185,8 +193,8 @@
       <button aria-current={area === "panel" && anchor === module ? "location" : undefined} onclick={() => choose(module)}>
         <span class="index num" aria-hidden="true">{code(module)}</span>
         <span>{t.modules[module]}</span>
-        {#if module === "agents" && (snapshots.agents?.data as AgentsData | undefined)?.accentDot}
-          <span class="alert" role="img" aria-label={t.agents.states.waiting}></span>
+        {#if module === "agents" && agentsData?.accentDot}
+          <span class="alert" role="img" aria-label={interpolate(t.agents.waitingCount, { count: String(waitingCount) })}></span>
         {/if}
       </button>
     {/each}

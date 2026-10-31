@@ -1,0 +1,16 @@
+{
+  "sessions": [
+    { "id": "s-waiting", "provider": "claude", "project": "example-project", "name": "example-session", "state": "waiting", "waitingFor": "permission prompt", "startedAt": 1799999900000, "closedAt": null },
+    { "id": "codex:s-working", "provider": "codex", "project": "kvojps-monitor", "name": "Sessão Codex", "state": "working", "waitingFor": null, "startedAt": 1799996340000, "closedAt": null },
+    { "id": "s-done", "provider": "claude", "project": "notes", "name": null, "state": "done", "waitingFor": null, "startedAt": 1799999990000, "closedAt": null },
+    { "id": "s-failed", "provider": "claude", "project": "infra", "name": "deploy", "state": "failed", "waitingFor": null, "startedAt": 1799999970000, "closedAt": null }
+  ],
+  "closed": [
+    { "id": "s-closed", "provider": "claude", "project": "archive", "name": "Sessão encerrada", "state": "closed", "lastState": "failed", "waitingFor": null, "startedAt": 1799999000000, "closedAt": 1799999600000 },
+    { "id": "s-closed-2", "provider": "codex", "project": "archive", "name": "Outra encerrada", "state": "closed", "lastState": "done", "waitingFor": null, "startedAt": 1799999000000, "closedAt": 1799999500000 }
+  ],
+  "accentDot": true,
+  "failed": false,
+  "observedAt": 1800000000000,
+  "lastSuccessAt": 1800000000000
+}
