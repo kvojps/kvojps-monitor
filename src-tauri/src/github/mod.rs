@@ -452,12 +452,7 @@ pub fn start(app: tauri::AppHandle) {
                 previous_status = current_status;
                 crate::snapshot::publish(&app, github.snapshot(false));
             }
-            let visible = app
-                .state::<std::sync::Mutex<crate::state::AppState>>()
-                .lock()
-                .unwrap()
-                .module_visible()
-                == Some(Module::Github);
+            let visible = crate::collection::is_visible(&app, Module::Github);
             // Publish previous data before blocking on HTTP.
             if github.should_collect(visible, manual) {
                 crate::snapshot::publish(&app, github.snapshot(true));

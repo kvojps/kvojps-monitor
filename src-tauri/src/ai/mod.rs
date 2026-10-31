@@ -734,12 +734,7 @@ pub fn start(app: tauri::AppHandle) {
             let status = *app.state::<crate::lifecycle::Shared>().lock().unwrap();
             codex.lifecycle(status);
             claude.lifecycle(status);
-            let visible = app
-                .state::<std::sync::Mutex<crate::state::AppState>>()
-                .lock()
-                .unwrap()
-                .module_visible()
-                == Some(Module::Ai);
+            let visible = crate::collection::is_visible(&app, Module::Ai);
             changed |= codex.step(visible, manual).is_some();
             changed |= claude.step(manual);
             if changed {

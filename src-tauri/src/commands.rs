@@ -14,7 +14,7 @@ use crate::state::AppState;
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InitialState {
-    last_module: Module,
+    last_anchor: Module,
     agent_target: Option<String>,
     snapshots: Vec<Snapshot>,
 }
@@ -24,20 +24,24 @@ pub fn initial_state(state: State<Mutex<AppState>>, snapshots: State<Snapshots>)
     let state = state.lock().unwrap();
     InitialState {
         agent_target: state.agent_target(),
-        last_module: state.opening_module(),
+        last_anchor: state.opening_anchor(),
         snapshots: snapshots.all(),
     }
 }
 
-/// None when the UI shows Settings.
+/// Modules intersecting the visible panel area; empty in Settings.
 #[tauri::command]
-pub fn report_module_visible(
-    module: Option<Module>,
-    state: State<Mutex<AppState>>,
-    app: AppHandle,
-) {
-    state.lock().unwrap().show(module);
-    collection::visibility_changed(&app);
+pub fn report_visible_modules(modules: Vec<Module>, state: State<Mutex<AppState>>, app: AppHandle) {
+    let changed = state.lock().unwrap().report_visible(&modules);
+    if changed {
+        collection::visibility_changed(&app);
+    }
+}
+
+/// The last anchor chosen in the navigation, restored on the next opening.
+#[tauri::command]
+pub fn choose_anchor(module: Module, state: State<Mutex<AppState>>) {
+    state.lock().unwrap().choose_anchor(module);
 }
 
 #[tauri::command]

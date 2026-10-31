@@ -4,6 +4,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Manager};
 
+use crate::module::Module;
 use crate::state::AppState;
 use crate::system;
 
@@ -17,17 +18,27 @@ pub fn start(app: &AppHandle) {
     crate::agents::start(app.clone());
 }
 
-/// Call after every panel or view change.
-pub fn visibility_changed(app: &AppHandle) {
-    let visible = app
-        .state::<Mutex<AppState>>()
+/// Whether module intersects the visible panel area.
+pub fn is_visible(app: &AppHandle, module: Module) -> bool {
+    app.state::<Mutex<AppState>>()
         .lock()
         .unwrap()
-        .module_visible();
-    app.state::<system::Collector>().report(visible);
+        .is_visible(module)
+}
+
+/// Call after the set of visible modules changes. Remote collectors read the
+/// set on their own cadence; local collectors are told directly.
+pub fn visibility_changed(app: &AppHandle) {
+    let (system, network) = {
+        let state = app.state::<Mutex<AppState>>();
+        let state = state.lock().unwrap();
+        (
+            state.is_visible(Module::System),
+            state.is_visible(Module::Network),
+        )
+    };
+    app.state::<system::Collector>().report(system);
     if let Some(collector) = app.try_state::<crate::network::Collector>() {
-        let _ = collector.0.send(crate::network::Command::Visible(
-            visible == Some(crate::module::Module::Network),
-        ));
+        let _ = collector.0.send(crate::network::Command::Visible(network));
     }
 }

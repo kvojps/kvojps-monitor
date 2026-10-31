@@ -1,117 +1,259 @@
-import { render, screen, within } from "@testing-library/svelte";
+import { act, render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Panel from "./Panel.svelte";
 import type { Module, Core, Snapshot, InitialState } from "./core";
 import networkSpeed from "./network/fixtures/speed.json";
 import notebook from "./system/fixtures/notebook.json";
+import waitingAgents from "./agents/fixtures/waiting.json";
+import aiFull from "./ai/fixtures/full.json";
 
-function fakeCore(initial: { lastModule?: Module; snapshots?: Snapshot[] } = {}) {
+/** Stands in for the webview IntersectionObserver: tests decide what intersects. */
+class FakeObserver {
+  static instances: FakeObserver[] = [];
+  targets = new Set<Element>();
+  constructor(public callback: IntersectionObserverCallback) {
+    FakeObserver.instances.push(this);
+  }
+  observe(target: Element) {
+    this.targets.add(target);
+  }
+  unobserve(target: Element) {
+    this.targets.delete(target);
+  }
+  disconnect() {
+    this.targets.clear();
+  }
+}
+
+/** Simulate scrolling so that exactly these modules intersect the visible area. */
+async function intersect(modules: Module[]) {
+  await act(() => {
+    for (const observer of FakeObserver.instances) {
+      const entries = Array.from(observer.targets).map((target) => ({
+        target,
+        isIntersecting: modules.some((m) => target.id === `module-${m}`),
+      }));
+      observer.callback(entries as unknown as IntersectionObserverEntry[], observer as unknown as IntersectionObserver);
+    }
+  });
+}
+
+beforeEach(() => {
+  FakeObserver.instances = [];
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
+});
+afterEach(() => vi.unstubAllGlobals());
+
+function fakeCore(initial: { lastAnchor?: Module; snapshots?: Snapshot[]; agentTarget?: string } = {}) {
   let listener: ((s: Snapshot) => void) | undefined;
   const core = {
     initialState: vi.fn(async (): Promise<InitialState> => ({
-      lastModule: initial.lastModule ?? "ai",
+      lastAnchor: initial.lastAnchor ?? "ai",
+      agentTarget: initial.agentTarget ?? null,
       snapshots: initial.snapshots ?? [],
     })),
     listenSnapshots: vi.fn(async (cb: (s: Snapshot) => void) => {
       listener = cb;
       return () => {};
     }),
-    reportModuleVisible: vi.fn(),
+    reportVisibleModules: vi.fn(),
+    chooseAnchor: vi.fn(),
     closePanel: vi.fn(),
   } satisfies Core;
-  return { core, publish: (s: Snapshot) => listener?.(s) };
+  return { core, publish: (s: Snapshot) => act(() => listener?.(s)) };
 }
 
-describe("Panel rail", () => {
-  it("lists six modules and Settings", async () => {
+const nav = () => screen.getByRole("navigation", { name: "Módulos" });
+// The outer module section comes first; some modules label an inner region too.
+const section = (name: string) => screen.getAllByRole("region", { name })[0];
+
+describe("Panel stations", () => {
+  it("shows the six modules together, grouped in the three stations", async () => {
     const { core } = fakeCore();
     render(Panel, { core });
 
-    const rail = await screen.findByRole("navigation", { name: "Módulos" });
-    const names = Array.from(rail.querySelectorAll("button")).map((b) => b.getAttribute("aria-label"));
+    await screen.findByRole("group", { name: "Capacidade" });
+    const modules = (station: string) =>
+      Array.from(screen.getByRole("group", { name: station }).querySelectorAll(":scope > section"))
+        .map((s) => s.getAttribute("aria-label") ?? within(s as HTMLElement).getAllByRole("heading")[0].textContent);
+    expect(modules("Capacidade")).toEqual(["IA", "Sistema"]);
+    expect(modules("Execução")).toEqual(["Agentes", "Trello"]);
+    expect(modules("Observação")).toEqual(["GitHub", "Rede"]);
+    // Reading order follows the stations.
+    const order = Array.from(document.querySelectorAll("[role=group] > section")).map((s) => s.id);
+    expect(order).toEqual(["module-ai", "module-system", "module-agents", "module-trello", "module-github", "module-network"]);
+  });
+
+  it("identifies each module source and its last update", async () => {
+    const fourteenThirty = new Date(2026, 9, 30, 14, 32).getTime();
+    const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: fourteenThirty, data: null }] });
+    render(Panel, { core });
+
+    const ai = await screen.findByRole("region", { name: "IA" });
+    expect(within(ai).getByText("Codex e Claude Code")).toBeInTheDocument();
+    expect(within(ai).getByText("atualizado 14:32")).toBeInTheDocument();
+    expect(within(section("Rede")).getByText("NetworkManager e kernel")).toBeInTheDocument();
+    expect(within(section("Rede")).getByText("sem dados ainda")).toBeInTheDocument();
+  });
+
+  it("shows cached snapshots at once and updates only the module the core pushes", async () => {
+    const { core, publish } = fakeCore({ snapshots: [notebook as Snapshot] });
+    render(Panel, { core });
+    expect(await within(await screen.findByRole("region", { name: "Sistema" })).findByRole("region", { name: "CPU" })).toBeInTheDocument();
+
+    await publish({ module: "network", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: null });
+
+    expect(within(section("Rede")).getByText("atualizado 09:05")).toBeInTheDocument();
+    expect(within(section("Sistema")).getByRole("region", { name: "CPU" })).toBeInTheDocument();
+  });
+
+  it("keeps keyboard focus when a snapshot arrives", async () => {
+    const { core, publish } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
+    render(Panel, { core: { ...core, refreshAi: vi.fn() } });
+    const refresh = await screen.findByRole("button", { name: "Atualizar IA" });
+    refresh.focus();
+
+    await publish({ module: "ai", updatedAt: 2, data: aiFull });
+
+    expect(screen.getByRole("button", { name: "Atualizar IA" })).toHaveFocus();
+  });
+});
+
+describe("Panel navigation", () => {
+  it("lists the six modules and Settings", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+
+    await screen.findByRole("region", { name: "IA" });
+    const names = within(nav()).getAllByRole("button").map((b) => b.textContent?.trim());
     expect(names).toEqual(["IA", "Agentes", "GitHub", "Trello", "Rede", "Sistema", "Configurações"]);
   });
 
-  it("opens the last visited module with its name in the header", async () => {
-    const { core } = fakeCore({ lastModule: "network" });
+  it("restores the last anchor when the panel opens", async () => {
+    const scroll = vi.mocked(Element.prototype.scrollIntoView);
+    scroll.mockClear();
+    const { core } = fakeCore({ lastAnchor: "network" });
     render(Panel, { core });
 
-    expect(await screen.findByRole("heading", { name: "Rede" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Rede" })).toHaveAttribute("aria-current", "page");
+    await vi.waitFor(() => expect(scroll).toHaveBeenCalled());
+    expect(scroll.mock.contexts.at(-1)).toBe(section("Rede"));
+    expect(within(nav()).getByRole("button", { name: "Rede" })).toHaveAttribute("aria-current", "location");
+    expect(core.chooseAnchor).not.toHaveBeenCalled();
   });
 
-  it("switches modules through the rail and reports visibility to the core", async () => {
-    const { core } = fakeCore({ lastModule: "ai" });
-    render(Panel, { core });
-    await screen.findByRole("heading", { name: "IA" });
-
-    await userEvent.click(screen.getByRole("button", { name: "Sistema" }));
-
-    expect(screen.getByRole("heading", { name: "Sistema" })).toBeInTheDocument();
-    expect(core.reportModuleVisible).toHaveBeenLastCalledWith("system");
-  });
-
-  it("Settings does not count as a visible module", async () => {
+  it("scrolls to the chosen module, focuses it and remembers the anchor", async () => {
+    const scroll = vi.mocked(Element.prototype.scrollIntoView);
     const { core } = fakeCore();
     render(Panel, { core });
-    await screen.findByRole("heading", { name: "IA" });
+    await screen.findByRole("region", { name: "IA" });
+    scroll.mockClear();
 
-    await userEvent.click(screen.getByRole("button", { name: "Configurações" }));
+    await userEvent.click(within(nav()).getByRole("button", { name: "Trello" }));
 
-    expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
-    expect(core.reportModuleVisible).toHaveBeenLastCalledWith(null);
+    expect(scroll.mock.contexts.at(-1)).toBe(section("Trello"));
+    expect(section("Trello")).toHaveFocus();
+    expect(core.chooseAnchor).toHaveBeenLastCalledWith("trello");
+    expect(within(nav()).getByRole("button", { name: "Trello" })).toHaveAttribute("aria-current", "location");
   });
 
-  it("shows the last update time in the header", async () => {
-    const fourteenThirty = new Date(2026, 9, 30, 14, 32).getTime();
-    const { core } = fakeCore({
-      lastModule: "ai",
-      snapshots: [{ module: "ai", updatedAt: fourteenThirty, data: null }],
-    });
-    render(Panel, { core });
-
-    expect(await screen.findByText("atualizado 14:32")).toBeInTheDocument();
-  });
-
-  it("updates the header when the core pushes a snapshot", async () => {
-    const { core, publish } = fakeCore({ lastModule: "network" });
-    render(Panel, { core });
-    expect(await screen.findByText("sem dados ainda")).toBeInTheDocument();
-
-    publish({ module: "network", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: null });
-
-    expect(await screen.findByText("atualizado 09:05")).toBeInTheDocument();
-  });
-
-  it("Escape asks the core to close the panel", async () => {
+  it("reaches modules from the keyboard", async () => {
     const { core } = fakeCore();
     render(Panel, { core });
-    await screen.findByRole("heading", { name: "IA" });
+    await screen.findByRole("region", { name: "IA" });
+    within(nav()).getByRole("button", { name: "IA" }).focus();
+
+    await userEvent.tab();
+    await userEvent.keyboard("{Enter}");
+
+    expect(section("Agentes")).toHaveFocus();
+    expect(core.chooseAnchor).toHaveBeenLastCalledWith("agents");
+  });
+
+  it("Escape asks the core to close the panel, also in Settings", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await screen.findByRole("region", { name: "IA" });
 
     await userEvent.keyboard("{Escape}");
+    await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
+    await userEvent.keyboard("{Escape}");
 
-    expect(core.closePanel).toHaveBeenCalledOnce();
+    expect(core.closePanel).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Panel visibility", () => {
+  it("reports every module intersecting the visible area", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await screen.findByRole("region", { name: "IA" });
+
+    await intersect(["ai", "agents", "github"]);
+    expect(core.reportVisibleModules).toHaveBeenLastCalledWith(["ai", "agents", "github"]);
+
+    // Scrolling down: the first row leaves the area.
+    await intersect(["system", "trello", "network"]);
+    expect(core.reportVisibleModules).toHaveBeenLastCalledWith(["trello", "network", "system"]);
   });
 
-  it("renders the System snapshot pushed by the core", async () => {
-    const { core, publish } = fakeCore({ lastModule: "system" });
+  it("does not report again when intersection events repeat the same set", async () => {
+    const { core } = fakeCore();
     render(Panel, { core });
-    await screen.findByRole("heading", { name: "Sistema" });
-    expect(screen.queryByRole("region", { name: "CPU" })).not.toBeInTheDocument();
+    await screen.findByRole("region", { name: "IA" });
 
-    publish(notebook as Snapshot);
+    await intersect(["ai", "system"]);
+    await intersect(["system", "ai"]);
+    await intersect(["ai", "system"]);
 
-    expect(await screen.findByRole("region", { name: "CPU" })).toBeInTheDocument();
+    expect(core.reportVisibleModules).toHaveBeenCalledOnce();
+  });
+
+  it("Settings reports an empty set and returning restores the visible set and context", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await screen.findByRole("region", { name: "IA" });
+    await intersect(["trello", "network"]);
+    const opener = within(nav()).getByRole("button", { name: "Configurações" });
+
+    await userEvent.click(opener);
+
+    expect(core.reportVisibleModules).toHaveBeenLastCalledWith([]);
+    expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Execução" })).not.toBeInTheDocument();
+    // Intersection events while in Settings do not count.
+    await intersect(["ai"]);
+    expect(core.reportVisibleModules).toHaveBeenLastCalledWith([]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
+
+    expect(core.reportVisibleModules).toHaveBeenLastCalledWith(["ai"]);
+    expect(screen.queryByRole("heading", { name: "Configurações" })).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Execução" })).toBeInTheDocument();
+    expect(opener).toHaveFocus();
+    expect(core.chooseAnchor).not.toHaveBeenCalled();
+  });
+
+  it("choosing a module from Settings returns to the panel at that module", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await screen.findByRole("region", { name: "IA" });
+    await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
+
+    await userEvent.click(within(nav()).getByRole("button", { name: "Sistema" }));
+
+    expect(screen.queryByRole("heading", { name: "Configurações" })).not.toBeInTheDocument();
+    expect(section("Sistema")).toHaveFocus();
+    expect(core.chooseAnchor).toHaveBeenLastCalledWith("system");
   });
 });
 
 it("sends the network automatic speed preference from Settings", async () => {
-  const { core } = fakeCore({ lastModule: "network", snapshots: [networkSpeed as Snapshot] });
+  const { core } = fakeCore({ snapshots: [networkSpeed as Snapshot] });
   const setAutomaticSpeed = vi.fn();
   render(Panel, { core: { ...core, setAutomaticSpeed } });
-  await screen.findByRole("heading", { name: "Rede" });
-  await userEvent.click(screen.getByRole("button", { name: "Configurações" }));
+  await screen.findByRole("region", { name: "Rede" });
+  await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
   const toggle = screen.getByRole("checkbox", { name: "Teste de velocidade automático" });
   expect(toggle).toBeChecked();
   await userEvent.click(toggle);
@@ -120,26 +262,28 @@ it("sends the network automatic speed preference from Settings", async () => {
 
 it("opens GitHub settings from setup and sends the pasted token to the core", async () => {
   const { default: missing } = await import("./github/fixtures/missing-gh.json");
-  const { core } = fakeCore({ lastModule: "github", snapshots: [{ module: "github", updatedAt: null, data: missing }] });
+  const { core } = fakeCore({ snapshots: [{ module: "github", updatedAt: null, data: missing }] });
   const saveGithubToken = vi.fn().mockResolvedValue("exemplo");
   render(Panel, { core: { ...core, saveGithubToken } });
-  await userEvent.click(await screen.findByRole("button", { name: "Configurar" }));
+  const github = await screen.findByRole("region", { name: "GitHub" });
+  await userEvent.click(within(github).getByRole("button", { name: "Configurar" }));
   await userEvent.click(screen.getByRole("button", { name: "Colar token clássico" }));
   expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
   await userEvent.type(screen.getByLabelText("Token clássico (escopo repo)"), "private-token");
-  const github = screen.getByRole("region", { name: "GitHub" });
-  await userEvent.click(within(github).getByRole("button", { name: "Validar e salvar" }));
+  const settings = screen.getByRole("region", { name: "GitHub" });
+  await userEvent.click(within(settings).getByRole("button", { name: "Validar e salvar" }));
   expect(saveGithubToken).toHaveBeenCalledWith("private-token");
   expect(await screen.findByText("Conectado como exemplo")).toBeInTheDocument();
 });
 
 it("opens Trello settings from the empty module and sends key and token to the core", async () => {
   const { default: empty } = await import("./trello/fixtures/empty.json");
-  const { core } = fakeCore({ lastModule: "trello", snapshots: [{ module: "trello", updatedAt: null, data: empty }] });
+  const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: null, data: empty }] });
   const connectTrello = vi.fn().mockResolvedValue("exemplo");
   render(Panel, { core: { ...core, connectTrello } });
-  await userEvent.click(await screen.findByRole("button", { name: "Configurar" }));
-  expect(core.reportModuleVisible).toHaveBeenLastCalledWith(null);
+  const module = await screen.findByRole("region", { name: "Trello" });
+  await userEvent.click(within(module).getByRole("button", { name: "Configurar" }));
+  expect(core.reportVisibleModules).toHaveBeenLastCalledWith([]);
   const trello = screen.getByRole("region", { name: "Trello" });
   await userEvent.type(within(trello).getByLabelText("API key"), "0123abcd");
   await userEvent.type(within(trello).getByLabelText("Token"), "private-token");
@@ -150,7 +294,7 @@ it("opens Trello settings from the empty module and sends key and token to the c
 
 it("sends a Trello move to the core with card and destination list", async () => {
   const { default: full } = await import("./trello/fixtures/full.json");
-  const { core } = fakeCore({ lastModule: "trello", snapshots: [{ module: "trello", updatedAt: 1, data: full }] });
+  const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: full }] });
   const moveTrelloCard = vi.fn().mockResolvedValue(undefined);
   render(Panel, { core: { ...core, moveTrelloCard } });
   const [from, to] = full.lists;
@@ -160,8 +304,7 @@ it("sends a Trello move to the core with card and destination list", async () =>
 });
 
 it("shows the AI module snapshot and sends its refresh to the core", async () => {
-  const { default: full } = await import("./ai/fixtures/full.json");
-  const { core } = fakeCore({ lastModule: "ai", snapshots: [{ module: "ai", updatedAt: 1, data: full }] });
+  const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
   const refreshAi = vi.fn();
   render(Panel, { core: { ...core, refreshAi } });
   expect(await screen.findByRole("region", { name: "ChatGPT / Codex" })).toBeInTheDocument();
@@ -169,45 +312,47 @@ it("shows the AI module snapshot and sends its refresh to the core", async () =>
   expect(refreshAi).toHaveBeenCalledOnce();
 });
 
-it("mirrors and clears the waiting accent on the Agents rail icon", async () => {
-  const { act } = await import("@testing-library/svelte");
-  const waiting = (await import("./agents/fixtures/waiting.json")).default;
+it("mirrors and clears the waiting alert on the Agents navigation item", async () => {
   const empty = (await import("./agents/fixtures/empty.json")).default;
-  const { core, publish } = fakeCore({ snapshots: [{ module: "agents", updatedAt: 1, data: waiting }] });
+  const { core, publish } = fakeCore({ snapshots: [{ module: "agents", updatedAt: 1, data: waitingAgents }] });
   render(Panel, { core });
-  const rail = await screen.findByRole("navigation", { name: "Módulos" });
-  expect(await within(rail).findByLabelText("Aguardando você")).toBeInTheDocument();
-  await act(() => publish({ module: "agents", updatedAt: 2, data: empty }));
-  expect(within(rail).queryByLabelText("Aguardando você")).not.toBeInTheDocument();
+  await screen.findByRole("region", { name: "IA" });
+  expect(await within(nav()).findByLabelText("Aguardando você")).toBeInTheDocument();
+  await publish({ module: "agents", updatedAt: 2, data: empty });
+  expect(within(nav()).queryByLabelText("Aguardando você")).not.toBeInTheDocument();
 });
 
-import waitingAgents from "./agents/fixtures/waiting.json";
-it("opens Agents and highlights the notification target instead of the remembered module", async () => {
-  const { core } = fakeCore();
-  core.initialState.mockResolvedValue({ lastModule: "agents", agentTarget: waitingAgents.sessions[0].id,
-    snapshots: [{module: "agents", updatedAt: 1000, data: waitingAgents}] });
+it("opens at Agents and highlights the notification target", async () => {
+  const { core } = fakeCore({ lastAnchor: "agents", agentTarget: waitingAgents.sessions[0].id,
+    snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
   const { container } = render(Panel, { core });
-  await screen.findByRole("heading", { name: "Agentes" });
-  expect(container.querySelector("article.highlighted")).toHaveTextContent("Minha sessão");
+  await screen.findByRole("region", { name: "Agentes" });
+  await vi.waitFor(() => expect(container.querySelector("article.highlighted")).toHaveTextContent("Minha sessão"));
+  expect(core.chooseAnchor).not.toHaveBeenCalled();
 });
 
 it("shows three enabled Agent notification switches and sends the changed preferences", async () => {
-  const { core } = fakeCore({snapshots: [{module: "agents", updatedAt: 1000, data: waitingAgents}]});
+  const { core } = fakeCore({ snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
   const setAgentNotifications = vi.fn();
-  render(Panel, {core: {...core, setAgentNotifications}});
-  await screen.findByRole("heading", {name: "IA"});
-  await userEvent.click(screen.getByRole("button", {name: "Configurações"}));
-  for (const name of ["Aguardando", "Turno concluído", "Falha"]) expect(screen.getByRole("checkbox", {name})).toBeChecked();
-  await userEvent.click(screen.getByRole("checkbox", {name: "Aguardando"}));
-  expect(setAgentNotifications).toHaveBeenCalledWith({waiting: false, done: true, failed: true});
+  render(Panel, { core: { ...core, setAgentNotifications } });
+  await screen.findByRole("region", { name: "IA" });
+  await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
+  for (const name of ["Aguardando", "Turno concluído", "Falha"]) expect(screen.getByRole("checkbox", { name })).toBeChecked();
+  await userEvent.click(screen.getByRole("checkbox", { name: "Aguardando" }));
+  expect(setAgentNotifications).toHaveBeenCalledWith({ waiting: false, done: true, failed: true });
 });
 
-it("switches an already open panel to the session targeted by a notification", async () => {
-  const { core } = fakeCore({lastModule: "network", snapshots: [{module: "agents", updatedAt: 1000, data: waitingAgents}]});
+it("brings an already open panel, even in Settings, to the session targeted by a notification", async () => {
+  const scroll = vi.mocked(Element.prototype.scrollIntoView);
+  const { core } = fakeCore({ lastAnchor: "network", snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
   let target: ((session: string) => void) | undefined;
-  const {container} = render(Panel, {core: {...core, listenAgentTarget: async (cb: (session: string) => void) => { target = cb; return () => {}; }}});
-  await screen.findByRole("heading", {name: "Rede"});
-  target?.(waitingAgents.sessions[0].id);
-  await screen.findByRole("heading", {name: "Agentes"});
+  const { container } = render(Panel, { core: { ...core, listenAgentTarget: async (cb: (session: string) => void) => { target = cb; return () => {}; } } });
+  await screen.findByRole("region", { name: "Rede" });
+  await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
+  scroll.mockClear();
+
+  await act(() => target?.(waitingAgents.sessions[0].id));
+
+  await vi.waitFor(() => expect(scroll.mock.contexts.at(-1)).toBe(section("Agentes")));
   expect(container.querySelector("article.highlighted")).toHaveTextContent("Minha sessão");
 });

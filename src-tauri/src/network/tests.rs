@@ -1111,6 +1111,13 @@ fn publishes_process_rates_only_while_visible_using_recorded_tcp_counters() {
     assert_eq!(traffic.apps[0].download, 2048.0);
     assert_eq!(traffic.apps[0].upload, 1024.0);
     assert_eq!(data.quality, Some(Quality::Good));
+    // Another intersection report for the same visible module keeps the samples.
+    network.process_visible(true);
+    clock.advance(1000);
+    assert_eq!(
+        network.step().unwrap().1.process_traffic.unwrap().apps[0].name,
+        "browser"
+    );
     network.process_visible(false);
     *index.lock().unwrap() = 98;
     clock.advance(2000);

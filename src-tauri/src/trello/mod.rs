@@ -606,12 +606,7 @@ pub fn start(app: tauri::AppHandle) {
                 previous_status = current_status;
                 crate::snapshot::publish(&app, trello.snapshot(false));
             }
-            let visible = app
-                .state::<std::sync::Mutex<crate::state::AppState>>()
-                .lock()
-                .unwrap()
-                .module_visible()
-                == Some(Module::Trello);
+            let visible = crate::collection::is_visible(&app, Module::Trello);
             // Publish previous data before blocking on HTTP.
             if trello.should_collect(visible, manual) {
                 crate::snapshot::publish(&app, trello.snapshot(true));

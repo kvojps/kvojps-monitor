@@ -1,21 +1,28 @@
-/* Panel design tokens. Dark by default; light when requested by the system. */
+/* Panel design tokens: LCARS cinematic language. Dark by default; light when
+   requested by the system. Text tokens meet WCAG AA (4.5:1) on every surface. */
 :root {
-  --bg: #0d0f12;
-  --surface: #14171c;
-  --surface-2: #1a1e24;
-  --line: #252a32;
-  --text: #e6e8eb;
-  --muted: #8a919c;
-  --faint: #5b626d;
-  --accent: #5eead4;
-  --accent-dim: #5eead422;
+  --bg: #02070d;
+  --surface: #06111d;
+  --surface-2: #0a1d2c;
+  --line: #173c51;
+  --text: #d8f5ff;
+  --muted: #9bb9c7;
+  --faint: #8ba6b8;
+  --accent: #4ce5ff;
+  --accent-dim: #4ce5ff22;
   /* Semantic colors for states only: success, warning and failure. */
   --ok: #4ade80;
   --warn: #fbbf24;
   --bad: #f87171;
+  /* Structural station bands; they never represent a source state. */
+  --band-lavender: #b7a4df;
+  --band-amber: #e9b783;
+  --band-cyan: #81cce5;
+  --band-blue: #718fce;
+  --on-band: #070a10;
 
-  --mono: "JetBrains Mono", "Ubuntu Sans Mono", "Ubuntu Mono", ui-monospace, monospace;
-  --sans: "Inter", "Ubuntu Sans", "Ubuntu", system-ui, sans-serif;
+  --mono: "Ubuntu Sans Mono", "Ubuntu Mono", "JetBrains Mono", ui-monospace, monospace;
+  --sans: "Ubuntu Sans", "Ubuntu", "Inter", system-ui, sans-serif;
   --radius: 12px;
 
   color-scheme: dark;
@@ -23,15 +30,18 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f7f8fa;
-    --surface: #ffffff;
-    --surface-2: #f0f2f5;
-    --line: #e2e5ea;
-    --text: #15181d;
-    --muted: #5d6570;
-    --faint: #9aa1ab;
-    --accent: #0d9488;
-    --accent-dim: #0d948818;
+    --bg: #f3f7fb;
+    --surface: #e4edf5;
+    --surface-2: #d5e3ef;
+    --line: #9ab2c6;
+    --text: #132c40;
+    --muted: #38566b;
+    --faint: #4a6579;
+    --accent: #00687f;
+    --accent-dim: #00687f1f;
+    --ok: #17663f;
+    --warn: #7a4f00;
+    --bad: #b42318;
 
     color-scheme: light;
   }

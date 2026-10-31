@@ -1,4 +1,5 @@
 use crate::persistence::{DiskStorage, Storage};
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -11,8 +12,9 @@ const PREFERENCES_FILE: &str = "preferencias.json";
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 struct Preferences {
-    #[serde(alias = "ultimoModulo")]
-    last_module: Module,
+    /// Last module chosen in the panel navigation; independent from visibility.
+    #[serde(alias = "lastModule", alias = "ultimoModulo")]
+    last_anchor: Module,
     agent_notifications: crate::agents::notifications::Preferences,
     /// First run has already enabled autostart.
     #[serde(alias = "inicializado")]
@@ -25,8 +27,8 @@ pub struct AppState {
     preferences: Preferences,
     panel_open: bool,
     agent_target: Option<String>,
-    /// Current UI view; None means Settings.
-    view: Option<Module>,
+    /// Modules intersecting the visible panel area; empty when hidden or in Settings.
+    visible: BTreeSet<Module>,
 }
 
 impl AppState {
@@ -41,28 +43,40 @@ impl AppState {
             .ok()
             .and_then(|json| serde_json::from_str(&json).ok())
             .unwrap_or_default();
-        let view = Some(preferences.last_module);
         AppState {
             storage: Box::new(storage),
             preferences,
             panel_open: false,
             agent_target: None,
-            view,
+            visible: BTreeSet::new(),
         }
     }
 
-    pub fn last_module(&self) -> Module {
-        self.preferences.last_module
+    pub fn last_anchor(&self) -> Module {
+        self.preferences.last_anchor
     }
 
-    /// The UI now shows module; None means Settings.
-    pub fn show(&mut self, module: Option<Module>) {
+    /// The user chose module in the panel navigation.
+    pub fn choose_anchor(&mut self, module: Module) {
         self.agent_target = None;
-        self.view = module;
-        if let Some(m) = module {
-            self.preferences.last_module = m;
+        if self.preferences.last_anchor != module {
+            self.preferences.last_anchor = module;
             self.save();
         }
+    }
+
+    /// Replace the set of modules intersecting the visible panel area. Returns
+    /// whether it changed, so repeated intersection reports trigger nothing.
+    pub fn report_visible(&mut self, modules: &[Module]) -> bool {
+        if !self.panel_open {
+            return false;
+        }
+        let visible: BTreeSet<Module> = modules.iter().copied().collect();
+        if visible == self.visible {
+            return false;
+        }
+        self.visible = visible;
+        true
     }
 
     pub fn first_execution(&self) -> bool {
@@ -74,20 +88,31 @@ impl AppState {
         self.save();
     }
 
-    /// Recreate the panel at the last visited module on each opening.
+    /// Recreate the panel at the last anchor on each opening. The UI scrolls to
+    /// it, so it counts as visible until the UI reports the real set. An already
+    /// open panel keeps its set: the UI reports again if it scrolls.
     pub fn open_panel(&mut self) {
+        if self.panel_open {
+            return;
+        }
         self.panel_open = true;
-        self.view = Some(self.opening_module());
+        self.visible = BTreeSet::from([self.opening_anchor()]);
     }
 
     pub fn close_panel(&mut self) {
         self.panel_open = false;
         self.agent_target = None;
+        self.visible.clear();
     }
 
-    /// Currently visible module; some collectors depend on this.
-    pub fn module_visible(&self) -> Option<Module> {
-        self.view.filter(|_| self.panel_open)
+    /// Some collectors run faster or only while their module is visible.
+    pub fn is_visible(&self, module: Module) -> bool {
+        self.visible.contains(&module)
+    }
+
+    #[cfg(test)]
+    pub fn visible_modules(&self) -> Vec<Module> {
+        self.visible.iter().copied().collect()
     }
 
     pub fn agent_notifications(&self) -> crate::agents::notifications::Preferences {
@@ -106,11 +131,11 @@ impl AppState {
     pub fn agent_target(&self) -> Option<String> {
         self.agent_target.clone()
     }
-    pub fn opening_module(&self) -> Module {
+    pub fn opening_anchor(&self) -> Module {
         if self.agent_target.is_some() {
             Module::Agents
         } else {
-            self.last_module()
+            self.last_anchor()
         }
     }
     fn save(&self) {
@@ -133,31 +158,18 @@ mod tests {
     #[test]
     fn first_run_opens_ai_module() {
         let d = dir();
-        assert_eq!(AppState::load(d.path().into()).last_module(), Module::Ai);
+        assert_eq!(AppState::load(d.path().into()).last_anchor(), Module::Ai);
     }
 
     #[test]
-    fn last_visited_module_persists_between_launches() {
+    fn last_anchor_persists_between_launches() {
         let d = dir();
         let mut state = AppState::load(d.path().into());
-        state.show(Some(Module::Network));
+        state.choose_anchor(Module::Network);
 
         assert_eq!(
-            AppState::load(d.path().into()).last_module(),
+            AppState::load(d.path().into()).last_anchor(),
             Module::Network
-        );
-    }
-
-    #[test]
-    fn settings_preserves_last_module() {
-        let d = dir();
-        let mut state = AppState::load(d.path().into());
-        state.show(Some(Module::Github));
-        state.show(None);
-
-        assert_eq!(
-            AppState::load(d.path().into()).last_module(),
-            Module::Github
         );
     }
 
@@ -166,45 +178,123 @@ mod tests {
         let d = dir();
         fs::write(d.path().join(PREFERENCES_FILE), "{ invalid json").unwrap();
 
-        assert_eq!(AppState::load(d.path().into()).last_module(), Module::Ai);
+        assert_eq!(AppState::load(d.path().into()).last_anchor(), Module::Ai);
     }
 
     #[test]
     fn closed_panel_has_no_visible_module() {
         let d = dir();
         let mut state = AppState::load(d.path().into());
-        state.show(Some(Module::System));
+        state.report_visible(&[Module::System, Module::Ai]);
 
-        assert_eq!(state.module_visible(), None);
+        assert!(state.visible_modules().is_empty());
     }
 
     #[test]
-    fn opening_panel_restores_last_visible_module() {
+    fn every_module_intersecting_the_panel_counts_as_visible() {
         let d = dir();
         let mut state = AppState::load(d.path().into());
-        state.show(Some(Module::System));
         state.open_panel();
-        assert_eq!(state.module_visible(), Some(Module::System));
 
-        state.show(Some(Module::Trello));
-        assert_eq!(state.module_visible(), Some(Module::Trello));
+        state.report_visible(&[Module::Ai, Module::Agents, Module::Github]);
+        assert!(state.is_visible(Module::Ai));
+        assert!(state.is_visible(Module::Agents));
+        assert!(state.is_visible(Module::Github));
+        assert!(!state.is_visible(Module::Network));
 
-        state.close_panel();
-        assert_eq!(state.module_visible(), None);
+        // Scrolling moves modules in and out of the visible area.
+        state.report_visible(&[Module::Network, Module::System]);
+        assert!(!state.is_visible(Module::Ai));
+        assert!(state.is_visible(Module::Network));
+        assert!(state.is_visible(Module::System));
     }
 
     #[test]
-    fn settings_has_no_visible_module() {
+    fn repeated_reports_of_the_same_set_are_not_a_change() {
         let d = dir();
         let mut state = AppState::load(d.path().into());
         state.open_panel();
-        state.show(None);
-        assert_eq!(state.module_visible(), None);
 
-        // Closing destroys the webview; reopening reloads the last module.
-        state.close_panel();
+        assert!(state.report_visible(&[Module::Ai, Module::System]));
+        assert!(!state.report_visible(&[Module::System, Module::Ai]));
+        assert!(!state.report_visible(&[Module::System, Module::Ai, Module::Ai]));
+        assert!(state.report_visible(&[Module::System]));
+    }
+
+    #[test]
+    fn visibility_does_not_change_the_last_anchor() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        state.choose_anchor(Module::Trello);
         state.open_panel();
-        assert_eq!(state.module_visible(), Some(Module::Ai));
+        state.report_visible(&[Module::Ai, Module::Network]);
+
+        assert_eq!(
+            AppState::load(d.path().into()).last_anchor(),
+            Module::Trello
+        );
+    }
+
+    #[test]
+    fn opening_panel_starts_with_the_restored_anchor_visible() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        state.choose_anchor(Module::System);
+        state.open_panel();
+        assert_eq!(state.visible_modules(), vec![Module::System]);
+
+        state.report_visible(&[Module::Trello, Module::Github]);
+        state.close_panel();
+        assert!(state.visible_modules().is_empty());
+
+        // Closing destroys the webview; reopening restores the last anchor.
+        state.open_panel();
+        assert_eq!(state.visible_modules(), vec![Module::System]);
+    }
+
+    #[test]
+    fn settings_reports_an_empty_set() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        state.choose_anchor(Module::Github);
+        state.open_panel();
+        state.report_visible(&[Module::Github, Module::Ai]);
+
+        state.report_visible(&[]);
+
+        assert!(state.visible_modules().is_empty());
+        assert_eq!(
+            AppState::load(d.path().into()).last_anchor(),
+            Module::Github
+        );
+    }
+
+    #[test]
+    fn reopening_an_open_panel_keeps_the_visible_set() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        state.open_panel();
+        state.report_visible(&[Module::Agents, Module::System, Module::Network]);
+
+        // A notification or the indicator opens the panel that is already open.
+        state.target_agent("session-1".into());
+        state.open_panel();
+
+        assert_eq!(
+            state.visible_modules(),
+            vec![Module::Agents, Module::Network, Module::System]
+        );
+    }
+
+    #[test]
+    fn reports_after_closing_do_not_make_modules_visible() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        state.open_panel();
+        state.close_panel();
+
+        assert!(!state.report_visible(&[Module::Ai]));
+        assert!(state.visible_modules().is_empty());
     }
 
     #[test]
@@ -219,19 +309,19 @@ mod tests {
     }
 
     #[test]
-    fn completing_first_run_preserves_last_module() {
+    fn completing_first_run_preserves_last_anchor() {
         let d = dir();
         let mut state = AppState::load(d.path().into());
-        state.show(Some(Module::Agents));
+        state.choose_anchor(Module::Agents);
         state.complete_first_execution();
 
         assert_eq!(
-            AppState::load(d.path().into()).last_module(),
+            AppState::load(d.path().into()).last_anchor(),
             Module::Agents
         );
     }
     #[test]
-    fn legacy_preferences_preserve_last_module_and_first_run_status() {
+    fn legacy_preferences_preserve_last_anchor_and_first_run_status() {
         let d = dir();
         fs::write(
             d.path().join(PREFERENCES_FILE),
@@ -239,17 +329,17 @@ mod tests {
         )
         .unwrap();
         let mut state = AppState::load(d.path().into());
-        assert_eq!(state.last_module(), Module::Network);
+        assert_eq!(state.last_anchor(), Module::Network);
         assert!(!state.first_execution());
-        state.show(Some(Module::System));
+        state.choose_anchor(Module::System);
         let saved: serde_json::Value =
             serde_json::from_slice(&fs::read(d.path().join(PREFERENCES_FILE)).unwrap()).unwrap();
         assert_eq!(
             saved,
-            serde_json::json!({"lastModule":"system","initialized":true,"agentNotifications":{"waiting":true,"done":true,"failed":true}})
+            serde_json::json!({"lastAnchor":"system","initialized":true,"agentNotifications":{"waiting":true,"done":true,"failed":true}})
         );
         let reloaded = AppState::load(d.path().into());
-        assert_eq!(reloaded.last_module(), Module::System);
+        assert_eq!(reloaded.last_anchor(), Module::System);
         assert!(!reloaded.first_execution());
     }
 }
@@ -283,18 +373,18 @@ mod agent_notification_tests {
         }
     }
     #[test]
-    fn notification_target_overrides_opening_module_until_panel_closes() {
+    fn notification_target_overrides_opening_anchor_until_panel_closes() {
         let storage = MemoryStorage::default();
         let mut state = AppState::with_storage(storage.clone());
-        state.show(Some(Module::Network));
+        state.choose_anchor(Module::Network);
         state.target_agent("session-1".into());
         state.open_panel();
-        assert_eq!(state.module_visible(), Some(Module::Agents));
+        assert_eq!(state.visible_modules(), vec![Module::Agents]);
         assert_eq!(state.agent_target().as_deref(), Some("session-1"));
-        assert_eq!(state.last_module(), Module::Network);
+        assert_eq!(state.last_anchor(), Module::Network);
         state.close_panel();
         state.open_panel();
-        assert_eq!(state.module_visible(), Some(Module::Network));
+        assert_eq!(state.visible_modules(), vec![Module::Network]);
         assert!(state.agent_target().is_none());
     }
     #[test]

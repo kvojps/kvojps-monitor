@@ -16,6 +16,14 @@ _Avoid_: Doca, popup, dashboard
 Uma área do Painel dedicada a uma fonte de dados (IA, Agentes, GitHub, Trello, Rede, Sistema).
 _Avoid_: Widget, aba, card
 
+**Estação**:
+Um agrupamento de dois Módulos por função no Painel: Capacidade (IA e Sistema), Execução (Agentes e Trello) e Observação (GitHub e Rede).
+_Avoid_: Coluna, seção
+
+**Âncora**:
+O Módulo escolhido na navegação do Painel; a última âncora é restaurada ao reabrir, independente de quais Módulos estão visíveis.
+_Avoid_: Último Módulo, view
+
 **Configurações**:
 A área do Painel onde o usuário informa credenciais e preferências de cada Módulo.
 _Avoid_: Settings, preferências

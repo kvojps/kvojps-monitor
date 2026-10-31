@@ -228,10 +228,8 @@ impl Collector {
     }
 
     /// Collect only while the System module is visible.
-    pub fn report(&self, module_visible: Option<Module>) {
-        let _ = self
-            .0
-            .send(Event::Visible(module_visible == Some(Module::System)));
+    pub fn report(&self, visible: bool) {
+        let _ = self.0.send(Event::Visible(visible));
     }
 }
 

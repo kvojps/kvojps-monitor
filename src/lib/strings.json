@@ -3,8 +3,18 @@
     "title": "kvojps-monitor",
     "openPanel": "Abrir painel"
   },
-  "rail": {
+  "panel": {
+    "eyebrow": "KVOJPS / MONITOR PESSOAL",
+    "title": "Painel",
+    "back": "Voltar ao Painel"
+  },
+  "nav": {
     "label": "Módulos"
+  },
+  "stations": {
+    "capacity": "Capacidade",
+    "execution": "Execução",
+    "observation": "Observação"
   },
   "modules": {
     "ai": "IA",
@@ -13,6 +23,14 @@
     "trello": "Trello",
     "network": "Rede",
     "system": "Sistema"
+  },
+  "sources": {
+    "ai": "Codex e Claude Code",
+    "agents": "Claude Code e Codex",
+    "github": "GitHub",
+    "trello": "Trello",
+    "network": "NetworkManager e kernel",
+    "system": "Kernel e UPower"
   },
   "settings": {
     "title": "Configurações"

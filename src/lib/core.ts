@@ -40,7 +40,8 @@ export interface SystemData {
 
 export interface InitialState {
   agentTarget?: string | null;
-  lastModule: Module;
+  /** Last module chosen in the navigation, or Agents for a notification target. */
+  lastAnchor: Module;
   snapshots: Snapshot[];
 }
 
@@ -52,8 +53,10 @@ export interface Core {
   setAgentNotifications?(preferences: AgentNotificationPreferences): void;
   initialState(): Promise<InitialState>;
   listenSnapshots(cb: (s: Snapshot) => void): Promise<() => void>;
-  /** null when the current view is Settings. */
-  reportModuleVisible(module: Module | null): void;
+  /** Modules intersecting the visible panel area, in MODULES order; empty in Settings. */
+  reportVisibleModules(modules: Module[]): void;
+  /** The module chosen in the navigation, restored on the next opening. */
+  chooseAnchor(module: Module): void;
   runSpeedTest?(): void;
   setAutomaticSpeed?(enabled: boolean): void;
   refreshAi?(): void;
@@ -86,7 +89,8 @@ export const tauriCore: Core = {
     const stops = await Promise.all(MODULES.map((m) => listen<Snapshot>(`snapshot:${m}`, (e) => cb(e.payload))));
     return () => stops.forEach((stop) => stop());
   },
-  reportModuleVisible: (module) => void invoke("report_module_visible", { module }),
+  reportVisibleModules: (modules) => void invoke("report_visible_modules", { modules }),
+  chooseAnchor: (module) => void invoke("choose_anchor", { module }),
   runSpeedTest: () => void invoke("run_speed_test"),
   setAutomaticSpeed: (enabled) => void invoke("set_automatic_speed", { enabled }),
   saveGithubToken: (token) => invoke<string>("save_github_token", { token }),
