@@ -1,0 +1,35 @@
+[
+  {
+    "variant": "A",
+    "height": 711,
+    "horizontal": false,
+    "bottom": 640,
+    "motion": "none",
+    "theme": "light",
+    "tooltip": "block",
+    "dialogOpen": true,
+    "dialogClosed": true
+  },
+  {
+    "variant": "B",
+    "height": 711,
+    "horizontal": false,
+    "bottom": 640,
+    "motion": "none",
+    "theme": "light",
+    "tooltip": "block",
+    "dialogOpen": true,
+    "dialogClosed": true
+  },
+  {
+    "variant": "C",
+    "height": 700,
+    "horizontal": false,
+    "bottom": 628.40625,
+    "motion": "none",
+    "theme": "light",
+    "tooltip": "block",
+    "dialogOpen": true,
+    "dialogClosed": true
+  }
+]
