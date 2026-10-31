@@ -1,10 +1,14 @@
 //! AI module: Codex usage limits from a long-lived `codex app-server`, with the
-//! newest rollout snapshot as fallback.
+//! newest rollout snapshot as fallback, and Claude limits from the Claude Code
+//! status line.
+mod claude;
 mod process;
 use crate::module::Module;
+use crate::persistence::Storage;
 use crate::persistence::{Event, LogRecord, Persistence, Volatile};
-use crate::ports::{Clock, Files};
+use crate::ports::{Clock, Files, Programs, Watch};
 use crate::snapshot::Snapshot;
+pub use claude::{copy_from_stdin, ClaudeError};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -25,6 +29,7 @@ pub trait Connection: Send {
 pub enum Source {
     AppServer,
     Rollout,
+    StatusLine,
 }
 
 /// One usage window; percent and reset come from the source, never assumed.
@@ -144,22 +149,7 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
     }
 
     pub fn snapshot(&self) -> Snapshot {
-        let now = self.clock.now();
-        // Decided at publish time so a cached reading turns into a restart without a query.
-        let reading = self.reading.clone().map(|mut reading| {
-            for bucket in &mut reading.buckets {
-                for window in [&mut bucket.primary, &mut bucket.secondary]
-                    .into_iter()
-                    .flatten()
-                {
-                    if window.resets_at.is_some_and(|at| at <= now) {
-                        window.reset = true;
-                        window.used_percent = None;
-                    }
-                }
-            }
-            reading
-        });
+        let reading = restarted(self.reading.clone(), self.clock.now());
         let state = match (self.detected, &reading) {
             (Some(false), _) => "missing",
             (_, Some(_)) => "ready",
@@ -456,6 +446,80 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
     }
 }
 
+/// Windows whose reset already passed lose their percent: never assumed 0%.
+/// Decided at publish time so a cached reading turns into a restart without a query.
+fn restarted(reading: Option<Reading>, now: u64) -> Option<Reading> {
+    reading.map(|mut reading| {
+        for bucket in &mut reading.buckets {
+            for window in [&mut bucket.primary, &mut bucket.secondary]
+                .into_iter()
+                .flatten()
+            {
+                if window.resets_at.is_some_and(|at| at <= now) {
+                    window.reset = true;
+                    window.used_percent = None;
+                }
+            }
+        }
+        reading
+    })
+}
+
+/// The AI snapshot: Codex with the Claude part beside it.
+fn combine<S: Storage, P: Programs, W: Watch, R: Clock>(
+    mut snapshot: Snapshot,
+    claude: &claude::Claude<S, P, W, R>,
+) -> Snapshot {
+    snapshot.data["claude"] = claude.data();
+    snapshot.updated_at = snapshot.updated_at.max(claude.updated_at());
+    snapshot
+}
+
+/// The disk persistence and the last entry saved through it.
+type CacheEntry = (Box<dyn Persistence>, Option<Snapshot>);
+/// Codex and Claude each save their own part of the one AI cache entry.
+#[derive(Clone)]
+pub struct SharedCache(std::sync::Arc<std::sync::Mutex<CacheEntry>>);
+impl SharedCache {
+    pub fn new(persistence: impl Persistence + 'static) -> Self {
+        let cached = persistence.load(Module::Ai);
+        Self(std::sync::Arc::new(std::sync::Mutex::new((
+            Box::new(persistence),
+            cached,
+        ))))
+    }
+}
+impl Persistence for SharedCache {
+    fn load(&self, module: Module) -> Option<Snapshot> {
+        self.0.lock().unwrap().0.load(module)
+    }
+    fn save(&self, snapshot: &Snapshot) {
+        let mut guard = self.0.lock().unwrap();
+        let (persistence, last) = &mut *guard;
+        let mut merged = last.take().unwrap_or_else(|| Snapshot {
+            module: Module::Ai,
+            updated_at: None,
+            data: json!({}),
+        });
+        for key in ["codex", "claude"] {
+            if let Some(part) = snapshot.data.get(key) {
+                merged.data[key] = part.clone();
+            }
+        }
+        merged.updated_at = merged.updated_at.max(snapshot.updated_at);
+        persistence.save(&merged);
+        *last = Some(merged);
+    }
+    fn clear(&self, module: Module) {
+        let mut guard = self.0.lock().unwrap();
+        guard.0.clear(module);
+        guard.1 = None;
+    }
+    fn log(&self, record: LogRecord) {
+        self.0.lock().unwrap().0.log(record);
+    }
+}
+
 /// Field names of one rate limit snapshot: the app-server uses camelCase,
 /// rollouts snake_case, with the same meaning.
 struct Keys {
@@ -585,6 +649,8 @@ mod tests;
 
 pub enum Command {
     Refresh,
+    ConnectClaude(tokio::sync::oneshot::Sender<Result<(), ClaudeError>>),
+    DisconnectClaude(tokio::sync::oneshot::Sender<Result<(), ClaudeError>>),
 }
 pub struct Collector(pub std::sync::mpsc::Sender<Command>);
 pub fn start(app: tauri::AppHandle) {
@@ -592,24 +658,69 @@ pub fn start(app: tauri::AppHandle) {
     let (tx, rx) = std::sync::mpsc::channel();
     app.manage(Collector(tx));
     std::thread::spawn(move || {
-        let home = dirs::home_dir().unwrap_or_default().join(".codex");
+        let home = dirs::home_dir().unwrap_or_default();
         let mut codex = Codex::new(
             process::CodexCli,
-            crate::ports::RootFilesystem::at(home),
+            crate::ports::RootFilesystem::at(home.join(".codex")),
             crate::ports::SystemClock,
+        );
+        let path = |dir: Option<std::path::PathBuf>, rest: &str| {
+            dir.unwrap_or_else(|| home.clone())
+                .join(rest)
+                .to_string_lossy()
+                .into_owned()
+        };
+        let locations = claude::Locations {
+            settings: path(Some(home.join(".claude")), "settings.json"),
+            credentials: path(Some(home.join(".claude")), ".credentials.json"),
+            config: path(dirs::config_dir(), "kvojps-monitor/claude-statusline.json"),
+            wrapper: path(
+                Some(home.clone()),
+                ".local/share/kvojps-monitor/claude-statusline",
+            ),
+            cache: path(dirs::cache_dir(), "kvojps-monitor/claude-statusline.json"),
+            // An AppImage runs from a temporary mount: point at the AppImage file.
+            executable: std::env::var_os("APPIMAGE")
+                .map(std::path::PathBuf::from)
+                .or_else(|| std::env::current_exe().ok())
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+        };
+        let watch = crate::ports::FileWatch::new(std::path::Path::new(&locations.cache));
+        let mut claude = claude::Claude::new(
+            crate::persistence::DiskStorage("/".into()),
+            crate::ports::SystemPrograms,
+            watch,
+            crate::ports::SystemClock,
+            locations,
         );
         if let (Some(cache), Some(state)) = (dirs::cache_dir(), dirs::state_dir()) {
             use crate::persistence::{Cache, DiskStorage, LocalPersistence, Logs};
-            codex = codex.with_persistence(LocalPersistence {
+            let shared = SharedCache::new(LocalPersistence {
                 cache: Cache(DiskStorage(cache.join("kvojps-monitor"))),
                 logs: Logs(DiskStorage(state.join("kvojps-monitor"))),
             });
+            codex = codex.with_persistence(shared.clone());
+            claude = claude.with_persistence(shared);
         }
-        crate::snapshot::publish(&app, codex.snapshot());
+        crate::snapshot::publish(&app, combine(codex.snapshot(), &claude));
         loop {
             // Short wait: the server pushes updates between commands.
             let command = rx.recv_timeout(std::time::Duration::from_millis(500)).ok();
             let manual = matches!(command, Some(Command::Refresh));
+            let mut changed = false;
+            match command {
+                Some(Command::ConnectClaude(reply)) => {
+                    let _ = reply.send(claude.connect());
+                    changed = true;
+                }
+                Some(Command::DisconnectClaude(reply)) => {
+                    let _ = reply.send(claude.disconnect());
+                    changed = true;
+                }
+                _ => {}
+            }
             let status = *app.state::<crate::lifecycle::Shared>().lock().unwrap();
             codex.lifecycle(status);
             let visible = app
@@ -618,8 +729,10 @@ pub fn start(app: tauri::AppHandle) {
                 .unwrap()
                 .module_visible()
                 == Some(Module::Ai);
-            if let Some(snapshot) = codex.step(visible, manual) {
-                crate::snapshot::publish(&app, snapshot);
+            changed |= codex.step(visible, manual).is_some();
+            changed |= claude.step(manual);
+            if changed {
+                crate::snapshot::publish(&app, combine(codex.snapshot(), &claude));
             }
         }
     });

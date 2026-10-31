@@ -27,6 +27,11 @@ use indicator::Indicator;
 use snapshot::Snapshots;
 use state::AppState;
 
+/// Status line mode: never starts the app.
+pub fn copy_status_line(cache: &str) {
+    ai::copy_from_stdin(std::path::Path::new(cache));
+}
+
 pub fn run() {
     tauri::Builder::default()
         // Register first: a second launch opens the live instance panel and exits.
@@ -86,6 +91,8 @@ pub fn run() {
             commands::report_module_visible,
             commands::close_panel,
             commands::refresh_ai,
+            commands::connect_claude,
+            commands::disconnect_claude,
             commands::refresh_github,
             commands::save_github_token,
             commands::refresh_trello,

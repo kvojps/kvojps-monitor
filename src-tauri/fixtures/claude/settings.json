@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${HOME-}/.orca/agent-hooks/claude-hook.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/bin/sh \"${HOME-}/.orca/agent-hooks/claude-statusline.sh\"",
+    "padding": 1
+  },
+  "enabledPlugins": {},
+  "theme": "dark",
+  "autoMode": {}
+}

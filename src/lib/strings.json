@@ -151,18 +151,38 @@
   "ai": {
     "refresh": "Atualizar IA",
     "refreshing": "Atualizando…",
+    "claude": "Claude",
+    "missingClaude": "Claude Code não encontrado · instale e faça login no CLI",
+    "emptyClaude": "Abra uma sessão do Claude Code para ler os limites",
+    "offClaude": "Conecte o app ao Claude Code para ler os limites",
+    "configure": "Configurar",
+    "replaced": "Status line desconectada",
+    "reconnect": "Reconectar",
+    "settings": {
+      "connect": "Conectar ao Claude Code",
+      "disconnect": "Desconectar",
+      "connected": "Conectado ao Claude Code pela status line",
+      "replaced": "Status line desconectada: outra ferramenta trocou a status line do Claude Code.",
+      "explanation": "O app instala uma status line no Claude Code que continua rodando a sua status line atual e copia só os limites de uso. Desconectar restaura a original.",
+      "errors": {
+        "invalidSettings": "~/.claude/settings.json não é um JSON válido; nada foi alterado",
+        "unwritable": "Não foi possível gravar a configuração do Claude Code"
+      }
+    },
     "codex": "ChatGPT / Codex",
     "missingCodex": "Codex não encontrado · instale e faça login no CLI",
     "emptyCodex": "Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻",
     "sources": {
       "appServer": "app-server",
-      "rollout": "rollout"
+      "rollout": "rollout",
+      "statusLine": "status line"
     },
     "reading": "{source} · atualizado {age}",
     "now": "agora",
     "plans": {
       "plus": "Plus",
-      "pro": "Pro"
+      "pro": "Pro",
+      "max": "Max"
     },
     "fiveHour": "Sessão (5 h)",
     "weekly": "Semanal",

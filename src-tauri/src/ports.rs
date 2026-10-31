@@ -392,3 +392,91 @@ impl Keyring for SecretService {
         }
     }
 }
+
+/// Programs reachable through PATH.
+pub trait Programs: Send {
+    fn installed(&self, name: &str) -> bool;
+}
+pub struct SystemPrograms;
+impl Programs for SystemPrograms {
+    fn installed(&self, name: &str) -> bool {
+        use std::os::unix::fs::PermissionsExt;
+        std::env::var_os("PATH").is_some_and(|path| {
+            std::env::split_paths(&path).any(|dir| {
+                dir.join(name)
+                    .metadata()
+                    .is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            })
+        })
+    }
+}
+
+/// Changes to one file, without blocking.
+pub trait Watch: Send {
+    /// True when the file changed since the last call.
+    fn changed(&mut self) -> bool;
+}
+/// inotify on the file's directory, since writers replace the file by renaming.
+/// Without inotify every call reports a change, so the file is simply reread.
+pub struct FileWatch {
+    inotify: Option<rustix::fd::OwnedFd>,
+    name: std::ffi::OsString,
+}
+impl FileWatch {
+    pub fn new(path: &std::path::Path) -> Self {
+        use rustix::fs::inotify;
+        let dir = path.parent().unwrap_or(std::path::Path::new("/"));
+        let _ = std::fs::create_dir_all(dir);
+        let inotify = inotify::init(inotify::CreateFlags::CLOEXEC | inotify::CreateFlags::NONBLOCK)
+            .ok()
+            .filter(|fd| {
+                inotify::add_watch(
+                    fd,
+                    dir,
+                    inotify::WatchFlags::CLOSE_WRITE | inotify::WatchFlags::MOVED_TO,
+                )
+                .is_ok()
+            });
+        FileWatch {
+            inotify,
+            name: path.file_name().unwrap_or_default().to_owned(),
+        }
+    }
+}
+impl Watch for FileWatch {
+    fn changed(&mut self) -> bool {
+        use std::os::unix::ffi::OsStrExt;
+        let Some(fd) = &self.inotify else {
+            return true;
+        };
+        let mut buffer = [std::mem::MaybeUninit::uninit(); 4096];
+        let mut events = rustix::fs::inotify::Reader::new(fd, &mut buffer);
+        let mut changed = false;
+        while let Ok(event) = events.next() {
+            changed |= event
+                .file_name()
+                .is_some_and(|name| name.to_bytes() == self.name.as_bytes());
+        }
+        changed
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_watch_sees_a_replaced_file_once_and_ignores_its_neighbours() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("cache/claude-statusline.json");
+        let mut watch = FileWatch::new(&file);
+        assert!(!watch.changed());
+        std::fs::write(dir.path().join("cache/other.json"), "{}").unwrap();
+        assert!(!watch.changed());
+        let temporary = dir.path().join("cache/claude-statusline.json.tmp");
+        std::fs::write(&temporary, "{}").unwrap();
+        std::fs::rename(&temporary, &file).unwrap();
+        assert!(watch.changed());
+        assert!(!watch.changed());
+    }
+}

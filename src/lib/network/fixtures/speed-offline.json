@@ -2,34 +2,34 @@
   "module": "network",
   "updatedAt": 1793457122000,
   "data": {
-    "automaticSpeed": true,
-    "connected": false,
-    "gateway": {
-      "jitter": null,
-      "latency": null,
-      "loss": null
-    },
-    "history": [],
-    "internet": {
-      "jitter": null,
-      "latency": null,
-      "loss": null
-    },
     "processTraffic": null,
-    "quality": null,
-    "reasons": [],
-    "security": null,
     "speed": {
       "download": 8.0,
+      "upload": 3.0,
       "measuredAt": 1793457121000,
-      "networkId": "/org/freedesktop/NetworkManager/ActiveConnection/2:wlo1:false:",
-      "upload": 3.0
+      "networkId": "/org/freedesktop/NetworkManager/ActiveConnection/2:wlo1:false:"
     },
     "speedAvailable": false,
-    "speedFailed": false,
     "speedRunning": false,
-    "traffic": null,
+    "speedFailed": false,
+    "automaticSpeed": true,
+    "connected": false,
+    "wired": false,
     "vpn": false,
-    "wired": false
+    "quality": null,
+    "security": null,
+    "reasons": [],
+    "gateway": {
+      "latency": null,
+      "jitter": null,
+      "loss": null
+    },
+    "internet": {
+      "latency": null,
+      "jitter": null,
+      "loss": null
+    },
+    "traffic": null,
+    "history": []
   }
 }

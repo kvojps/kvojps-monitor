@@ -152,11 +152,14 @@ fn sanitize(module: Module, data: &Value) -> io::Result<Value> {
         Module::Ai => {
             #[derive(Serialize, Deserialize)]
             struct CachedAi {
-                codex: CachedCodex,
+                #[serde(default, skip_serializing_if = "Option::is_none")]
+                codex: Option<CachedProvider>,
+                #[serde(default, skip_serializing_if = "Option::is_none")]
+                claude: Option<CachedProvider>,
             }
-            /// Plan and usage windows; never account e-mail or ids.
+            /// Plan and usage windows; never account e-mail, ids or tokens.
             #[derive(Serialize, Deserialize)]
-            struct CachedCodex {
+            struct CachedProvider {
                 plan: Option<String>,
                 reading: Option<crate::ai::Reading>,
             }

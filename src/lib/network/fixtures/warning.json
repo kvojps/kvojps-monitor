@@ -2,12 +2,33 @@
   "module": "network",
   "updatedAt": 1793457126000,
   "data": {
+    "processTraffic": null,
+    "speed": null,
+    "speedAvailable": false,
+    "speedRunning": false,
+    "speedFailed": false,
     "automaticSpeed": true,
     "connected": true,
+    "wired": false,
+    "vpn": false,
+    "quality": "good",
+    "security": "warning",
+    "reasons": [
+      "Portal cativo detectado"
+    ],
     "gateway": {
-      "jitter": 0.0,
       "latency": 2.0,
+      "jitter": 0.0,
       "loss": 0.0
+    },
+    "internet": {
+      "latency": 20.0,
+      "jitter": 0.0,
+      "loss": 0.0
+    },
+    "traffic": {
+      "download": 1024.0,
+      "upload": 512.0
     },
     "history": [
       {
@@ -18,27 +39,6 @@
         "download": 1024.0,
         "upload": 512.0
       }
-    ],
-    "internet": {
-      "jitter": 0.0,
-      "latency": 20.0,
-      "loss": 0.0
-    },
-    "processTraffic": null,
-    "quality": "good",
-    "reasons": [
-      "Portal cativo detectado"
-    ],
-    "security": "warning",
-    "speed": null,
-    "speedAvailable": false,
-    "speedFailed": false,
-    "speedRunning": false,
-    "traffic": {
-      "download": 1024.0,
-      "upload": 512.0
-    },
-    "vpn": false,
-    "wired": false
+    ]
   }
 }

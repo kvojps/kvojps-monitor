@@ -3,6 +3,7 @@
   import Icon from "./Icon.svelte";
   import { MODULES, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
   import AiModule from "./ai/AiModule.svelte";
+  import AiSettings from "./ai/AiSettings.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
   import GithubModule from "./github/GithubModule.svelte";
   import TrelloModule from "./trello/TrelloModule.svelte";
@@ -80,7 +81,8 @@
         {/if}
       </header>
       {#if view === "ai" && snapshots.ai?.data}
-        <AiModule data={snapshots.ai.data as AiData} refresh={() => core.refreshAi?.()} />
+        <AiModule data={snapshots.ai.data as AiData} refresh={() => core.refreshAi?.()}
+          configure={() => selecionar("settings")} reconnect={() => void core.connectClaude?.().catch(() => selecionar("settings"))} />
       {/if}
       {#if view === "github" && snapshots.github}
         <GithubModule data={snapshots.github.data as GithubData} refresh={() => core.refreshGithub?.()} configure={() => selecionar("settings")} />
@@ -92,6 +94,11 @@
       {/if}
       {#if view === "network" && snapshots.network?.data}
         <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
+      {/if}
+      {#if view === "settings"}
+        <AiSettings data={snapshots.ai?.data as AiData | undefined}
+          connect={() => core.connectClaude ? core.connectClaude() : Promise.reject("unwritable")}
+          disconnect={() => core.disconnectClaude ? core.disconnectClaude() : Promise.reject("unwritable")} />
       {/if}
       {#if view === "settings"}
         <GithubSettings data={snapshots.github?.data as GithubData | undefined}

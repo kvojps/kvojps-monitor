@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { AiData, AiWindow } from "../core";
+  import type { AiData, AiReading, AiWindow } from "../core";
   import { t, interpolate } from "../strings";
 
-  let { data, refresh }: { data: AiData; refresh: () => void } = $props();
+  let { data, refresh, configure = () => {}, reconnect = () => {} }:
+    { data: AiData; refresh: () => void; configure?: () => void; reconnect?: () => void } = $props();
   let now = $state(Date.now());
   let allowedAt = $state(0);
   onMount(() => {
@@ -45,15 +46,62 @@
     refresh();
   }
   const codex = $derived(data.codex);
+  const claude = $derived(data.claude);
   const windows = (bucket: { primary: AiWindow | null; secondary: AiWindow | null }) =>
     [bucket.primary, bucket.secondary].filter((w): w is AiWindow => w !== null);
 </script>
+
+{#snippet limits(reading: AiReading)}
+  <span class="faint">{interpolate(t.ai.reading, { source: t.ai.sources[reading.source], age: age(reading.readAt) })}</span>
+  {#each reading.buckets as bucket (bucket.id)}
+    {#if reading.buckets.length > 1}<span class="label">{bucket.name ?? bucket.id}</span>{/if}
+    {#each windows(bucket) as window}
+      <div class="window">
+        <div class="line">
+          <span class="label">{label(window)}</span>
+          {#if !window.reset && window.usedPercent !== null}<span class="num">{Math.round(window.usedPercent)}%</span>{/if}
+        </div>
+        {#if window.reset || window.usedPercent === null}
+          <span class="faint">{window.resetsAt !== null ? interpolate(t.ai.restarted, { time: clock.format(window.resetsAt) }) : ""}</span>
+        {:else}
+          <div class="bar" class:warning={window.usedPercent >= 75} class:bad={window.usedPercent >= 90}
+            role="meter" aria-label={label(window)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(window.usedPercent)}>
+            <i style:width="{Math.min(100, window.usedPercent)}%"></i>
+          </div>
+          {#if window.resetsAt !== null}<span class="faint">{resets(window.resetsAt)}</span>{/if}
+        {/if}
+      </div>
+    {/each}
+  {/each}
+{/snippet}
 
 <div class="ai">
   <div class="tools">
     {#if data.refreshing}<span role="status" class="secondary">{t.ai.refreshing}</span>{/if}
     <button aria-label={t.ai.refresh} disabled={data.paused || data.refreshing || now < allowedAt} onclick={refreshNow}>↻</button>
   </div>
+  {#if claude}
+    <section aria-label={t.ai.claude}>
+      <div class="line">
+        <b>{t.ai.claude}</b>
+        {#if claude.plan && claude.state !== "missing"}<span class="pill">{plan(claude.plan)}</span>{/if}
+      </div>
+      {#if claude.state === "missing"}
+        <p class="secondary">{t.ai.missingClaude}</p>
+      {:else}
+        {#if claude.statusLine === "replaced"}
+          <p role="status" class="alert">{t.ai.replaced} · <button class="link" onclick={reconnect}>{t.ai.reconnect}</button></p>
+        {:else if claude.statusLine === "off"}
+          <p class="secondary">{t.ai.offClaude} · <button class="link" onclick={configure}>{t.ai.configure}</button></p>
+        {/if}
+        {#if claude.reading}
+          {@render limits(claude.reading)}
+        {:else if claude.statusLine === "connected"}
+          <p class="secondary">{t.ai.emptyClaude}</p>
+        {/if}
+      {/if}
+    </section>
+  {/if}
   <section aria-label={t.ai.codex}>
     <div class="line">
       <b>{t.ai.codex}</b>
@@ -67,27 +115,7 @@
     {:else if !codex.reading}
       <p class="secondary">{t.ai.emptyCodex}</p>
     {:else}
-      <span class="faint">{interpolate(t.ai.reading, { source: t.ai.sources[codex.reading.source], age: age(codex.reading.readAt) })}</span>
-      {#each codex.reading.buckets as bucket (bucket.id)}
-        {#if codex.reading.buckets.length > 1}<span class="label">{bucket.name ?? bucket.id}</span>{/if}
-        {#each windows(bucket) as window}
-          <div class="window">
-            <div class="line">
-              <span class="label">{label(window)}</span>
-              {#if !window.reset && window.usedPercent !== null}<span class="num">{Math.round(window.usedPercent)}%</span>{/if}
-            </div>
-            {#if window.reset || window.usedPercent === null}
-              <span class="faint">{window.resetsAt !== null ? interpolate(t.ai.restarted, { time: clock.format(window.resetsAt) }) : ""}</span>
-            {:else}
-              <div class="bar" class:warning={window.usedPercent >= 75} class:bad={window.usedPercent >= 90}
-                role="meter" aria-label={label(window)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(window.usedPercent)}>
-                <i style:width="{Math.min(100, window.usedPercent)}%"></i>
-              </div>
-              {#if window.resetsAt !== null}<span class="faint">{resets(window.resetsAt)}</span>{/if}
-            {/if}
-          </div>
-        {/each}
-      {/each}
+      {@render limits(codex.reading)}
     {/if}
   </section>
 </div>
@@ -102,6 +130,8 @@
   .window { display: flex; flex-direction: column; gap: 4px; }
   .label, .secondary { color: var(--muted); }
   .secondary, .num { font-size: 12px; }
+  .alert { color: var(--warn); font-size: 12px; }
+  .link { padding: 0; border: 0; color: var(--accent); font-size: inherit; }
   .faint { color: var(--faint); font-size: 11px; }
   .pill { font-size: 11px; padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
   .bar { height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }

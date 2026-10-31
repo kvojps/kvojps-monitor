@@ -51,6 +51,9 @@ export interface Core {
   runSpeedTest?(): void;
   setAutomaticSpeed?(enabled: boolean): void;
   refreshAi?(): void;
+  /** Rejects with a ClaudeError code; settings.json is changed only here. */
+  connectClaude?(): Promise<void>;
+  disconnectClaude?(): Promise<void>;
   refreshGithub?(): void;
   saveGithubToken?(token: string): Promise<string>;
   refreshTrello?(): void;
@@ -77,6 +80,8 @@ export const tauriCore: Core = {
   setAutomaticSpeed: (enabled) => void invoke("set_automatic_speed", { enabled }),
   saveGithubToken: (token) => invoke<string>("save_github_token", { token }),
   refreshAi: () => void invoke("refresh_ai"),
+  connectClaude: () => invoke<void>("connect_claude"),
+  disconnectClaude: () => invoke<void>("disconnect_claude"),
   refreshGithub: () => void invoke("refresh_github"),
   refreshTrello: () => void invoke("refresh_trello"),
   connectTrello: (key, token) => invoke<string>("connect_trello", { key, token }),
@@ -119,6 +124,11 @@ export interface AiWindow {
   /** Restarted after the reading: never shown as 0%. */
   reset: boolean;
 }
+export interface AiReading {
+  source: "appServer" | "rollout" | "statusLine";
+  readAt: number;
+  buckets: { id: string; name: string | null; primary: AiWindow | null; secondary: AiWindow | null }[];
+}
 export interface AiData {
   refreshing: boolean;
   paused?: boolean;
@@ -128,11 +138,15 @@ export interface AiData {
     failureSince?: number | null;
     /** Codex planType, e.g. plus or pro. */
     plan: string | null;
-    reading: {
-      source: "appServer" | "rollout";
-      readAt: number;
-      buckets: { id: string; name: string | null; primary: AiWindow | null; secondary: AiWindow | null }[];
-    } | null;
+    reading: AiReading | null;
+  };
+  claude?: {
+    state: "missing" | "empty" | "ready";
+    /** Claude subscriptionType, e.g. pro or max. */
+    plan: string | null;
+    /** replaced: another tool changed statusLine after connecting. */
+    statusLine: "off" | "connected" | "replaced";
+    reading: AiReading | null;
   };
 }
 

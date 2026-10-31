@@ -52,6 +52,35 @@ pub fn refresh_ai(collector: State<crate::ai::Collector>) {
     let _ = collector.0.send(crate::ai::Command::Refresh);
 }
 
+/// Only on the user's click: changes `~/.claude/settings.json`.
+#[tauri::command]
+pub async fn connect_claude(
+    collector: State<'_, crate::ai::Collector>,
+) -> Result<(), crate::ai::ClaudeError> {
+    ask_ai(collector, crate::ai::Command::ConnectClaude).await
+}
+
+#[tauri::command]
+pub async fn disconnect_claude(
+    collector: State<'_, crate::ai::Collector>,
+) -> Result<(), crate::ai::ClaudeError> {
+    ask_ai(collector, crate::ai::Command::DisconnectClaude).await
+}
+
+async fn ask_ai(
+    collector: State<'_, crate::ai::Collector>,
+    command: impl FnOnce(
+        tokio::sync::oneshot::Sender<Result<(), crate::ai::ClaudeError>>,
+    ) -> crate::ai::Command,
+) -> Result<(), crate::ai::ClaudeError> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    collector
+        .0
+        .send(command(tx))
+        .map_err(|_| crate::ai::ClaudeError::Unwritable)?;
+    rx.await.map_err(|_| crate::ai::ClaudeError::Unwritable)?
+}
+
 #[tauri::command]
 pub fn run_speed_test(collector: State<crate::network::Collector>) {
     let _ = collector.0.send(crate::network::Command::FullSpeed);

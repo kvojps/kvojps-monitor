@@ -2,29 +2,29 @@
   "module": "network",
   "updatedAt": 1793457126000,
   "data": {
-    "automaticSpeed": true,
-    "connected": false,
-    "gateway": {
-      "jitter": null,
-      "latency": null,
-      "loss": null
-    },
-    "history": [],
-    "internet": {
-      "jitter": null,
-      "latency": null,
-      "loss": null
-    },
     "processTraffic": null,
-    "quality": null,
-    "reasons": [],
-    "security": null,
     "speed": null,
     "speedAvailable": false,
-    "speedFailed": false,
     "speedRunning": false,
-    "traffic": null,
+    "speedFailed": false,
+    "automaticSpeed": true,
+    "connected": false,
+    "wired": false,
     "vpn": false,
-    "wired": false
+    "quality": null,
+    "security": null,
+    "reasons": [],
+    "gateway": {
+      "latency": null,
+      "jitter": null,
+      "loss": null
+    },
+    "internet": {
+      "latency": null,
+      "jitter": null,
+      "loss": null
+    },
+    "traffic": null,
+    "history": []
   }
 }

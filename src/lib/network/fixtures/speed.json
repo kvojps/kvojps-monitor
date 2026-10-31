@@ -2,42 +2,42 @@
   "module": "network",
   "updatedAt": 1793457121000,
   "data": {
+    "processTraffic": null,
+    "speed": {
+      "download": 8.0,
+      "upload": 3.0,
+      "measuredAt": 1793457121000,
+      "networkId": "/org/freedesktop/NetworkManager/ActiveConnection/2:wlo1:false:"
+    },
+    "speedAvailable": true,
+    "speedRunning": false,
+    "speedFailed": false,
     "automaticSpeed": true,
     "connected": true,
+    "wired": false,
+    "vpn": false,
+    "quality": "regular",
+    "security": "noAlerts",
+    "reasons": [],
     "gateway": {
-      "jitter": null,
       "latency": 2.0,
+      "jitter": null,
       "loss": 0.0
+    },
+    "internet": {
+      "latency": 20.0,
+      "jitter": null,
+      "loss": 0.0
+    },
+    "traffic": {
+      "download": 0.0,
+      "upload": 0.0
     },
     "history": [
       {
         "download": 0.0,
         "upload": 0.0
       }
-    ],
-    "internet": {
-      "jitter": null,
-      "latency": 20.0,
-      "loss": 0.0
-    },
-    "processTraffic": null,
-    "quality": "regular",
-    "reasons": [],
-    "security": "noAlerts",
-    "speed": {
-      "download": 8.0,
-      "measuredAt": 1793457121000,
-      "networkId": "/org/freedesktop/NetworkManager/ActiveConnection/2:wlo1:false:",
-      "upload": 3.0
-    },
-    "speedAvailable": true,
-    "speedFailed": false,
-    "speedRunning": false,
-    "traffic": {
-      "download": 0.0,
-      "upload": 0.0
-    },
-    "vpn": false,
-    "wired": false
+    ]
   }
 }

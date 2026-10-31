@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/svelte";
+import { render, screen, fireEvent, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import AiModule from "./AiModule.svelte";
 import type { AiData } from "../core";
@@ -82,4 +82,57 @@ it("shows sustained failures and keeps the fallback reading", async () => {
   render(AiModule, { data: failure as AiData, refresh: vi.fn() });
   expect(screen.getByText("Falha ao atualizar há 1 minuto")).toBeInTheDocument();
   expect(screen.getByText("rollout · atualizado há 1 hora")).toBeInTheDocument();
+});
+
+/** Instant the Claude fixtures were published, before both windows reset. */
+const CLAUDE_NOW = 1738420000000;
+
+it("shows Claude's plan and both windows from the status line", async () => {
+  const { default: connected } = await import("./fixtures/claude-connected.json");
+  vi.setSystemTime(CLAUDE_NOW);
+  render(AiModule, { data: connected as AiData, refresh: vi.fn() });
+  const claude = screen.getByRole("region", { name: "Claude" });
+  expect(within(claude).getByText("Pro")).toBeInTheDocument();
+  expect(within(claude).getByText("status line · atualizado agora")).toBeInTheDocument();
+  expect(within(claude).getByRole("meter", { name: "Sessão (5 h)" })).toHaveAttribute("aria-valuenow", "24");
+  expect(within(claude).getByRole("meter", { name: "Semanal" })).toHaveAttribute("aria-valuenow", "41");
+  expect(within(claude).queryByText(/Status line desconectada/)).not.toBeInTheDocument();
+});
+
+it("warns when another tool replaced the status line and reconnects only on click", async () => {
+  const { default: replaced } = await import("./fixtures/claude-replaced.json");
+  vi.setSystemTime(CLAUDE_NOW + 3_600_000);
+  const reconnect = vi.fn();
+  render(AiModule, { data: replaced as AiData, refresh: vi.fn(), reconnect });
+  const claude = screen.getByRole("region", { name: "Claude" });
+  expect(within(claude).getByRole("status")).toHaveTextContent("Status line desconectada · Reconectar");
+  expect(within(claude).getByText("status line · atualizado há 1 hora")).toBeInTheDocument();
+  expect(reconnect).not.toHaveBeenCalled();
+  await fireEvent.click(within(claude).getByRole("button", { name: "Reconectar" }));
+  expect(reconnect).toHaveBeenCalledOnce();
+});
+
+it("asks for a Claude Code session when connected without a reading", async () => {
+  const { default: claudeEmpty } = await import("./fixtures/claude-empty.json");
+  render(AiModule, { data: claudeEmpty as AiData, refresh: vi.fn() });
+  const claude = screen.getByRole("region", { name: "Claude" });
+  expect(within(claude).getByText("Abra uma sessão do Claude Code para ler os limites")).toBeInTheDocument();
+  expect(within(claude).queryByRole("meter")).not.toBeInTheDocument();
+});
+
+it("points to Settings before connecting to Claude Code", async () => {
+  const { default: off } = await import("./fixtures/claude-off.json");
+  const configure = vi.fn();
+  render(AiModule, { data: off as AiData, refresh: vi.fn(), configure });
+  const claude = screen.getByRole("region", { name: "Claude" });
+  expect(within(claude).getByText(/Conecte o app ao Claude Code para ler os limites/)).toBeInTheDocument();
+  await fireEvent.click(within(claude).getByRole("button", { name: "Configurar" }));
+  expect(configure).toHaveBeenCalledOnce();
+});
+
+it("explains a missing Claude Code", async () => {
+  const { default: claudeMissing } = await import("./fixtures/claude-missing.json");
+  render(AiModule, { data: claudeMissing as AiData, refresh: vi.fn() });
+  expect(screen.getByText("Claude Code não encontrado · instale e faça login no CLI")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Configurar" })).not.toBeInTheDocument();
 });

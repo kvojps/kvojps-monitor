@@ -1,0 +1,441 @@
+//! Claude usage limits from the Claude Code status line. After the user's click,
+//! a wrapper chains their own status line and copies only `rate_limits` to a
+//! cache file that this collector watches.
+use super::{restarted, Bucket, Reading, Source, Window};
+use crate::module::Module;
+use crate::persistence::{Event, LogRecord, Persistence, Storage, Volatile};
+use crate::ports::{Clock, Programs, Watch};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+
+/// Files the collector reads or writes, as paths for its storage.
+pub struct Locations {
+    /// The user's `~/.claude/settings.json`.
+    pub settings: String,
+    pub credentials: String,
+    /// App configuration that keeps the original status line.
+    pub config: String,
+    pub wrapper: String,
+    /// Copy of `rate_limits` written by the wrapper.
+    pub cache: String,
+    /// Program the wrapper runs as `<executable> statusline <cache>`.
+    pub executable: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ClaudeError {
+    /// `settings.json` is not a JSON object; nothing was changed.
+    InvalidSettings,
+    Unwritable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StatusLine {
+    Off,
+    Connected,
+    /// Another tool changed `statusLine` after connecting; never rewritten here.
+    Replaced,
+}
+
+/// Kept in the app configuration while connected.
+#[derive(Serialize, Deserialize)]
+struct Connection {
+    /// `statusLine` before connecting; None when there was none.
+    original: Option<Value>,
+}
+
+/// The only fields copied from the status line payload.
+#[derive(Debug, Serialize, Deserialize)]
+struct StoredLimits {
+    /// Epoch milliseconds.
+    read_at: u64,
+    rate_limits: RateLimits,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct RateLimits {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    five_hour: Option<Limit>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seven_day: Option<Limit>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct Limit {
+    used_percentage: f64,
+    /// Epoch seconds.
+    resets_at: u64,
+}
+
+/// The copy the wrapper stores for one status line payload; None without windows.
+pub fn extract(payload: &str, now: u64) -> Option<String> {
+    #[derive(Deserialize)]
+    struct Payload {
+        rate_limits: Option<RateLimits>,
+    }
+    let rate_limits = serde_json::from_str::<Payload>(payload).ok()?.rate_limits?;
+    if rate_limits.five_hour.is_none() && rate_limits.seven_day.is_none() {
+        return None;
+    }
+    serde_json::to_string(&StoredLimits {
+        read_at: now,
+        rate_limits,
+    })
+    .ok()
+}
+
+/// `statusline <cache>` mode of the app binary, run by the wrapper.
+pub fn copy_from_stdin(cache: &std::path::Path) {
+    use crate::ports::Clock;
+    let mut payload = String::new();
+    if std::io::Read::read_to_string(&mut std::io::stdin(), &mut payload).is_err() {
+        return;
+    }
+    let Some(copy) = extract(&payload, crate::ports::SystemClock.now()) else {
+        return;
+    };
+    let temporary = cache.with_extension("json.tmp");
+    let _ = cache
+        .parent()
+        .map(std::fs::create_dir_all)
+        .unwrap_or(Ok(()))
+        .and_then(|_| std::fs::write(&temporary, copy))
+        .and_then(|_| std::fs::rename(&temporary, cache));
+}
+
+/// POSIX shell single quotes.
+fn quote(text: &str) -> String {
+    format!("'{}'", text.replace('\'', r"'\''"))
+}
+
+pub struct Claude<S, P, W, R> {
+    storage: S,
+    programs: P,
+    watch: W,
+    clock: R,
+    locations: Locations,
+    persistence: Box<dyn Persistence>,
+    /// `claude` in PATH and local credentials; None until checked.
+    detected: Option<bool>,
+    plan: Option<String>,
+    status_line: StatusLine,
+    reading: Option<Reading>,
+    checked_at: Option<u64>,
+    stepped_at: u64,
+}
+
+impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
+    pub fn new(storage: S, programs: P, watch: W, clock: R, locations: Locations) -> Self {
+        Self {
+            storage,
+            programs,
+            watch,
+            clock,
+            locations,
+            persistence: Box::new(Volatile),
+            detected: None,
+            plan: None,
+            status_line: StatusLine::Off,
+            reading: None,
+            checked_at: None,
+            stepped_at: 0,
+        }
+    }
+
+    /// Start from the sanitized disk cache.
+    pub fn with_persistence(mut self, persistence: impl Persistence + 'static) -> Self {
+        if let Some(snapshot) = persistence.load(Module::Ai) {
+            let claude = &snapshot.data["claude"];
+            self.plan = claude["plan"].as_str().map(str::to_owned);
+            self.reading = serde_json::from_value(claude["reading"].clone()).ok();
+        }
+        self.persistence = Box::new(persistence);
+        self
+    }
+
+    fn command(&self) -> String {
+        format!("sh {}", quote(&self.locations.wrapper))
+    }
+
+    /// Point `statusLine` at the wrapper, chaining the current status line.
+    pub fn connect(&mut self) -> Result<(), ClaudeError> {
+        let mut settings = self.settings()?;
+        let ours = self.ours(&settings);
+        let current = settings.get("statusLine").cloned();
+        // Reconnecting while still ours keeps the original from the first connection.
+        let original = match (ours, self.connection()) {
+            (true, Some(connection)) => connection.original,
+            (true, None) => None,
+            (false, _) => current,
+        };
+        let connection = Connection { original };
+        self.write(
+            &self.locations.config,
+            &serde_json::to_string_pretty(&connection).map_err(|_| ClaudeError::Unwritable)?,
+        )?;
+        let result = self
+            .write(&self.locations.wrapper, &self.wrapper(&connection))
+            .and_then(|_| {
+                let mut line = match &connection.original {
+                    Some(Value::Object(original)) => original.clone(),
+                    _ => serde_json::Map::new(),
+                };
+                line.insert("type".into(), json!("command"));
+                line.insert("command".into(), json!(self.command()));
+                settings.insert("statusLine".into(), Value::Object(line));
+                self.save_settings(&settings)
+            });
+        if result.is_err() {
+            let _ = self.storage.remove(&self.locations.wrapper);
+            let _ = self.storage.remove(&self.locations.config);
+        }
+        result?;
+        self.status_line = StatusLine::Connected;
+        Ok(())
+    }
+
+    /// Restore the original status line, or remove the key if there was none.
+    /// A status line replaced by another tool stays as it is.
+    pub fn disconnect(&mut self) -> Result<(), ClaudeError> {
+        let Some(connection) = self.connection() else {
+            self.status_line = StatusLine::Off;
+            return Ok(());
+        };
+        let mut settings = self.settings()?;
+        if self.ours(&settings) {
+            match connection.original {
+                Some(original) => settings.insert("statusLine".into(), original),
+                None => settings.remove("statusLine"),
+            };
+            self.save_settings(&settings)?;
+        }
+        let _ = self.storage.remove(&self.locations.wrapper);
+        let _ = self.storage.remove(&self.locations.config);
+        self.status_line = StatusLine::Off;
+        Ok(())
+    }
+
+    fn wrapper(&self, connection: &Connection) -> String {
+        let original = match connection
+            .original
+            .as_ref()
+            .and_then(|line| line["command"].as_str())
+        {
+            Some(command) => format!("printf '%s' \"$payload\" | sh -c {}\n", quote(command)),
+            None => "exit 0\n".to_owned(),
+        };
+        format!(
+            "#!/bin/sh\n\
+             # kvojps-monitor: Claude Code status line. Runs the original status line\n\
+             # and copies only rate_limits for the app. Disconnect in the app to restore it.\n\
+             payload=$(cat; printf x)\n\
+             payload=${{payload%x}}\n\
+             printf '%s' \"$payload\" | {} statusline {} >/dev/null 2>&1 &\n\
+             {original}",
+            quote(&self.locations.executable),
+            quote(&self.locations.cache),
+        )
+    }
+
+    /// `statusLine` points at the wrapper.
+    fn ours(&self, settings: &serde_json::Map<String, Value>) -> bool {
+        settings
+            .get("statusLine")
+            .is_some_and(|line| line["command"] == self.command())
+    }
+
+    fn connection(&self) -> Option<Connection> {
+        serde_json::from_str(&self.storage.read(&self.locations.config).ok()?).ok()
+    }
+
+    /// A missing file counts as empty settings.
+    fn settings(&self) -> Result<serde_json::Map<String, Value>, ClaudeError> {
+        match self.storage.read(&self.locations.settings) {
+            Ok(text) => match serde_json::from_str(&text) {
+                Ok(Value::Object(settings)) => Ok(settings),
+                _ => Err(ClaudeError::InvalidSettings),
+            },
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Default::default()),
+            Err(_) => Err(ClaudeError::Unwritable),
+        }
+    }
+
+    fn save_settings(&self, settings: &serde_json::Map<String, Value>) -> Result<(), ClaudeError> {
+        let text = serde_json::to_string_pretty(settings).map_err(|_| ClaudeError::Unwritable)?;
+        self.write(&self.locations.settings, &(text + "\n"))
+    }
+
+    /// Replace by renaming, so Claude Code never reads half a file.
+    fn write(&self, path: &str, content: &str) -> Result<(), ClaudeError> {
+        let temporary = format!("{path}.kvojps-monitor.tmp");
+        self.storage
+            .write(&temporary, content)
+            .and_then(|_| self.storage.rename(&temporary, path))
+            .map_err(|_| ClaudeError::Unwritable)
+    }
+
+    /// Detection, plan and status line, rechecked on a timer.
+    fn check(&mut self) {
+        let first = self.checked_at.is_none();
+        self.checked_at = Some(self.clock.now());
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Credentials {
+            claude_ai_oauth: Option<Oauth>,
+        }
+        /// Only the plan: the token itself is never kept.
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Oauth {
+            subscription_type: Option<String>,
+        }
+        let oauth = self
+            .storage
+            .read(&self.locations.credentials)
+            .ok()
+            .and_then(|text| serde_json::from_str::<Credentials>(&text).ok())
+            .and_then(|credentials| credentials.claude_ai_oauth);
+        self.detected = Some(self.programs.installed("claude") && oauth.is_some());
+        if let Some(plan) = oauth.and_then(|oauth| oauth.subscription_type) {
+            self.plan = Some(plan);
+        }
+        let connection = self.connection();
+        self.status_line = match &connection {
+            None => StatusLine::Off,
+            Some(_) => {
+                if self.settings().is_ok_and(|settings| self.ours(&settings)) {
+                    StatusLine::Connected
+                } else {
+                    StatusLine::Replaced
+                }
+            }
+        };
+        // The app binary may have moved since connecting, e.g. an AppImage.
+        if let (true, StatusLine::Connected, Some(connection)) =
+            (first, self.status_line, &connection)
+        {
+            let _ = self.write(&self.locations.wrapper, &self.wrapper(connection));
+        }
+    }
+
+    /// Read the newest copy; true when it brought a newer reading.
+    fn read_copy(&mut self) -> bool {
+        let started_at = self.clock.now();
+        let Some(copy) = self
+            .storage
+            .read(&self.locations.cache)
+            .ok()
+            .and_then(|text| serde_json::from_str::<StoredLimits>(&text).ok())
+        else {
+            return false;
+        };
+        if self
+            .reading
+            .as_ref()
+            .is_some_and(|reading| reading.read_at >= copy.read_at)
+        {
+            return false;
+        }
+        let window = |limit: Option<Limit>, duration_mins| {
+            limit.map(|limit| Window {
+                used_percent: Some(limit.used_percentage),
+                duration_mins: Some(duration_mins),
+                resets_at: Some(limit.resets_at.saturating_mul(1000)),
+                reset: false,
+            })
+        };
+        // Claude Code drops a window once its reset passes: keep the old one,
+        // which then shows as restarted instead of disappearing.
+        let previous = |pick: fn(&Bucket) -> &Option<Window>| {
+            self.reading
+                .as_ref()
+                .and_then(|reading| reading.buckets.first())
+                .and_then(|bucket| pick(bucket).clone())
+                .filter(|window| window.resets_at.is_some_and(|at| at <= copy.read_at))
+        };
+        let primary = window(copy.rate_limits.five_hour, 300).or_else(|| previous(|b| &b.primary));
+        let secondary =
+            window(copy.rate_limits.seven_day, 10080).or_else(|| previous(|b| &b.secondary));
+        self.reading = Some(Reading {
+            source: Source::StatusLine,
+            read_at: copy.read_at,
+            buckets: vec![Bucket {
+                id: "claude".into(),
+                name: None,
+                primary,
+                secondary,
+            }],
+        });
+        self.persistence.save(&self.snapshot());
+        self.persistence.log(LogRecord {
+            source: Module::Ai,
+            event: Event::Updated,
+            http_status: None,
+            duration_ms: self.clock.now().saturating_sub(started_at),
+        });
+        true
+    }
+
+    /// True whenever something the module shows may have changed.
+    pub fn step(&mut self, manual: bool) -> bool {
+        let now = self.clock.now();
+        let first = self.checked_at.is_none();
+        let mut changed = false;
+        if manual
+            || self
+                .checked_at
+                .is_none_or(|at| now.saturating_sub(at) >= CHECK_INTERVAL)
+        {
+            let before = (self.detected, self.plan.clone(), self.status_line);
+            self.check();
+            changed |= before != (self.detected, self.plan.clone(), self.status_line);
+        }
+        if self.watch.changed() || first || manual {
+            changed |= self.read_copy();
+        }
+        // A window restarting turns into "Reiniciado às" without a new reading.
+        let since = std::mem::replace(&mut self.stepped_at, now);
+        changed |= self.reading.iter().flat_map(|r| &r.buckets).any(|bucket| {
+            [&bucket.primary, &bucket.secondary]
+                .into_iter()
+                .flatten()
+                .any(|w| w.resets_at.is_some_and(|at| since < at && at <= now))
+        });
+        changed
+    }
+
+    pub fn data(&self) -> Value {
+        let reading = restarted(self.reading.clone(), self.clock.now());
+        let state = match (self.detected, &reading) {
+            (Some(false), _) => "missing",
+            (_, Some(_)) => "ready",
+            (_, None) => "empty",
+        };
+        json!({
+            "state": state,
+            "plan": self.plan,
+            "statusLine": self.status_line,
+            "reading": reading,
+        })
+    }
+
+    pub fn updated_at(&self) -> Option<u64> {
+        self.reading.as_ref().map(|reading| reading.read_at)
+    }
+
+    /// Only the Claude part; the shared cache keeps the Codex part.
+    fn snapshot(&self) -> crate::snapshot::Snapshot {
+        crate::snapshot::Snapshot {
+            module: Module::Ai,
+            updated_at: self.updated_at(),
+            data: json!({"claude": self.data()}),
+        }
+    }
+}
+
+/// Recheck detection, plan and the status line this often.
+pub const CHECK_INTERVAL: u64 = 5_000;
+
+#[cfg(test)]
+#[path = "claude_tests.rs"]
+mod tests;
