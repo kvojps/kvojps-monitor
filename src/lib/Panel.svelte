@@ -79,7 +79,17 @@
         <GithubModule data={snapshots.github.data as GithubData} refresh={() => core.refreshGithub?.()} />
       {/if}
       {#if view === "network" && snapshots.network?.data}
-        <NetworkModule data={snapshots.network.data as NetworkData} />
+        <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
+      {/if}
+      {#if view === "settings" && snapshots.network}
+        <section class="network-settings" aria-label={t.modules.network}>
+          <h2>{t.modules.network}</h2>
+          <label>
+            <input type="checkbox" checked={(snapshots.network.data as NetworkData).automaticSpeed}
+              onchange={(event) => core.setAutomaticSpeed?.(event.currentTarget.checked)} />
+            {t.network.automaticSpeed}
+          </label>
+        </section>
       {/if}
       {#if view === "system" && snapshots.system}
         <SystemModule data={snapshots.system.data as SystemData} />
@@ -89,6 +99,8 @@
 </div>
 
 <style>
+  .network-settings { padding: 16px; font-size: 13px; }
+  .network-settings h2 { font-size: 14px; margin-bottom: 12px; }
   .panel {
     display: flex;
     height: 100%;

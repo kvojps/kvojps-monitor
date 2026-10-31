@@ -46,3 +46,14 @@ pub fn close_panel(app: AppHandle) {
 pub fn refresh_github(collector: State<crate::github::Collector>) {
     let _ = collector.0.send(true);
 }
+
+#[tauri::command]
+pub fn run_speed_test(collector: State<crate::network::Collector>) {
+    let _ = collector.0.send(crate::network::Command::FullSpeed);
+}
+#[tauri::command]
+pub fn set_automatic_speed(enabled: bool, collector: State<crate::network::Collector>) {
+    let _ = collector
+        .0
+        .send(crate::network::Command::AutomaticSpeed(enabled));
+}

@@ -23,6 +23,10 @@ pub struct NetworkManagerReading {
 #[derive(Clone, Deserialize)]
 pub struct ActiveConnection {
     pub path: String,
+    #[serde(default)]
+    pub network_id: String,
+    #[serde(default)]
+    pub metered: u32,
     pub state: u32,
     pub kind: String,
     pub vpn: bool,
@@ -31,6 +35,16 @@ pub struct ActiveConnection {
     pub gateway6: String,
     #[serde(default)]
     pub wifi: Option<Wifi>,
+}
+
+impl ActiveConnection {
+    fn profile_id(&self) -> &str {
+        if self.network_id.is_empty() {
+            &self.path
+        } else {
+            &self.network_id
+        }
+    }
 }
 
 /// NetworkManager properties port; tests inject recorded D-Bus output.
@@ -84,9 +98,17 @@ impl<P: NetworkManagerProperties> NetworkManager for NetworkManagerDbus<P> {
         let reading = self.0.read()?;
         let mut physical: Option<Connection> = None;
         let mut vpn = false;
+        let mut routes = Vec::new();
+        let mut primary_route = String::new();
         for active in reading.active.into_iter().filter(|a| a.state == 2) {
             let is_vpn = active.vpn || active.kind == "wireguard";
             vpn |= is_vpn;
+            if active.path == reading.primary && is_vpn {
+                primary_route = active.profile_id().to_string();
+            }
+            if is_vpn {
+                routes.push(active.profile_id().to_string());
+            }
             if is_vpn || active.kind == "loopback" {
                 continue;
             }
@@ -96,6 +118,9 @@ impl<P: NetworkManagerProperties> NetworkManager for NetworkManagerDbus<P> {
             }
             physical = Some(Connection {
                 id: active.path,
+                network_id: active.network_id,
+                route_id: String::new(),
+                metered: !matches!(active.metered, 2 | 4),
                 kind: active.kind,
                 connectivity: reading.connectivity,
                 vpn: false,
@@ -111,6 +136,12 @@ impl<P: NetworkManagerProperties> NetworkManager for NetworkManagerDbus<P> {
         }
         let mut connection = physical.unwrap_or_default();
         connection.vpn = vpn;
+        routes.sort();
+        connection.route_id = if routes.is_empty() {
+            String::new()
+        } else {
+            format!("{primary_route}:{}", routes.join(","))
+        };
         Ok(connection)
     }
 }
@@ -158,6 +189,8 @@ fn read_dbus() -> zbus::Result<NetworkManagerReading> {
         let vpn: bool = active.get_property("Vpn")?;
         let mut reading = ActiveConnection {
             path: path.to_string(),
+            network_id: active.get_property("Uuid")?,
+            metered: 0,
             state,
             kind,
             vpn,
@@ -169,13 +202,14 @@ fn read_dbus() -> zbus::Result<NetworkManagerReading> {
         if state == 2 && !vpn && !matches!(reading.kind.as_str(), "loopback" | "wireguard") {
             let dispositivos: Vec<OwnedObjectPath> = active.get_property("Devices")?;
             if let Some(d) = dispositivos.first() {
-                reading.interface = Proxy::new(
+                let device = Proxy::new(
                     &bus,
                     DESTINATION,
                     d.clone(),
                     "org.freedesktop.NetworkManager.Device",
-                )?
-                .get_property("Interface")?;
+                )?;
+                reading.interface = device.get_property("Interface")?;
+                reading.metered = device.get_property("Metered").unwrap_or(0);
             }
             if reading.kind == "802-11-wireless" {
                 if let Some(d) = dispositivos.first() {

@@ -2,6 +2,7 @@
   "module": "network",
   "updatedAt": 1793457126000,
   "data": {
+    "automaticSpeed": true,
     "connected": true,
     "gateway": {
       "jitter": 0.0,
@@ -28,6 +29,10 @@
       "Portal cativo detectado"
     ],
     "security": "warning",
+    "speed": null,
+    "speedAvailable": false,
+    "speedFailed": false,
+    "speedRunning": false,
     "traffic": {
       "download": 1024.0,
       "upload": 512.0

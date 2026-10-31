@@ -99,6 +99,18 @@ fn sanitize(module: Module, data: &Value) -> io::Result<Value> {
                 serde_json::from_value(data.clone()).map_err(io::Error::other)?;
             serde_json::to_value(clean).map_err(io::Error::other)
         }
+        Module::Network => {
+            #[derive(Serialize, Deserialize)]
+            struct CachedNetwork {
+                speed: Option<crate::network::SpeedResult>,
+            }
+            let clean: CachedNetwork =
+                serde_json::from_value(data.clone()).map_err(io::Error::other)?;
+            if clean.speed.as_ref().is_some_and(|s| !s.valid()) {
+                return Err(io::Error::other("invalid measurement"));
+            }
+            serde_json::to_value(clean).map_err(io::Error::other)
+        }
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "module has no disk cache",

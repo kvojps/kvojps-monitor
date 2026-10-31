@@ -1,0 +1,29 @@
+{
+  "module": "network",
+  "updatedAt": 1793457120000,
+  "data": {
+    "automaticSpeed": true,
+    "connected": true,
+    "gateway": {
+      "jitter": null,
+      "latency": 2.0,
+      "loss": 0.0
+    },
+    "history": [],
+    "internet": {
+      "jitter": null,
+      "latency": 20.0,
+      "loss": 0.0
+    },
+    "quality": "good",
+    "reasons": [],
+    "security": "noAlerts",
+    "speed": null,
+    "speedAvailable": true,
+    "speedFailed": false,
+    "speedRunning": true,
+    "traffic": null,
+    "vpn": false,
+    "wired": false
+  }
+}

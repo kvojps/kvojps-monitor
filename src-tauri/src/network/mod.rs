@@ -1,8 +1,10 @@
-//! Security, quality and traffic: continuous collection without disk caching.
+//! Continuous network collection with a sanitized cache of the last speed measurement.
 mod network_manager;
 mod probe;
 mod security;
+mod speed;
 pub use security::*;
+pub use speed::SpeedResult;
 #[cfg(test)]
 mod tests;
 
@@ -23,8 +25,27 @@ pub struct Connection {
     pub interface: String,
     pub wifi: Option<Wifi>,
     pub revision: u64,
+    #[serde(default)]
+    pub metered: bool,
+    #[serde(default)]
+    pub network_id: String,
+    #[serde(default)]
+    pub route_id: String,
 }
 impl Connection {
+    fn network_identity(&self) -> String {
+        format!(
+            "{}:{}:{}:{}",
+            if self.network_id.is_empty() {
+                &self.id
+            } else {
+                &self.network_id
+            },
+            self.interface,
+            self.vpn,
+            self.route_id
+        )
+    }
     fn connected(&self) -> bool {
         !self.id.is_empty()
     }
@@ -50,6 +71,11 @@ pub struct Traffic {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkData {
+    pub speed: Option<SpeedResult>,
+    pub speed_available: bool,
+    pub speed_running: bool,
+    pub speed_failed: bool,
+    pub automatic_speed: bool,
     pub connected: bool,
     pub wired: bool,
     pub vpn: bool,
@@ -65,6 +91,7 @@ pub struct NetworkData {
 type Counters = HashMap<String, (u64, u64)>;
 
 pub struct Network<A, N, S, R, V = NoopCheck, T = NoopNotifier> {
+    speed: Option<speed::SpeedTests>,
     check: V,
     notifier: T,
     assessment: Assessment,
@@ -82,6 +109,7 @@ pub struct Network<A, N, S, R, V = NoopCheck, T = NoopNotifier> {
 impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
     pub fn new(files: A, nm: N, probe: S, clock: R) -> Self {
         Self {
+            speed: None,
             check: NoopCheck,
             notifier: NoopNotifier,
             assessment: Assessment::default(),
@@ -103,6 +131,7 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
         notifier: T,
     ) -> Network<A, N, S, R, V, T> {
         Network {
+            speed: self.speed,
             files: self.files,
             nm: self.nm,
             probe: self.probe,
@@ -122,6 +151,30 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
 impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports::Notifier>
     Network<A, N, S, R, V, T>
 {
+    pub fn with_speed(
+        mut self,
+        transport: impl speed::Transport + 'static,
+        persistence: impl crate::persistence::Persistence + 'static,
+    ) -> Self {
+        self.speed = Some(speed::SpeedTests::new(transport, persistence));
+        self
+    }
+    pub fn with_preferences(mut self, storage: impl crate::persistence::Storage + 'static) -> Self {
+        if let Some(speed) = &mut self.speed {
+            speed.with_preferences(storage);
+        }
+        self
+    }
+    pub fn request_speed(&mut self) {
+        if let Some(speed) = &mut self.speed {
+            speed.request();
+        }
+    }
+    pub fn automatic_speed(&mut self, enabled: bool) {
+        if let Some(speed) = &mut self.speed {
+            speed.set_automatic(enabled);
+        }
+    }
     pub fn step(&mut self) -> Option<(u64, NetworkData)> {
         let now = self.clock.now();
         if now < self.next {
@@ -148,6 +201,9 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
         let (security, reasons) =
             self.assessment
                 .assess(&self.connection, now, &self.check, &self.nm, &self.notifier);
+        if let Some(speed) = &mut self.speed {
+            speed.step(&self.connection, now);
+        }
         let connected = self.connection.connected();
         let traffic = self.traffic(self.clock.now());
         if connected && now >= self.next_ping {
@@ -192,8 +248,12 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
             Measurements::default()
         };
         let internet = measurements(self.samples.iter().map(|a| a.2));
-        let quality =
-            connected.then(|| classify(&gateway, &internet, self.connection.connectivity));
+        let quality = connected.then(|| {
+            let quality = classify(&gateway, &internet, self.connection.connectivity);
+            self.speed.as_ref().map_or(quality, |speed| {
+                speed.quality(&self.connection, now, quality)
+            })
+        });
         if let Some(t) = &traffic {
             self.history.push_back(t.clone());
             while self.history.len() > 60 {
@@ -203,6 +263,13 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
         Some((
             now,
             NetworkData {
+                speed: self.speed.as_ref().and_then(|s| s.last.clone()),
+                speed_available: connected
+                    && self.connection.connectivity == 4
+                    && !self.connection.metered,
+                speed_running: self.speed.as_ref().is_some_and(|s| s.running),
+                speed_failed: self.speed.as_ref().is_some_and(|s| s.failed),
+                automatic_speed: self.speed.as_ref().is_none_or(|s| s.automatic),
                 connected,
                 wired: self.connection.kind == "802-3-ethernet",
                 vpn: self.connection.vpn,
@@ -303,7 +370,15 @@ fn classify(g: &Measurements, i: &Measurements, connectivity: u32) -> Quality {
         Quality::Good
     }
 }
+pub enum Command {
+    FullSpeed,
+    AutomaticSpeed(bool),
+}
+pub struct Collector(pub std::sync::mpsc::Sender<Command>);
 pub fn start(app: tauri::AppHandle) {
+    use tauri::Manager;
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.manage(Collector(tx));
     std::thread::spawn(move || {
         let mut network = Network::new(
             crate::ports::RootFilesystem::system(),
@@ -312,7 +387,54 @@ pub fn start(app: tauri::AppHandle) {
             crate::ports::SystemClock,
         )
         .with_security(SystemCheck(SystemReadings), crate::ports::DesktopNotifier);
+        network = match (dirs::cache_dir(), dirs::state_dir()) {
+            (Some(cache), Some(state)) => network.with_speed(
+                speed::Worker::new(speed::Cloudflare),
+                crate::persistence::LocalPersistence {
+                    cache: crate::persistence::Cache(crate::persistence::DiskStorage(
+                        cache.join("kvojps-monitor"),
+                    )),
+                    logs: crate::persistence::Logs(crate::persistence::DiskStorage(
+                        state.join("kvojps-monitor"),
+                    )),
+                },
+            ),
+            _ => network.with_speed(
+                speed::Worker::new(speed::Cloudflare),
+                crate::persistence::Volatile,
+            ),
+        };
+        if let Some(config) = dirs::config_dir() {
+            network = network.with_preferences(crate::persistence::DiskStorage(
+                config.join("kvojps-monitor"),
+            ));
+        }
+        // Publish the cached speed before the first live probe can block.
+        let initial = NetworkData {
+            connected: false,
+            wired: false,
+            vpn: false,
+            quality: None,
+            security: None,
+            reasons: vec![],
+            gateway: Measurements::default(),
+            internet: Measurements::default(),
+            traffic: None,
+            history: vec![],
+            speed: network.speed.as_ref().and_then(|s| s.last.clone()),
+            speed_available: false,
+            speed_running: false,
+            speed_failed: false,
+            automatic_speed: network.speed.as_ref().is_none_or(|s| s.automatic),
+        };
+        crate::snapshot::publish(&app, snapshot(network.clock.now(), &initial));
         loop {
+            for command in rx.try_iter() {
+                match command {
+                    Command::FullSpeed => network.request_speed(),
+                    Command::AutomaticSpeed(enabled) => network.automatic_speed(enabled),
+                }
+            }
             if let Some((when, data)) = network.step() {
                 if let Some(handle) =
                     tauri::Manager::try_state::<ksni::Handle<crate::indicator::Indicator>>(&app)

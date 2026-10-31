@@ -48,6 +48,8 @@ export interface Core {
   listenSnapshots(cb: (s: Snapshot) => void): Promise<() => void>;
   /** null when the current view is Settings. */
   reportModuleVisible(module: Module | null): void;
+  runSpeedTest?(): void;
+  setAutomaticSpeed?(enabled: boolean): void;
   refreshGithub?(): void;
   closePanel(): void;
 }
@@ -59,6 +61,8 @@ export const tauriCore: Core = {
     return () => stops.forEach((stop) => stop());
   },
   reportModuleVisible: (module) => void invoke("report_module_visible", { module }),
+  runSpeedTest: () => void invoke("run_speed_test"),
+  setAutomaticSpeed: (enabled) => void invoke("set_automatic_speed", { enabled }),
   refreshGithub: () => void invoke("refresh_github"),
   closePanel: () => void invoke("close_panel"),
 };
@@ -66,6 +70,11 @@ export const tauriCore: Core = {
 export interface NetworkMeasurements { latency: number | null; jitter: number | null; loss: number | null }
 export interface NetworkTraffic { download: number; upload: number }
 export interface NetworkData {
+  speed: { download: number; upload: number; measuredAt: number; networkId: string } | null;
+  speedAvailable: boolean;
+  speedRunning: boolean;
+  speedFailed: boolean;
+  automaticSpeed: boolean;
   connected: boolean;
   wired: boolean;
   vpn: boolean;

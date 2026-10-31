@@ -671,3 +671,367 @@ fn portal_recovers_on_event_and_mac_is_checked_only_on_event() {
     assert_eq!(network.step().unwrap().1.security, Some(Security::NoAlerts));
     assert_eq!(calls.load(Ordering::SeqCst), 2);
 }
+
+type SpeedState = (Vec<bool>, Option<speed::Output>);
+#[derive(Clone, Default)]
+struct FakeSpeed(std::sync::Arc<std::sync::Mutex<SpeedState>>);
+impl speed::Transport for FakeSpeed {
+    fn cancel(&mut self) {
+        self.0.lock().unwrap().1 = Some(Err(()));
+    }
+    fn start(&mut self, full: bool) {
+        self.0.lock().unwrap().0.push(full);
+    }
+    fn poll(&mut self) -> Option<Result<(f64, f64), ()>> {
+        self.0.lock().unwrap().1.take()
+    }
+}
+#[test]
+fn automatic_speed_runs_on_connect_and_after_six_hours_but_never_metered() {
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    let http = FakeSpeed::default();
+    let mut network = c
+        .network
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    assert!(network.step().unwrap().1.speed_running);
+    http.0.lock().unwrap().1 = Some(Ok((1.5, 4.0)));
+    c.clock.advance(1000);
+    let data = network.step().unwrap().1;
+    assert_eq!(data.quality, Some(Quality::Poor));
+    assert_eq!(data.speed.unwrap().download, 1.5);
+    c.clock.advance(21_598_000);
+    network.step();
+    assert_eq!(http.0.lock().unwrap().0.len(), 1);
+    c.nm.0.lock().unwrap().metered = true;
+    c.clock.advance(1000);
+    network.step();
+    assert_eq!(http.0.lock().unwrap().0.len(), 1);
+    c.nm.0.lock().unwrap().metered = false;
+    c.clock.advance(1000);
+    network.step();
+    assert_eq!(http.0.lock().unwrap().0, vec![false, false]);
+}
+
+#[test]
+fn speed_cache_restores_only_numeric_result_and_age_even_offline() {
+    use crate::persistence::{Cache, DiskStorage, LocalPersistence, Logs};
+    let dir = tempfile::tempdir().unwrap();
+    let cache = Cache(DiskStorage(dir.path().into()));
+    cache
+        .save(&crate::snapshot::Snapshot {
+            module: crate::module::Module::Network,
+            updated_at: Some(1000),
+            data: serde_json::json!({"speed": {"download": 8.0, "upload": 3.0, "measuredAt":1000,
+            "networkId":"known-network", "token":"secret", "prompt":"private"},
+            "token":"secret", "history":[123]}),
+        })
+        .unwrap();
+    let bytes = std::fs::read_to_string(dir.path().join("network.json")).unwrap();
+    for forbidden in ["secret", "private", "token", "history", "prompt"] {
+        assert!(!bytes.contains(forbidden));
+    }
+    let c = scenario();
+    *c.nm.0.lock().unwrap() = Connection::default();
+    let mut network = c.network.with_speed(
+        FakeSpeed::default(),
+        LocalPersistence {
+            cache,
+            logs: Logs(DiskStorage(dir.path().join("logs"))),
+        },
+    );
+    let data = network.step().unwrap().1;
+    assert!(!data.connected);
+    assert_eq!(data.quality, None);
+    assert_eq!(data.speed.unwrap().measured_at, 1000);
+}
+
+#[test]
+fn speed_influences_quality_only_on_current_network_for_less_than_six_hours() {
+    for (download, expected) in [
+        (1.99, Quality::Poor),
+        (2.0, Quality::Regular),
+        (9.99, Quality::Regular),
+        (10.0, Quality::Good),
+    ] {
+        let c = scenario();
+        c.nm.0.lock().unwrap().metered = false;
+        let http = FakeSpeed::default();
+        let mut network = c
+            .network
+            .with_speed(http.clone(), crate::persistence::Volatile);
+        network.step();
+        http.0.lock().unwrap().1 = Some(Ok((download, 5.0)));
+        c.clock.advance(1000);
+        assert_eq!(network.step().unwrap().1.quality, Some(expected));
+        network.automatic_speed(false);
+        c.clock.advance(speed::INTERVAL - 1000);
+        assert_eq!(network.step().unwrap().1.quality, Some(expected));
+        c.clock.advance(1000);
+        let data = network.step().unwrap().1;
+        assert_eq!(data.quality, Some(Quality::Good));
+        assert_eq!(data.speed.unwrap().download, download);
+    }
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    let http = FakeSpeed::default();
+    let mut network = c
+        .network
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    network.step();
+    http.0.lock().unwrap().1 = Some(Ok((1.0, 5.0)));
+    c.clock.advance(1000);
+    network.step();
+    c.nm.0.lock().unwrap().id.push('2');
+    c.clock.advance(1000);
+    let data = network.step().unwrap().1;
+    assert_eq!(data.quality, Some(Quality::Good));
+    assert!(data.speed.is_some());
+}
+
+#[test]
+fn manual_test_is_full_and_duplicate_requests_do_not_overlap() {
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    let http = FakeSpeed::default();
+    let mut network = c
+        .network
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    network.automatic_speed(false);
+    network.step();
+    assert!(http.0.lock().unwrap().0.is_empty());
+    network.request_speed();
+    c.clock.advance(1000);
+    assert!(network.step().unwrap().1.speed_running);
+    network.request_speed();
+    c.clock.advance(1000);
+    network.step();
+    assert_eq!(http.0.lock().unwrap().0, vec![true]);
+    c.nm.0.lock().unwrap().id.push('2');
+    http.0.lock().unwrap().1 = Some(Ok((1.0, 5.0)));
+    c.clock.advance(1000);
+    let data = network.step().unwrap().1;
+    assert!(data.speed.is_none());
+    assert!(!data.speed_running);
+    c.nm.0.lock().unwrap().metered = true;
+    network.request_speed();
+    c.clock.advance(1000);
+    assert!(!network.step().unwrap().1.speed_running);
+    assert_eq!(http.0.lock().unwrap().0, vec![true]);
+}
+
+#[test]
+fn automatic_preference_defaults_on_and_survives_restart() {
+    use crate::persistence::{DiskStorage, Volatile};
+    let dir = tempfile::tempdir().unwrap();
+    let c = scenario();
+    let mut network = c
+        .network
+        .with_speed(FakeSpeed::default(), Volatile)
+        .with_preferences(DiskStorage(dir.path().into()));
+    assert!(network.step().unwrap().1.automatic_speed);
+    network.automatic_speed(false);
+    let mut network = scenario()
+        .network
+        .with_speed(FakeSpeed::default(), Volatile)
+        .with_preferences(DiskStorage(dir.path().into()));
+    assert!(!network.step().unwrap().1.automatic_speed);
+}
+
+#[test]
+fn recorded_http_transfers_publish_mbps_and_respect_light_and_full_budgets() {
+    struct RecordedHttp {
+        full: bool,
+    }
+    impl speed::Http for RecordedHttp {
+        async fn transfer(&self, upload: bool, bytes: usize) -> Result<(u64, f64), ()> {
+            let expected = match (self.full, upload) {
+                (false, false) => 25_000_000,
+                (false, true) => 10_000_000,
+                (true, false) => 100_000_000,
+                (true, true) => 50_000_000,
+            };
+            assert_eq!(bytes, expected);
+            let fixture: serde_json::Value =
+                serde_json::from_str(include_str!("../../fixtures/network/speed.json")).unwrap();
+            let transfer = &fixture[if upload { "upload" } else { "download" }];
+            Ok((
+                transfer["bytes"].as_u64().unwrap(),
+                transfer["seconds"].as_f64().unwrap(),
+            ))
+        }
+    }
+    for full in [false, true] {
+        let c = scenario();
+        c.nm.0.lock().unwrap().metered = false;
+        let mut network = c.network.with_speed(
+            speed::Immediate {
+                http: RecordedHttp { full },
+                result: None,
+            },
+            crate::persistence::Volatile,
+        );
+        if full {
+            network.request_speed();
+        }
+        network.step();
+        c.clock.advance(1000);
+        let result = network.step().unwrap().1.speed.unwrap();
+        assert!((result.download - 0.20966).abs() < 0.00001);
+        assert!((result.upload - 0.26627).abs() < 0.00001);
+    }
+}
+
+#[test]
+fn speed_ui_fixtures_are_published_by_core() {
+    for name in ["speed", "speed-offline", "speed-running", "speed-failed"] {
+        let c = scenario();
+        c.nm.0.lock().unwrap().metered = false;
+        let http = FakeSpeed::default();
+        let mut network = c
+            .network
+            .with_speed(http.clone(), crate::persistence::Volatile);
+        let mut result = network.step().unwrap();
+        if name != "speed-running" {
+            http.0.lock().unwrap().1 = Some(if name == "speed-failed" {
+                Err(())
+            } else {
+                Ok((8.0, 3.0))
+            });
+            c.clock.advance(1000);
+            result = network.step().unwrap();
+        }
+        if name == "speed-offline" {
+            *c.nm.0.lock().unwrap() = Connection::default();
+            c.clock.advance(1000);
+            result = network.step().unwrap();
+        }
+        let json = serde_json::to_string_pretty(&snapshot(result.0, &result.1)).unwrap() + "\n";
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join(format!("../src/lib/network/fixtures/{name}.json"));
+        if std::env::var_os("UPDATE_FIXTURES").is_some() {
+            std::fs::write(path, json).unwrap();
+        } else {
+            assert_eq!(std::fs::read_to_string(path).unwrap(), json);
+        }
+    }
+}
+
+#[test]
+fn dbus_metering_blocks_yes_guessed_yes_and_unknown() {
+    for metered in 0..=4 {
+        let mut reading = reading_nm();
+        reading.active[0].metered = metered;
+        let http = FakeSpeed::default();
+        let mut network = Network::new(
+            FakeRoot::from("network"),
+            NetworkManagerDbus(FakeDbus(reading)),
+            Ping(20.0),
+            FakeClock::at(1000),
+        )
+        .with_speed(http.clone(), crate::persistence::Volatile);
+        let data = network.step().unwrap().1;
+        assert_eq!(data.speed_running, matches!(metered, 2 | 4));
+        assert_eq!(data.speed_available, matches!(metered, 2 | 4));
+    }
+}
+
+#[test]
+fn in_flight_speed_is_cancelled_when_connection_becomes_metered() {
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    let http = FakeSpeed::default();
+    let mut network = c
+        .network
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    assert!(network.step().unwrap().1.speed_running);
+    c.nm.0.lock().unwrap().metered = true;
+    c.clock.advance(1000);
+    let data = network.step().unwrap().1;
+    assert!(!data.speed_running);
+    assert!(data.speed.is_none());
+    assert!(!data.speed_failed);
+}
+
+#[test]
+fn switching_vpn_profiles_invalidates_speed_and_runs_new_light_test() {
+    let c = scenario();
+    let mut reading = reading_nm();
+    reading.active[0].metered = 2;
+    reading.active[0].network_id = "physical-profile".into();
+    let mut vpn = reading.active[0].clone();
+    vpn.vpn = true;
+    vpn.path.push('3');
+    vpn.network_id = "vpn-a".into();
+    reading.primary = vpn.path.clone();
+    reading.active.push(vpn);
+    *c.nm.0.lock().unwrap() = NetworkManagerDbus(FakeDbus(reading.clone()))
+        .connection()
+        .unwrap();
+    let http = FakeSpeed::default();
+    let mut network = c
+        .network
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    network.step();
+    http.0.lock().unwrap().1 = Some(Ok((1.0, 5.0)));
+    c.clock.advance(1000);
+    assert_eq!(network.step().unwrap().1.quality, Some(Quality::Poor));
+    // Recreated D-Bus object paths must not invalidate a result for the same profiles.
+    reading.active[0].path.push('4');
+    reading.active.last_mut().unwrap().path.push('4');
+    reading.primary = reading.active.last().unwrap().path.clone();
+    *c.nm.0.lock().unwrap() = NetworkManagerDbus(FakeDbus(reading.clone()))
+        .connection()
+        .unwrap();
+    network.automatic_speed(false);
+    c.clock.advance(1000);
+    assert_eq!(network.step().unwrap().1.quality, Some(Quality::Poor));
+    network.automatic_speed(true);
+    reading.active.last_mut().unwrap().network_id = "vpn-b".into();
+    *c.nm.0.lock().unwrap() = NetworkManagerDbus(FakeDbus(reading)).connection().unwrap();
+    c.clock.advance(1000);
+    let data = network.step().unwrap().1;
+    assert_eq!(data.quality, Some(Quality::Good));
+    assert!(data.speed.is_some());
+    assert!(data.speed_running);
+    assert_eq!(http.0.lock().unwrap().0, vec![false, false]);
+}
+
+#[test]
+fn metered_transition_drops_a_pending_http_future_without_waiting_for_timeout() {
+    struct DropSignal(std::sync::mpsc::Sender<()>);
+    impl Drop for DropSignal {
+        fn drop(&mut self) {
+            let _ = self.0.send(());
+        }
+    }
+    struct PendingHttp {
+        started: std::sync::mpsc::Sender<()>,
+        cancelled: std::sync::mpsc::Sender<()>,
+    }
+    impl speed::Http for PendingHttp {
+        async fn transfer(&self, _: bool, _: usize) -> Result<(u64, f64), ()> {
+            let _guard = DropSignal(self.cancelled.clone());
+            self.started.send(()).unwrap();
+            std::future::pending().await
+        }
+    }
+    let (started, began) = std::sync::mpsc::channel();
+    let (cancelled, dropped) = std::sync::mpsc::channel();
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    let mut network = c.network.with_speed(
+        speed::Worker::new(PendingHttp { started, cancelled }),
+        crate::persistence::Volatile,
+    );
+    network.step();
+    began
+        .recv_timeout(std::time::Duration::from_secs(2))
+        .unwrap();
+    c.nm.0.lock().unwrap().metered = true;
+    c.clock.advance(1000);
+    network.step();
+    dropped
+        .recv_timeout(std::time::Duration::from_secs(2))
+        .unwrap();
+}

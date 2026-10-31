@@ -1,5 +1,11 @@
 import { render, screen } from "@testing-library/svelte";
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import speedOffline from "./fixtures/speed-offline.json";
+import speed from "./fixtures/speed.json";
+import running from "./fixtures/speed-running.json";
+import failed from "./fixtures/speed-failed.json";
+afterEach(() => vi.restoreAllMocks());
 import NetworkModule from "./NetworkModule.svelte";
 import type { NetworkData } from "../core";
 import good from "./fixtures/good.json";
@@ -47,4 +53,25 @@ it.each([
   expect(screen.getByRole("region", { name: "Segurança da rede" })).toHaveTextContent(state);
   expect(screen.getByText(reason)).toBeInTheDocument();
   expect(screen.getByText("Boa")).toBeInTheDocument();
+});
+
+it("keeps the last speed visible offline with its age and blocks a new test", () => {
+  vi.spyOn(Date, "now").mockReturnValue(speedOffline.data.speed!.measuredAt + 7_200_000);
+  render(NetworkModule, { data: speedOffline.data as NetworkData });
+  expect(screen.getByRole("region", { name: "Última velocidade" })).toHaveTextContent("8 Mbps");
+  expect(screen.getByText("há 2 h")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Testar velocidade" })).toBeDisabled();
+});
+
+it("requests a full test from the enabled button", async () => {
+  const runSpeed = vi.fn();
+  render(NetworkModule, { data: speed.data as NetworkData, runSpeed });
+  await userEvent.click(screen.getByRole("button", { name: "Testar velocidade" }));
+  expect(runSpeed).toHaveBeenCalledOnce();
+});
+it("shows test progress and a metadata-only failure", async () => {
+  const view = render(NetworkModule, { data: running.data as NetworkData });
+  expect(screen.getByRole("button", { name: "Testando velocidade…" })).toBeDisabled();
+  await view.rerender({ data: failed.data as NetworkData });
+  expect(screen.getByRole("status")).toHaveTextContent("Não foi possível medir a velocidade");
 });

@@ -64,7 +64,16 @@
     "security": "Segurança da rede",
     "noAlerts": "Sem alertas",
     "warning": "Atenção",
-    "risk": "Risco"
+    "risk": "Risco",
+    "speed": "Última velocidade",
+    "testSpeed": "Testar velocidade",
+    "testingSpeed": "Testando velocidade…",
+    "speedFailed": "Não foi possível medir a velocidade",
+    "automaticSpeed": "Teste de velocidade automático",
+    "ageMinutes": "há {value} min",
+    "ageHours": "há {value} h",
+    "ageSeconds": "há {value} s",
+    "speedUnavailable": "Teste indisponível sem internet ou em conexão limitada."
   },
   "github": {
     "refresh": "Atualizar GitHub",

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Panel from "./Panel.svelte";
 import type { Module, Core, Snapshot } from "./core";
+import networkSpeed from "./network/fixtures/speed.json";
 import notebook from "./system/fixtures/notebook.json";
 
 function fakeCore(initial: { lastModule?: Module; snapshots?: Snapshot[] } = {}) {
@@ -103,4 +104,16 @@ describe("Panel rail", () => {
 
     expect(await screen.findByRole("region", { name: "CPU" })).toBeInTheDocument();
   });
+});
+
+it("sends the network automatic speed preference from Settings", async () => {
+  const { core } = fakeCore({ lastModule: "network", snapshots: [networkSpeed as Snapshot] });
+  const setAutomaticSpeed = vi.fn();
+  render(Panel, { core: { ...core, setAutomaticSpeed } });
+  await screen.findByRole("heading", { name: "Rede" });
+  await userEvent.click(screen.getByRole("button", { name: "Configurações" }));
+  const toggle = screen.getByRole("checkbox", { name: "Teste de velocidade automático" });
+  expect(toggle).toBeChecked();
+  await userEvent.click(toggle);
+  expect(setAutomaticSpeed).toHaveBeenCalledWith(false);
 });

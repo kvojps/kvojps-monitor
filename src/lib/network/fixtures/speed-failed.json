@@ -1,0 +1,37 @@
+{
+  "module": "network",
+  "updatedAt": 1793457121000,
+  "data": {
+    "automaticSpeed": true,
+    "connected": true,
+    "gateway": {
+      "jitter": null,
+      "latency": 2.0,
+      "loss": 0.0
+    },
+    "history": [
+      {
+        "download": 0.0,
+        "upload": 0.0
+      }
+    ],
+    "internet": {
+      "jitter": null,
+      "latency": 20.0,
+      "loss": 0.0
+    },
+    "quality": "good",
+    "reasons": [],
+    "security": "noAlerts",
+    "speed": null,
+    "speedAvailable": true,
+    "speedFailed": true,
+    "speedRunning": false,
+    "traffic": {
+      "download": 0.0,
+      "upload": 0.0
+    },
+    "vpn": false,
+    "wired": false
+  }
+}

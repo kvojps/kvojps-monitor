@@ -1,7 +1,18 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { NetworkData } from "../core";
-  import { t } from "../strings";
-  let { data }: { data: NetworkData } = $props();
+  import { interpolate, t } from "../strings";
+  let { data, runSpeed = () => {} }: { data: NetworkData; runSpeed?: () => void } = $props();
+  let now = $state(Date.now());
+  onMount(() => {
+    const timer = setInterval(() => { now = Date.now(); }, 1000);
+    return () => clearInterval(timer);
+  });
+  const age = $derived.by(() => {
+    const seconds = Math.max(0, Math.floor((now - (data.speed?.measuredAt ?? now)) / 1000));
+    return interpolate(seconds >= 3600 ? t.network.ageHours : seconds >= 60 ? t.network.ageMinutes : t.network.ageSeconds,
+      { value: String(seconds >= 3600 ? Math.floor(seconds / 3600) : seconds >= 60 ? Math.floor(seconds / 60) : seconds) });
+  });
   const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
   const measurement = (v: number | null, unit: string) => v === null ? t.network.noValue : `${number.format(v)} ${unit}`;
   function rate(v: number) {
@@ -45,6 +56,19 @@
       </section>
     {/each}
   {/if}
+  <section aria-label={t.network.speed}>
+    <h2>{t.network.speed}</h2>
+    {#if data.speed}
+      <dl>
+        <div><dt>{t.network.download}</dt><dd class="num">↓ {measurement(data.speed.download, "Mbps")}</dd></div>
+        <div><dt>{t.network.upload}</dt><dd class="num">↑ {measurement(data.speed.upload, "Mbps")}</dd></div>
+      </dl>
+      <p>{age}</p>
+    {:else}<p>{t.network.unmeasured}</p>{/if}
+    <button disabled={!data.speedAvailable || data.speedRunning} onclick={runSpeed}>{data.speedRunning ? t.network.testingSpeed : t.network.testSpeed}</button>
+    {#if !data.speedAvailable}<p>{t.network.speedUnavailable}</p>{/if}
+    {#if data.speedFailed}<p role="status">{t.network.speedFailed}</p>{/if}
+  </section>
   <section aria-label={t.network.traffic}>
     <h2>{t.network.traffic}</h2>
     <svg role="img" aria-label={t.network.chart} viewBox="0 0 300 64">
