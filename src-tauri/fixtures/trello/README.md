@@ -2,7 +2,7 @@
 
 `capture.py` grava as três respostas usadas pelo adapter: `GET /1/members/me`, `GET /1/members/me/boards?filter=open` e `GET /1/boards/{id}/lists?cards=open` do quadro escolhido. A key e o token são pedidos no terminal sem eco e vão só no header `Authorization`; nada disso é gravado. Nomes de quadros, listas e cards, nomes de etiquetas, IDs e URLs são substituídos por valores fictícios (`Quadro 1`, `Lista 1`, `Card 1.1`); datas de entrega, cores de etiquetas, ordem e estrutura vêm da API.
 
-Para capturar de novo: `python3 src-tauri/fixtures/trello/capture.py`.
+Para capturar de novo, num terminal interativo (não pelo `!` do Claude Code, que não tem terminal e levaria o token para a conversa): `python3 src-tauri/fixtures/trello/capture.py`.
 
 **Estado atual:** `me.json`, `boards.json` e `lists.json` são provisórios, montados a partir do formato documentado da API (developer.atlassian.com) no mesmo formato que o script grava, até a primeira captura real substituí-los.
 

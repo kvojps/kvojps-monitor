@@ -1,6 +1,7 @@
 """Capture anonymized Trello responses used by the adapter tests.
 
-Reads the key and token from the terminal (never from arguments or files) and
+Run it in an interactive terminal. Reads the key and token without echo (never
+from arguments, environment or files) and
 sends them only in the Authorization header. Names, titles, IDs and URLs are
 replaced; dates, label colors, ordering and structure come from the API.
 """
@@ -50,6 +51,8 @@ def anonymize_lists(lists):
 
 
 def main():
+    if not sys.stdin.isatty():
+        sys.exit("Run this in an interactive terminal: it asks for the key, token and board.")
     key = getpass.getpass("Trello key: ").strip()
     token = getpass.getpass("Trello token: ").strip()
     me = get("/members/me?fields=username,fullName", key, token)
