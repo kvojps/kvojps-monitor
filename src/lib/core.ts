@@ -108,13 +108,14 @@ export interface Core {
   listenSystemTheme?(cb: (theme: SystemTheme) => void): Promise<() => void>;
   /** The welcome was shown; it never opens again. */
   completeWelcome?(): void;
+  listenGeneralSettings?(cb: (settings: GeneralSettings) => void): Promise<() => void>;
   generalSettings?(): Promise<GeneralSettings>;
   /** Rejects with "unwritable" when the autostart entry cannot change. */
   setAutostart?(enabled: boolean): Promise<GeneralSettings>;
   setVersionCheck?(enabled: boolean): Promise<GeneralSettings>;
   openRelease?(): void;
   openLogs?(): Promise<void>;
-  setAppearance?(appearance: Appearance): void;
+  setAppearance?(appearance: Appearance): Promise<void>;
 }
 
 export const tauriCore: Core = {
@@ -147,12 +148,13 @@ export const tauriCore: Core = {
   closePanel: () => void invoke("close_panel"),
   listenSystemTheme: (cb) => listen<SystemTheme>("system-theme", (e) => cb(e.payload)),
   completeWelcome: () => void invoke("complete_welcome"),
+  listenGeneralSettings: (cb) => listen<GeneralSettings>("general-settings", (e) => cb(e.payload)),
   generalSettings: () => invoke<GeneralSettings>("general_settings"),
   setAutostart: (enabled) => invoke<GeneralSettings>("set_autostart", { enabled }),
   setVersionCheck: (enabled) => invoke<GeneralSettings>("set_version_check", { enabled }),
   openRelease: () => void invoke("open_release"),
   openLogs: () => invoke<void>("open_logs"),
-  setAppearance: (appearance) => void invoke("set_appearance", { appearance }),
+  setAppearance: (appearance) => invoke<void>("set_appearance", { appearance }),
 };
 
 export interface NetworkMeasurements { latency: number | null; jitter: number | null; loss: number | null }

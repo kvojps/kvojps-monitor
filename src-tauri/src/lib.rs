@@ -53,7 +53,11 @@ pub fn run() {
             };
             let first = state.first_execution();
             let dir_autostart = dir_config.join("autostart");
-            if let Err(e) = autostart::synchronize(&dir_autostart, &execution, first) {
+            if let Err(e) = autostart::synchronize(
+                &crate::persistence::DiskStorage(dir_autostart.clone()),
+                &execution,
+                first,
+            ) {
                 eprintln!("autostart: failed to write entry: {e}");
             } else if first {
                 state.complete_first_execution();

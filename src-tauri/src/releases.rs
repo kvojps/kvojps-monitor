@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::ports::{Clock, HttpError};
+use crate::ports::{Clock, Http, HttpError};
 use crate::state::AppState;
 
 const DAY_MS: u64 = 24 * 60 * 60 * 1000;
@@ -17,34 +17,6 @@ pub const RELEASES: &str = "https://github.com/Kvojps/kvojps-monitor/releases/";
 pub struct Release {
     pub version: String,
     pub url: String,
-}
-
-/// `GET /repos/Kvojps/kvojps-monitor/releases/latest`, without credentials.
-pub trait ReleaseFeed: Send {
-    fn latest(&self) -> Result<Value, HttpError>;
-}
-
-pub struct GithubReleases;
-impl ReleaseFeed for GithubReleases {
-    fn latest(&self) -> Result<Value, HttpError> {
-        let response = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|_| HttpError::default())?
-            .get("https://api.github.com/repos/Kvojps/kvojps-monitor/releases/latest")
-            .header("User-Agent", "kvojps-monitor")
-            .header("Accept", "application/vnd.github+json")
-            .send()
-            .map_err(|_| HttpError::default())?;
-        let status = response.status().as_u16();
-        if !response.status().is_success() {
-            return Err(HttpError::response(status, None));
-        }
-        response.json().map_err(|_| HttpError {
-            status: Some(status),
-            ..HttpError::default()
-        })
-    }
 }
 
 /// Numeric `major.minor.patch`, with an optional `v`; pre-releases are ignored.
@@ -83,7 +55,7 @@ pub struct Checker<F, C> {
     retry_at: u64,
 }
 
-impl<F: ReleaseFeed, C: Clock> Checker<F, C> {
+impl<F: Http, C: Clock> Checker<F, C> {
     pub fn new(feed: F, clock: C, current: &str) -> Self {
         Self {
             feed,
@@ -110,7 +82,7 @@ impl<F: ReleaseFeed, C: Clock> Checker<F, C> {
             }
         }
         // The request runs without holding the state lock.
-        let found = match self.feed.latest() {
+        let found = match self.feed.latest_release() {
             Ok(body) => newer(&self.current, &body),
             // No published release yet.
             Err(HttpError {
@@ -127,14 +99,15 @@ impl<F: ReleaseFeed, C: Clock> Checker<F, C> {
 
 /// Check in the background, after the login sequence has started the remote sources.
 pub fn start(app: &tauri::AppHandle) {
-    use tauri::Manager;
+    use tauri::{Emitter, Manager};
     let app = app.clone();
     std::thread::spawn(move || {
         let mut checker = Checker::new(
-            GithubReleases,
+            crate::ports::GithubHttp,
             crate::ports::SystemClock,
             env!("CARGO_PKG_VERSION"),
         );
+        let mut previous = None;
         loop {
             let online = app
                 .try_state::<crate::lifecycle::Shared>()
@@ -143,6 +116,14 @@ pub fn start(app: &tauri::AppHandle) {
                     status.online && crate::ports::SystemClock.now() >= status.ready_for(6)
                 });
             checker.step(&app.state::<Mutex<AppState>>(), online);
+            let general = crate::commands::general(
+                &app.state::<Mutex<AppState>>().lock().unwrap(),
+                &app.state::<crate::commands::Startup>(),
+            );
+            if previous.as_ref() != Some(&general) {
+                let _ = app.emit("general-settings", &general);
+                previous = Some(general);
+            }
             std::thread::sleep(std::time::Duration::from_secs(60));
         }
     });
@@ -185,8 +166,11 @@ mod tests {
             *self.calls.lock().unwrap()
         }
     }
-    impl ReleaseFeed for Feed {
-        fn latest(&self) -> Result<Value, HttpError> {
+    impl Http for Feed {
+        fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
+            unreachable!()
+        }
+        fn latest_release(&self) -> Result<Value, HttpError> {
             *self.calls.lock().unwrap() += 1;
             self.answer.lock().unwrap().clone()
         }
@@ -258,7 +242,7 @@ mod tests {
         let mut checker = Checker::new(feed.clone(), clock.clone(), "0.1.0");
 
         checker.step(&state, false);
-        state.lock().unwrap().set_version_check(false);
+        state.lock().unwrap().set_version_check(false).unwrap();
         checker.step(&state, true);
 
         assert_eq!(feed.calls(), 0);
@@ -270,7 +254,7 @@ mod tests {
         let (_d, state, feed, clock) = setup(Ok(fixture("newer")));
         Checker::new(feed, clock, "0.1.0").step(&state, true);
 
-        state.lock().unwrap().set_version_check(false);
+        state.lock().unwrap().set_version_check(false).unwrap();
 
         assert_eq!(state.lock().unwrap().available_release(), None);
     }

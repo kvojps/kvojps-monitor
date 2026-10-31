@@ -13,3 +13,9 @@
 - [ ] Confirmar independência das fontes, cache com idade e offline sem faixa de erro de rede, além de preservação de foco, seleção e rolagem durante atualizações/listas densas.
 - [ ] Verificar manualmente no GNOME/Wayland Indicador, instância única, tamanho/posicionamento, escala, Escape/perda de foco, retorno de Configurações e notificação direcionada. Registrar limitações reais do compositor, sem inferir equivalência a partir do navegador.
 - [ ] Executar verificações de tipos, lint/formatação, testes do núcleo/UI e build pertinentes ao projeto; conferir testes explícitos de todos os guardrails de privacidade e corrigir regressões. Registrar resultados, sem declarar verificações manuais não realizadas como aprovadas.
+
+## Evidências pendentes de Configurações (ticket 08)
+
+- Capturar sinais `SettingChanged` reais ao alternar o tema no GNOME e substituir a sequência construída de `fixtures/appearance/portal.json`; conferir atualização ao vivo na janela Tauri.
+- Quando houver release publicada deste app, gravar resposta positiva de `releases/latest` sem reescrever outro repositório. `fixtures/releases/newer.json` é cenário derivado, não evidência dessa integração.
+- Confirmar autostart no login, sincronização após mover AppImage e abertura de logs/link; medir contraste das novas Configurações no tema claro. A cobertura automatizada das portas não substitui essa conferência.

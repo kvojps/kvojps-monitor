@@ -17,6 +17,9 @@ pub struct Space {
 
 /// Filesystem relative to a root, using absolute paths such as /proc/stat.
 pub trait Files: Send {
+    fn create_dir_all(&self, _path: &str) -> io::Result<()> {
+        Err(io::ErrorKind::Unsupported.into())
+    }
     fn read(&self, path: &str) -> io::Result<String>;
     /// Directory entry names.
     fn list(&self, dir: &str) -> io::Result<Vec<String>>;
@@ -50,6 +53,9 @@ impl RootFilesystem {
 }
 
 impl Files for RootFilesystem {
+    fn create_dir_all(&self, path: &str) -> io::Result<()> {
+        std::fs::create_dir_all(self.path(path))
+    }
     fn read(&self, path: &str) -> io::Result<String> {
         std::fs::read_to_string(self.path(path))
     }
@@ -326,6 +332,10 @@ pub struct GithubValidationResponse {
     pub body: serde_json::Value,
 }
 pub trait Http: Send {
+    /// Public release metadata, without credentials.
+    fn latest_release(&self) -> Result<serde_json::Value, HttpError> {
+        Err(HttpError::default())
+    }
     fn github_validation(&self, _credential: &str) -> Result<GithubValidationResponse, HttpError> {
         Err(HttpError::default())
     }
@@ -337,6 +347,25 @@ pub trait Http: Send {
 }
 pub struct GithubHttp;
 impl Http for GithubHttp {
+    fn latest_release(&self) -> Result<serde_json::Value, HttpError> {
+        let response = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|_| HttpError::default())?
+            .get("https://api.github.com/repos/Kvojps/kvojps-monitor/releases/latest")
+            .header("User-Agent", "kvojps-monitor")
+            .header("Accept", "application/vnd.github+json")
+            .send()
+            .map_err(|_| HttpError::default())?;
+        let status = response.status().as_u16();
+        if !response.status().is_success() {
+            return Err(HttpError::response(status, None));
+        }
+        response.json().map_err(|_| HttpError {
+            status: Some(status),
+            ..HttpError::default()
+        })
+    }
     fn github_validation(&self, credential: &str) -> Result<GithubValidationResponse, HttpError> {
         let response = github_request(
             credential,
@@ -596,5 +625,38 @@ impl HookInput for TimedStdin {
                 return Err(io::ErrorKind::InvalidData.into());
             }
         }
+    }
+}
+
+/// Initial desktop appearance and later portal changes, delivered in order.
+pub trait DesktopSettings: Send {
+    fn follow(&self, publish: &mut dyn FnMut(crate::desktop_theme::SystemTheme)) -> Result<(), ()>;
+}
+
+pub struct PortalSettings;
+impl DesktopSettings for PortalSettings {
+    fn follow(&self, publish: &mut dyn FnMut(crate::desktop_theme::SystemTheme)) -> Result<(), ()> {
+        use crate::desktop_theme::{scheme, setting_changed, KEY, NAMESPACE};
+        let mut run = || -> zbus::Result<()> {
+            let bus = zbus::blocking::Connection::session()?;
+            let proxy = zbus::blocking::Proxy::new(
+                &bus,
+                "org.freedesktop.portal.Desktop",
+                "/org/freedesktop/portal/desktop",
+                "org.freedesktop.portal.Settings",
+            )?;
+            let signals = proxy.receive_signal("SettingChanged")?;
+            let initial: zbus::zvariant::OwnedValue = proxy.call("ReadOne", &(NAMESPACE, KEY))?;
+            if let Ok(value) = u32::try_from(initial) {
+                publish(scheme(value));
+            }
+            for message in signals {
+                if let Some(theme) = setting_changed(&message) {
+                    publish(theme);
+                }
+            }
+            Ok(())
+        };
+        run().map_err(|_| ())
     }
 }

@@ -1,3 +1,4 @@
+use crate::persistence::Storage;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -15,30 +16,32 @@ const FILE: &str = "kvojps-monitor.desktop";
 /// executable, since an AppImage may move. If the user removes the entry,
 /// do not recreate it.
 pub fn synchronize(
-    dir_autostart: &Path,
+    storage: &impl Storage,
     execution: &Execution,
     first_execution: bool,
 ) -> io::Result<()> {
-    let file = dir_autostart.join(FILE);
-    if !first_execution && !file.exists() {
-        return Ok(());
+    if !first_execution {
+        match storage.read(FILE) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error),
+            Ok(_) => {}
+        }
     }
     let target = execution.appimage.as_ref().unwrap_or(&execution.executable);
-    std::fs::create_dir_all(dir_autostart)?;
-    std::fs::write(file, entry(target))
+    storage.write(FILE, &entry(target))
 }
 
 /// Whether the app starts with the login.
-pub fn enabled(dir_autostart: &Path) -> bool {
-    dir_autostart.join(FILE).exists()
+pub fn enabled(storage: &impl Storage) -> bool {
+    storage.read(FILE).is_ok()
 }
 
 /// The user's switch in Settings: write the entry for this execution or remove it.
-pub fn set(dir_autostart: &Path, execution: &Execution, on: bool) -> io::Result<()> {
+pub fn set(storage: &impl Storage, execution: &Execution, on: bool) -> io::Result<()> {
     if on {
-        return synchronize(dir_autostart, execution, true);
+        return synchronize(storage, execution, true);
     }
-    match std::fs::remove_file(dir_autostart.join(FILE)) {
+    match storage.remove(FILE) {
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
         result => result,
     }
@@ -78,7 +81,30 @@ fn exec_argument(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::persistence::DiskStorage;
     use std::fs;
+
+    #[test]
+    fn failed_storage_refuses_changes_and_does_not_overwrite_an_unreadable_entry() {
+        struct Unavailable;
+        impl Storage for Unavailable {
+            fn read(&self, _: &str) -> io::Result<String> {
+                Err(io::ErrorKind::PermissionDenied.into())
+            }
+            fn write(&self, _: &str, _: &str) -> io::Result<()> {
+                Err(io::ErrorKind::PermissionDenied.into())
+            }
+            fn rename(&self, _: &str, _: &str) -> io::Result<()> {
+                unreachable!()
+            }
+            fn remove(&self, _: &str) -> io::Result<()> {
+                Err(io::ErrorKind::PermissionDenied.into())
+            }
+        }
+        assert!(set(&Unavailable, &deb(), true).is_err());
+        assert!(set(&Unavailable, &deb(), false).is_err());
+        assert!(synchronize(&Unavailable, &deb(), false).is_err());
+    }
 
     fn deb() -> Execution {
         Execution {
@@ -108,7 +134,7 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         let dir = d.path().join("autostart");
 
-        synchronize(&dir, &deb(), true).unwrap();
+        synchronize(&DiskStorage(dir.clone()), &deb(), true).unwrap();
 
         let content = fs::read_to_string(dir.join("kvojps-monitor.desktop")).unwrap();
         assert!(content.starts_with("[Desktop Entry]\n"));
@@ -121,7 +147,7 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
 
         synchronize(
-            d.path(),
+            &DiskStorage(d.path().into()),
             &appimage("/home/example/Apps/kvojps-monitor.AppImage"),
             true,
         )
@@ -137,14 +163,14 @@ mod tests {
     fn moving_appimage_updates_the_existing_entry() {
         let d = tempfile::tempdir().unwrap();
         synchronize(
-            d.path(),
+            &DiskStorage(d.path().into()),
             &appimage("/home/example/Downloads/kvojps-monitor.AppImage"),
             true,
         )
         .unwrap();
 
         synchronize(
-            d.path(),
+            &DiskStorage(d.path().into()),
             &appimage("/home/example/Apps/kvojps-monitor.AppImage"),
             false,
         )
@@ -159,11 +185,21 @@ mod tests {
     #[test]
     fn removed_autostart_entry_stays_removed_after_first_run() {
         let d = tempfile::tempdir().unwrap();
-        synchronize(d.path(), &appimage("/home/example/a.AppImage"), true).unwrap();
+        synchronize(
+            &DiskStorage(d.path().into()),
+            &appimage("/home/example/a.AppImage"),
+            true,
+        )
+        .unwrap();
         fs::remove_file(d.path().join("kvojps-monitor.desktop")).unwrap();
 
-        synchronize(d.path(), &appimage("/home/example/a.AppImage"), false).unwrap();
-        synchronize(d.path(), &deb(), false).unwrap();
+        synchronize(
+            &DiskStorage(d.path().into()),
+            &appimage("/home/example/a.AppImage"),
+            false,
+        )
+        .unwrap();
+        synchronize(&DiskStorage(d.path().into()), &deb(), false).unwrap();
 
         assert!(!d.path().join("kvojps-monitor.desktop").exists());
     }
@@ -173,7 +209,7 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
 
         synchronize(
-            d.path(),
+            &DiskStorage(d.path().into()),
             &appimage("/home/example/Meus Apps/$x 100%.AppImage"),
             true,
         )
@@ -188,35 +224,40 @@ mod tests {
     #[test]
     fn turning_autostart_off_removes_the_entry_and_it_stays_off() {
         let d = tempfile::tempdir().unwrap();
-        synchronize(d.path(), &deb(), true).unwrap();
-        assert!(enabled(d.path()));
+        synchronize(&DiskStorage(d.path().into()), &deb(), true).unwrap();
+        assert!(enabled(&DiskStorage(d.path().into())));
 
-        set(d.path(), &deb(), false).unwrap();
-        synchronize(d.path(), &deb(), false).unwrap();
+        set(&DiskStorage(d.path().into()), &deb(), false).unwrap();
+        synchronize(&DiskStorage(d.path().into()), &deb(), false).unwrap();
 
-        assert!(!enabled(d.path()));
+        assert!(!enabled(&DiskStorage(d.path().into())));
     }
 
     #[test]
     fn turning_autostart_on_writes_the_current_appimage_path() {
         let d = tempfile::tempdir().unwrap();
-        set(d.path(), &appimage("/home/example/Apps/k.AppImage"), true).unwrap();
-        assert!(enabled(d.path()));
+        set(
+            &DiskStorage(d.path().into()),
+            &appimage("/home/example/Apps/k.AppImage"),
+            true,
+        )
+        .unwrap();
+        assert!(enabled(&DiskStorage(d.path().into())));
         assert_eq!(line_exec(d.path()), "Exec=\"/home/example/Apps/k.AppImage\"");
 
         // Turning it off twice is not an error.
-        set(d.path(), &deb(), false).unwrap();
-        set(d.path(), &deb(), false).unwrap();
-        assert!(!enabled(d.path()));
+        set(&DiskStorage(d.path().into()), &deb(), false).unwrap();
+        set(&DiskStorage(d.path().into()), &deb(), false).unwrap();
+        assert!(!enabled(&DiskStorage(d.path().into())));
     }
 
     #[test]
     fn turning_autostart_off_keeps_other_entries() {
         let d = tempfile::tempdir().unwrap();
         fs::write(d.path().join("other.desktop"), "x").unwrap();
-        set(d.path(), &deb(), true).unwrap();
+        set(&DiskStorage(d.path().into()), &deb(), true).unwrap();
 
-        set(d.path(), &deb(), false).unwrap();
+        set(&DiskStorage(d.path().into()), &deb(), false).unwrap();
 
         assert!(d.path().join("other.desktop").exists());
     }

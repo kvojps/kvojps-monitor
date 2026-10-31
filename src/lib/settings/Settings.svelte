@@ -45,7 +45,7 @@
 
   <div class="cards">
     <div class="card general"><GeneralSettings {core} /></div>
-    <div class="card appearance"><AppearanceSettings {appearance} save={(a) => core.setAppearance?.(a)} /></div>
+    <div class="card appearance"><AppearanceSettings {appearance} save={(a) => core.setAppearance ? core.setAppearance(a) : Promise.reject()} /></div>
     <div class="card ai" id="settings-ai" tabindex="-1">
       <AiSettings data={snapshots.ai?.data as AiData | undefined}
         connect={core.connectClaude ?? unavailable("unwritable")}

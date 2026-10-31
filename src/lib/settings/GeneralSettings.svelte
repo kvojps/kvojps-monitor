@@ -7,10 +7,41 @@
   let general = $state<GeneralSettings | null>(null);
   let pending = $state(false);
   let autostartError = $state(false);
+  let loadError = $state(false);
+  let versionError = $state(false);
   let logsError = $state(false);
 
+  async function load() {
+    loadError = false;
+    try {
+      if (!core.generalSettings) throw new Error("unavailable");
+      general = await core.generalSettings();
+    } catch {
+      loadError = true;
+    }
+  }
+
   onMount(() => {
-    core.generalSettings?.().then((g) => (general = g)).catch(() => {});
+    let disposed = false;
+    let stop = () => {};
+    let revision = 0;
+    const ready = core.listenGeneralSettings?.((settings) => {
+      revision += 1;
+      general = settings;
+      loadError = false;
+    }) ?? Promise.resolve(() => {});
+    void ready.then(async (unlisten) => {
+      if (disposed) { unlisten(); return; }
+      stop = unlisten;
+      const before = revision;
+      try {
+        const settings = await core.generalSettings?.();
+        if (!disposed && revision === before && settings) general = settings;
+      } catch {
+        if (!disposed && revision === before) loadError = true;
+      }
+    }).catch(() => { if (!disposed) void load(); });
+    return () => { disposed = true; stop(); };
   });
 
   /** Keep the switch on the confirmed value until the core answers. */
@@ -42,6 +73,10 @@
 
 <section aria-labelledby="settings-general-title">
   <h3 id="settings-general-title">{t.settings.general.title}</h3>
+  {#if loadError}
+    <p class="error" role="alert">{t.settings.general.loadFailed}</p>
+    <button onclick={load}>{t.settings.general.retry}</button>
+  {/if}
   {#if general}
     <label class="switch">
       <input type="checkbox" checked={general.autostart} disabled={pending}
@@ -52,9 +87,11 @@
     {#if autostartError}<p id="autostart-error" class="error" role="alert">{t.settings.general.autostartFailed}</p>{/if}
     <label class="switch">
       <input type="checkbox" checked={general.versionCheck} disabled={pending}
-        onchange={(e) => change(e, core.setVersionCheck, () => {})} />
+        aria-describedby={versionError ? "version-error" : undefined}
+        onchange={(e) => change(e, core.setVersionCheck, (v) => (versionError = v))} />
       {t.settings.general.versionCheck}
     </label>
+    {#if versionError}<p id="version-error" class="error" role="alert">{t.settings.general.versionCheckFailed}</p>{/if}
     {#if general.release}
       <button class="link" onclick={() => core.openRelease?.()}>{interpolate(t.settings.general.release, { version: general.release.version })}</button>
     {/if}

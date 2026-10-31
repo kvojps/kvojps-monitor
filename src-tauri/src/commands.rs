@@ -255,7 +255,7 @@ pub struct Startup {
     pub execution: crate::autostart::Execution,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct General {
     version: &'static str,
@@ -264,10 +264,10 @@ pub struct General {
     release: Option<crate::releases::Release>,
 }
 
-fn general(state: &AppState, startup: &Startup) -> General {
+pub(crate) fn general(state: &AppState, startup: &Startup) -> General {
     General {
         version: env!("CARGO_PKG_VERSION"),
-        autostart: crate::autostart::enabled(&startup.dir),
+        autostart: crate::autostart::enabled(&crate::persistence::DiskStorage(startup.dir.clone())),
         version_check: state.version_check(),
         release: state.available_release(),
     }
@@ -285,8 +285,12 @@ pub fn set_autostart(
     state: State<Mutex<AppState>>,
     startup: State<Startup>,
 ) -> Result<General, String> {
-    crate::autostart::set(&startup.dir, &startup.execution, enabled)
-        .map_err(|_| "unwritable".to_string())?;
+    crate::autostart::set(
+        &crate::persistence::DiskStorage(startup.dir.clone()),
+        &startup.execution,
+        enabled,
+    )
+    .map_err(|_| "unwritable".to_string())?;
     Ok(general(&state.lock().unwrap(), &startup))
 }
 
@@ -295,10 +299,10 @@ pub fn set_version_check(
     enabled: bool,
     state: State<Mutex<AppState>>,
     startup: State<Startup>,
-) -> General {
+) -> Result<General, ()> {
     let mut state = state.lock().unwrap();
-    state.set_version_check(enabled);
-    general(&state, &startup)
+    state.set_version_check(enabled).map_err(|_| ())?;
+    Ok(general(&state, &startup))
 }
 
 #[tauri::command]
@@ -312,14 +316,25 @@ pub async fn open_release(state: State<'_, Mutex<AppState>>) -> Result<(), ()> {
 #[tauri::command]
 pub async fn open_logs() -> Result<(), ()> {
     let dir = dirs::state_dir().ok_or(())?.join("kvojps-monitor");
-    crate::general::open_logs(&crate::ports::SystemProcesses, &dir)
-        .then_some(())
-        .ok_or(())
+    crate::general::open_logs(
+        &crate::ports::RootFilesystem::system(),
+        &crate::ports::SystemProcesses,
+        &dir,
+    )
+    .then_some(())
+    .ok_or(())
 }
 
 #[tauri::command]
-pub fn set_appearance(appearance: crate::state::Appearance, state: State<Mutex<AppState>>) {
-    state.lock().unwrap().set_appearance(appearance);
+pub fn set_appearance(
+    appearance: crate::state::Appearance,
+    state: State<Mutex<AppState>>,
+) -> Result<(), ()> {
+    state
+        .lock()
+        .unwrap()
+        .set_appearance(appearance)
+        .map_err(|_| ())
 }
 
 #[tauri::command]

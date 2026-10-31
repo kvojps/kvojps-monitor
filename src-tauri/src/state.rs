@@ -28,7 +28,7 @@ pub struct Appearance {
 }
 
 /// Daily check of the GitHub releases API; public metadata only.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 struct VersionCheck {
     enabled: bool,
@@ -169,20 +169,30 @@ impl AppState {
     pub fn appearance(&self) -> Appearance {
         self.preferences.appearance
     }
-    pub fn set_appearance(&mut self, appearance: Appearance) {
+    pub fn set_appearance(&mut self, appearance: Appearance) -> std::io::Result<()> {
+        let previous = self.preferences.appearance;
         self.preferences.appearance = appearance;
-        self.save();
+        if let Err(error) = self.try_save() {
+            self.preferences.appearance = previous;
+            return Err(error);
+        }
+        Ok(())
     }
 
     pub fn version_check(&self) -> bool {
         self.preferences.version_check.enabled
     }
-    pub fn set_version_check(&mut self, enabled: bool) {
+    pub fn set_version_check(&mut self, enabled: bool) -> std::io::Result<()> {
+        let previous = self.preferences.version_check.clone();
         self.preferences.version_check.enabled = enabled;
         if !enabled {
             self.preferences.version_check.available = None;
         }
-        self.save();
+        if let Err(error) = self.try_save() {
+            self.preferences.version_check = previous;
+            return Err(error);
+        }
+        Ok(())
     }
 
     /// A newer release found by the daily check, while the check is enabled.
@@ -230,11 +240,14 @@ impl AppState {
             self.last_anchor()
         }
     }
+    fn try_save(&self) -> std::io::Result<()> {
+        let json = serde_json::to_string_pretty(&self.preferences)?;
+        self.storage.write(PREFERENCES_FILE, &json)
+    }
+
     fn save(&self) {
         // A write failure loses preferences; the app keeps running.
-        if let Ok(json) = serde_json::to_string_pretty(&self.preferences) {
-            let _ = self.storage.write(PREFERENCES_FILE, &json);
-        }
+        let _ = self.try_save();
     }
 }
 
@@ -472,6 +485,35 @@ mod agent_notification_tests {
         }
     }
     #[test]
+    fn failed_visual_and_version_preferences_keep_the_confirmed_values() {
+        struct ReadOnly(MemoryStorage);
+        impl Storage for ReadOnly {
+            fn read(&self, path: &str) -> io::Result<String> {
+                self.0.read(path)
+            }
+            fn write(&self, _: &str, _: &str) -> io::Result<()> {
+                Err(io::ErrorKind::PermissionDenied.into())
+            }
+            fn rename(&self, _: &str, _: &str) -> io::Result<()> {
+                Err(io::ErrorKind::PermissionDenied.into())
+            }
+            fn remove(&self, _: &str) -> io::Result<()> {
+                Err(io::ErrorKind::PermissionDenied.into())
+            }
+        }
+        let mut state = AppState::with_storage(ReadOnly(MemoryStorage::default()));
+        assert!(state
+            .set_appearance(Appearance {
+                theme: Theme::Light,
+                reduce_motion: true
+            })
+            .is_err());
+        assert_eq!(state.appearance(), Appearance::default());
+        assert!(state.set_version_check(false).is_err());
+        assert!(state.version_check());
+    }
+
+    #[test]
     fn notification_target_overrides_opening_anchor_until_panel_closes() {
         let storage = MemoryStorage::default();
         let mut state = AppState::with_storage(storage.clone());
@@ -525,10 +567,12 @@ mod settings_tests {
             }
         );
 
-        state.set_appearance(Appearance {
-            theme: Theme::Light,
-            reduce_motion: true,
-        });
+        state
+            .set_appearance(Appearance {
+                theme: Theme::Light,
+                reduce_motion: true,
+            })
+            .unwrap();
 
         assert_eq!(
             AppState::load(d.path().into()).appearance(),
@@ -559,7 +603,7 @@ mod settings_tests {
         let mut state = AppState::load(d.path().into());
         assert!(state.version_check());
 
-        state.set_version_check(false);
+        state.set_version_check(false).unwrap();
 
         assert!(!AppState::load(d.path().into()).version_check());
     }
@@ -568,10 +612,12 @@ mod settings_tests {
     fn preferences_keep_only_choices_never_credentials_or_content() {
         let d = dir();
         let mut state = AppState::load(d.path().into());
-        state.set_appearance(Appearance {
-            theme: Theme::Dark,
-            reduce_motion: false,
-        });
+        state
+            .set_appearance(Appearance {
+                theme: Theme::Dark,
+                reduce_motion: false,
+            })
+            .unwrap();
         state.target_agent("PRIVATE_SESSION".into());
         state.complete_welcome();
         state.complete_first_execution();

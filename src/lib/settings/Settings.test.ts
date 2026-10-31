@@ -40,6 +40,7 @@ afterEach(() => vi.unstubAllGlobals());
 const GENERAL: GeneralSettings = { version: "0.1.0", autostart: true, versionCheck: true, release: null };
 
 function fakeCore(initial: Partial<InitialState> = {}, general: GeneralSettings = GENERAL) {
+  let generalListener: ((settings: GeneralSettings) => void) | undefined;
   let themeListener: ((theme: SystemTheme) => void) | undefined;
   const core = {
     initialState: vi.fn(async (): Promise<InitialState> => ({ lastAnchor: "ai", snapshots: [], ...initial })),
@@ -52,16 +53,17 @@ function fakeCore(initial: Partial<InitialState> = {}, general: GeneralSettings 
     chooseAnchor: vi.fn(),
     closePanel: vi.fn(),
     completeWelcome: vi.fn(),
+    listenGeneralSettings: vi.fn(async (cb: (settings: GeneralSettings) => void) => { generalListener = cb; return () => {}; }),
     generalSettings: vi.fn(async () => general),
     setAutostart: vi.fn(async (enabled: boolean) => ({ ...general, autostart: enabled })),
     setVersionCheck: vi.fn(async (enabled: boolean) => ({ ...general, versionCheck: enabled, release: enabled ? general.release : null })),
     openRelease: vi.fn(),
     openLogs: vi.fn(async () => {}),
-    setAppearance: vi.fn(),
+    setAppearance: vi.fn(async (_appearance: Appearance) => {}),
     connectClaude: vi.fn(async () => {}),
     refreshGithub: vi.fn(),
   } satisfies Core;
-  return { core, systemTheme: (theme: SystemTheme) => act(() => themeListener?.(theme)) };
+  return { core, generalChanged: (settings: GeneralSettings) => act(() => generalListener?.(settings)), systemTheme: (theme: SystemTheme) => act(() => themeListener?.(theme)) };
 }
 
 const snapshot = (module: Snapshot["module"], data: unknown): Snapshot => ({ module, updatedAt: 1, data });
@@ -160,6 +162,27 @@ describe("general settings", () => {
     expect(autostart).toHaveAccessibleDescription("Não foi possível alterar a inicialização com o login");
   });
 
+  it("explains a failed version preference and keeps its confirmed value", async () => {
+    const { core } = fakeCore();
+    core.setVersionCheck.mockRejectedValueOnce("unwritable");
+    render(Panel, { core });
+    await openSettings();
+    const check = await screen.findByRole("checkbox", { name: "Verificar nova versão diariamente" });
+    await userEvent.click(check);
+    expect(check).toBeChecked();
+    expect(check).toHaveAccessibleDescription("Não foi possível alterar a verificação de versão");
+  });
+
+  it("explains a failed settings load and lets the user retry", async () => {
+    const { core } = fakeCore();
+    core.generalSettings.mockRejectedValueOnce("unavailable");
+    render(Panel, { core });
+    await openSettings();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível carregar as configurações gerais");
+    await userEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(await screen.findByRole("checkbox", { name: "Iniciar com o login" })).toBeChecked();
+  });
+
   it("links discreetly to a newer release without updating by itself", async () => {
     const { core } = fakeCore({}, { ...GENERAL, release: { version: "0.2.0", url: "https://github.com/Kvojps/kvojps-monitor/releases/tag/v0.2.0" } });
     render(Panel, { core });
@@ -167,6 +190,15 @@ describe("general settings", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Versão 0.2.0 disponível · ver release" }));
     expect(core.openRelease).toHaveBeenCalledOnce();
+  });
+
+  it("shows a release discovered while Settings stays open", async () => {
+    const { core, generalChanged } = fakeCore();
+    render(Panel, { core });
+    await openSettings();
+    await screen.findByRole("checkbox", { name: "Iniciar com o login" });
+    await generalChanged({ ...GENERAL, release: { version: "0.2.0", url: "https://github.com/Kvojps/kvojps-monitor/releases/tag/v0.2.0" } });
+    expect(screen.getByRole("button", { name: "Versão 0.2.0 disponível · ver release" })).toBeInTheDocument();
   });
 
   it("opens the logs folder", async () => {
@@ -193,6 +225,17 @@ describe("appearance", () => {
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(core.setAppearance).toHaveBeenCalledWith({ theme: "dark", reduceMotion: false });
+  });
+
+  it("explains a failed appearance save and restores the confirmed preference", async () => {
+    const { core } = fakeCore(appearance({ theme: "light" }));
+    core.setAppearance.mockRejectedValueOnce("unwritable");
+    render(Panel, { core });
+    await openSettings();
+    await userEvent.click(screen.getByRole("radio", { name: "Escuro" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível salvar a aparência");
+    expect(screen.getByRole("radio", { name: "Claro" })).toBeChecked();
+    expect(document.documentElement.dataset.theme).toBe("light");
   });
 
   it("follows the desktop theme while the system theme is chosen", async () => {

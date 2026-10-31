@@ -48,6 +48,9 @@
     "general": {
       "title": "Geral",
       "autostart": "Iniciar com o login",
+      "loadFailed": "Não foi possível carregar as configurações gerais",
+      "retry": "Tentar novamente",
+      "versionCheckFailed": "Não foi possível alterar a verificação de versão",
       "autostartFailed": "Não foi possível alterar a inicialização com o login",
       "versionCheck": "Verificar nova versão diariamente",
       "release": "Versão {version} disponível · ver release",
@@ -62,6 +65,7 @@
       "light": "Claro",
       "system": "Sistema",
       "reduceMotion": "Reduzir animações",
+      "saveFailed": "Não foi possível salvar a aparência",
       "systemReduced": "O sistema já pede menos animações; essa preferência prevalece."
     },
     "codexDetected": "Codex detectado",
