@@ -1,0 +1,91 @@
+{
+  "module": "network",
+  "updatedAt": 1793457125000,
+  "data": {
+    "processTraffic": {
+      "apps": [
+        {
+          "name": "firefox",
+          "download": 6144.0,
+          "upload": 3072.0
+        },
+        {
+          "name": "codex",
+          "download": 5120.0,
+          "upload": 2560.0
+        },
+        {
+          "name": "claude",
+          "download": 4096.0,
+          "upload": 2048.0
+        },
+        {
+          "name": "code",
+          "download": 3072.0,
+          "upload": 1536.0
+        },
+        {
+          "name": "slack",
+          "download": 2048.0,
+          "upload": 1024.0
+        }
+      ],
+      "others": {
+        "download": 106996.0,
+        "upload": 20998.0
+      }
+    },
+    "speed": {
+      "download": 8.0,
+      "upload": 3.0,
+      "measuredAt": 1793457121000,
+      "networkId": "/org/freedesktop/NetworkManager/ActiveConnection/2:wlo1:false:"
+    },
+    "speedAvailable": true,
+    "speedRunning": false,
+    "speedFailed": false,
+    "automaticSpeed": true,
+    "connected": true,
+    "wired": false,
+    "vpn": false,
+    "quality": "regular",
+    "security": "noAlerts",
+    "reasons": [],
+    "gateway": {
+      "latency": 2.0,
+      "jitter": 0.0,
+      "loss": 0.0
+    },
+    "internet": {
+      "latency": 20.0,
+      "jitter": 0.0,
+      "loss": 0.0
+    },
+    "traffic": {
+      "download": 182000.0,
+      "upload": 47000.0
+    },
+    "history": [
+      {
+        "download": 60000.0,
+        "upload": 12000.0
+      },
+      {
+        "download": 148000.0,
+        "upload": 30000.0
+      },
+      {
+        "download": 96000.0,
+        "upload": 21000.0
+      },
+      {
+        "download": 210000.0,
+        "upload": 64000.0
+      },
+      {
+        "download": 182000.0,
+        "upload": 47000.0
+      }
+    ]
+  }
+}

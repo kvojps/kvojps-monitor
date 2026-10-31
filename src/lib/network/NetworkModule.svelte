@@ -1,111 +1,249 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { NetworkData } from "../core";
+  import type { NetworkData, NetworkTraffic } from "../core";
   import { interpolate, t } from "../strings";
-  let { data, runSpeed = () => {} }: { data: NetworkData; runSpeed?: () => void } = $props();
+
+  let { data, runSpeed = () => {} }: { data: NetworkData | null; runSpeed?: () => void } = $props();
   let now = $state(Date.now());
   onMount(() => {
-    const timer = setInterval(() => { now = Date.now(); }, 1000);
+    const timer = setInterval(() => (now = Date.now()), 1000);
     return () => clearInterval(timer);
   });
-  const age = $derived.by(() => {
-    const seconds = Math.max(0, Math.floor((now - (data.speed?.measuredAt ?? now)) / 1000));
-    return interpolate(seconds >= 3600 ? t.network.ageHours : seconds >= 60 ? t.network.ageMinutes : t.network.ageSeconds,
-      { value: String(seconds >= 3600 ? Math.floor(seconds / 3600) : seconds >= 60 ? Math.floor(seconds / 60) : seconds) });
-  });
+
+  /** The core only weighs a speed test younger than six hours; older ones are shown as old. */
+  const STALE_SPEED_MS = 6 * 3600 * 1000;
   const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
-  const measurement = (v: number | null, unit: string) => v === null ? t.network.noValue : `${number.format(v)} ${unit}`;
-  function rate(v: number) {
-    return v >= 1048576 ? `${number.format(v / 1048576)} MB/s` : v >= 1024 ? `${number.format(v / 1024)} KB/s` : `${number.format(v)} B/s`;
+  const date = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+  function age(when: number) {
+    const seconds = Math.max(0, Math.floor((now - when) / 1000));
+    if (seconds < 60) return interpolate(t.network.ageSeconds, { value: String(seconds) });
+    if (seconds < 3600) return interpolate(t.network.ageMinutes, { value: String(Math.floor(seconds / 60)) });
+    if (seconds < 86400) return interpolate(t.network.ageHours, { value: String(Math.floor(seconds / 3600)) });
+    return interpolate(t.network.ageDays, { value: String(Math.floor(seconds / 86400)) });
   }
-  const maximum = $derived(Math.max(1, ...data.history.flatMap((p) => [p.download, p.upload])));
-  function points(direction: "download" | "upload") {
-    return data.history.map((p, i) => `${i * 300 / 59},${60 - p[direction] / maximum * 56}`).join(" ");
+  /** Without a measurement the module says so explicitly, never 0. */
+  const measured = (v: number | null, unit: string) => (v === null ? t.network.noValue : `${number.format(v)} ${unit}`);
+  /** Traffic in KB/s or MB/s, kept apart from the Mbps of the speed test. */
+  const rate = (v: number) => (v >= 1048576 ? `${number.format(v / 1048576)} MB/s` : `${number.format(v / 1024)} KB/s`);
+
+  const connected = $derived(data?.connected ?? false);
+
+  type Tone = "ok" | "warn" | "bad" | "none";
+  type Quality = NonNullable<NetworkData["quality"]>;
+  type Security = NonNullable<NetworkData["security"]>;
+  const QUALITY: Record<Quality, [Tone, string]> = { good: ["ok", "✓"], regular: ["warn", "◐"], poor: ["bad", "✕"] };
+  const SECURITY: Record<Security, [Tone, string]> = { noAlerts: ["ok", "✓"], warning: ["warn", "⚠"], risk: ["bad", "✕"] };
+  function axis<S extends Quality | Security>(value: S | null | undefined, states: Record<S, [Tone, string]>) {
+    if (!connected) return { tone: "none" as Tone, icon: "⊘", label: t.network.disconnected };
+    if (!value) return { tone: "none" as Tone, icon: "…", label: t.network.unmeasured };
+    const [tone, icon] = states[value];
+    return { tone, icon, label: t.network[value] };
   }
+  const quality = $derived(axis(data?.quality, QUALITY));
+  const security = $derived(axis(data?.security, SECURITY));
+
+  const speed = $derived(data?.speed ?? null);
+  const speedStale = $derived(speed !== null && now - speed.measuredAt >= STALE_SPEED_MS);
+  /** Old or not repeatable now: the age is shown directly, not only on focus or pointer. */
+  const speedOld = $derived(speed !== null && (speedStale || !data?.speedAvailable || data?.speedRunning || !connected));
+  const speedAge = $derived(speed === null ? null : interpolate(speedStale ? t.network.speedStale : t.network.speedAge,
+    { age: age(speed.measuredAt), date: date.format(speed.measuredAt) }));
+
+  /** Chart: fixed one-second slots anchored on the right, scale from the samples themselves. */
+  const SLOTS = 60;
+  const W = 360, TOP = 8, BOTTOM = 76;
+  const history = $derived(data?.history.slice(-SLOTS) ?? []);
+  const scale = $derived(Math.max(1, ...history.flatMap((p) => [p.download, p.upload])));
+  const x = (i: number) => W - 6 - (history.length - 1 - i) * ((W - 12) / (SLOTS - 1));
+  const y = (v: number) => BOTTOM - (v / scale) * (BOTTOM - TOP);
+  const points = (direction: keyof NetworkTraffic) => history.map((p, i) => `${x(i)},${y(p[direction])}`).join(" ");
+  const peak = (direction: keyof NetworkTraffic) => Math.max(...history.map((p) => p[direction]));
+  const chartSummary = $derived.by(() => {
+    if (history.length === 0) return t.network.noSamples;
+    const last = history.at(-1)!;
+    if (history.length === 1) return interpolate(t.network.chartSingle, { down: rate(last.download), up: rate(last.upload) });
+    return interpolate(t.network.chartSummary, {
+      count: String(history.length),
+      down: rate(last.download), downPeak: rate(peak("download")),
+      up: rate(last.upload), upPeak: rate(peak("upload")),
+    });
+  });
+
+  /** Up to five apps plus Others, on one local scale shared by every bar. */
+  const apps = $derived.by(() => {
+    const traffic = data?.processTraffic;
+    if (!connected || !traffic) return null;
+    const rows = [...traffic.apps.map((a) => ({ ...a, others: false })), { name: t.network.others, ...traffic.others, others: true }];
+    return { rows, empty: traffic.apps.length === 0, max: Math.max(1, ...rows.flatMap((r) => [r.download, r.upload])) };
+  });
+  const width = (v: number, max: number) => `${(v / max) * 100}%`;
 </script>
 
 <div class="network">
-  <section aria-label={t.network.security}>
-    <h2>{t.network.security}</h2>
-    <strong class:regular={data.security === "warning"} class:poor={data.security === "risk"}>
-      {!data.connected ? t.network.disconnected : data.security ? t.network[data.security] : t.network.unmeasured}
-    </strong>
-    {#if data.connected}
-      {#each data.reasons as reason}<p>{reason}</p>{/each}
-    {/if}
-  </section>
-  <section aria-label={t.network.quality}>
-    <h2>{t.network.quality}</h2>
-    <strong class:good={data.quality === "good"} class:regular={data.quality === "regular"} class:poor={data.quality === "poor"}>
-      {!data.connected ? t.network.disconnected : data.quality ? t.network[data.quality] : t.network.unmeasured}
-    </strong>
-    <div class="tags">
-      {#if data.connected && data.wired}<span>{t.network.wired}</span>{/if}
-      {#if data.connected && data.vpn}<span>{t.network.vpn}</span>{/if}
+  {#if !data}
+    <p class="blank">{t.network.noReading}</p>
+  {:else}
+    <div class="axes">
+      {#each [{ id: "quality", name: t.network.quality, state: quality }, { id: "security", name: t.network.security, state: security }] as item (item.id)}
+        <div class="axis {item.state.tone}" role="group" aria-labelledby="network-{item.id}">
+          <span id="network-{item.id}" class="axis-name">{item.name}</span>
+          <b><span aria-hidden="true">{item.state.icon}&nbsp;</span>{item.state.label}</b>
+        </div>
+      {/each}
     </div>
-  </section>
-  {#if data.connected}
-    {#each [{ name: t.network.gateway, measurements: data.gateway }, { name: t.network.internet, measurements: data.internet }] as destination}
-      <section aria-label={destination.name}>
-        <h2>{destination.name}</h2>
-        <dl>
-          <div><dt>{t.network.latency}</dt><dd class="num">{measurement(destination.measurements.latency, "ms")}</dd></div>
-          <div><dt>{t.network.jitter}</dt><dd class="num">{measurement(destination.measurements.jitter, "ms")}</dd></div>
-          <div><dt>{t.network.loss}</dt><dd class="num">{measurement(destination.measurements.loss, "%")}</dd></div>
-        </dl>
-      </section>
-    {/each}
-  {/if}
-  <section aria-label={t.network.speed}>
-    <h2>{t.network.speed}</h2>
-    {#if data.speed}
-      <dl>
-        <div><dt>{t.network.download}</dt><dd class="num">↓ {measurement(data.speed.download, "Mbps")}</dd></div>
-        <div><dt>{t.network.upload}</dt><dd class="num">↑ {measurement(data.speed.upload, "Mbps")}</dd></div>
+    {#if connected}
+      <p class="connection">
+        <span>{data.wired ? t.network.wired : t.network.wireless}</span>
+        <span class:active={data.vpn}>{data.vpn ? t.network.vpn : t.network.noVpn}</span>
+      </p>
+      {#if data.security === "warning" || data.security === "risk"}
+        <ul class="reasons {data.security}">
+          {#each data.reasons as reason (reason)}<li><span aria-hidden="true">⚠&nbsp;</span>{reason}</li>{/each}
+        </ul>
+      {/if}
+    {/if}
+
+    <div class="instruments">
+      <div class="latency" role="group" aria-labelledby="network-latency">
+        {#if !connected}
+          <strong class="absent"><span aria-hidden="true">⊘&nbsp;</span>{t.network.disconnected}</strong>
+        {:else}
+          <strong class="num">{#if data.internet.latency === null}<span class="absent">{t.network.noValue}</span>{:else}{number.format(data.internet.latency)}<span class="unit">&nbsp;ms</span>{/if}</strong>
+        {/if}
+        <span id="network-latency" class="caption">{t.network.internetLatency}</span>
+      </div>
+      <div class="speed-instrument" role="group" aria-label={t.network.speed}>
+        <button class="speed" disabled={!data.speedAvailable || data.speedRunning} onclick={runSpeed}
+          aria-label={data.speedRunning ? t.network.testingSpeed : t.network.testSpeed}
+          aria-describedby={speedAge ? "network-speed-age" : undefined}>
+          {#if speed}
+            <span class="speed-values num"><b>↓ {number.format(speed.download)}</b><b>↑ {number.format(speed.upload)}</b></span>
+          {:else}
+            <span class="speed-none">{t.network.noSpeed}</span>
+          {/if}
+          <span class="caption">{t.network.capacity} · <span aria-hidden="true">{data.speedRunning ? "◌" : "↻"}&nbsp;</span>{data.speedRunning ? t.network.testingSpeed : t.network.testSpeed}</span>
+        </button>
+        {#if speedAge}<span id="network-speed-age" class="when num" class:shown={speedOld} class:old={speedStale}>{speedAge}</span>{/if}
+        {#if !data.speedAvailable && !data.speedRunning}
+          <p class="note"><span aria-hidden="true">⊘&nbsp;</span>{t.network.speedUnavailable}</p>
+        {/if}
+        {#if data.speedFailed}<p class="note warn" role="status"><span aria-hidden="true">⚠&nbsp;</span>{t.network.speedFailed}</p>{/if}
+      </div>
+    </div>
+
+    {#if connected}
+      <dl class="metrics">
+        <div><dt>{t.network.jitter}</dt><dd class="num">{measured(data.internet.jitter, "ms")}</dd></div>
+        <div><dt>{t.network.loss}</dt><dd class="num">{measured(data.internet.loss, "%")}</dd></div>
+        <div><dt>{t.network.gatewayLatency}</dt><dd class="num">{measured(data.gateway.latency, "ms")}</dd></div>
       </dl>
-      <p>{age}</p>
-    {:else}<p>{t.network.unmeasured}</p>{/if}
-    <button disabled={!data.speedAvailable || data.speedRunning} onclick={runSpeed}>{data.speedRunning ? t.network.testingSpeed : t.network.testSpeed}</button>
-    {#if !data.speedAvailable}<p>{t.network.speedUnavailable}</p>{/if}
-    {#if data.speedFailed}<p role="status">{t.network.speedFailed}</p>{/if}
-  </section>
-  <section aria-label={t.network.traffic}>
-    <h2>{t.network.traffic}</h2>
-    <svg role="img" aria-label={t.network.chart} viewBox="0 0 300 64">
-      <polyline points={points("download")} class="download" />
-      <polyline points={points("upload")} class="upload" />
-    </svg>
-    <dl>
-      <div><dt>{t.network.download}</dt><dd class="num">↓ {data.traffic ? rate(data.traffic.download) : t.network.noValue}</dd></div>
-      <div><dt>{t.network.upload}</dt><dd class="num">↑ {data.traffic ? rate(data.traffic.upload) : t.network.noValue}</dd></div>
-    </dl>
-  </section>
-  <section aria-label={t.network.processTraffic}>
-    <h2>{t.network.processTraffic}</h2>
-    {#if data.connected && data.processTraffic}
-      {#each data.processTraffic.apps as app}
-        <div class="process-row"><span>{app.name}</span><span class="num">↓ {rate(app.download)}</span><span class="num">↑ {rate(app.upload)}</span></div>
-      {:else}<p>{t.network.noProcesses}</p>{/each}
-      <div class="process-row"><span title={t.network.othersHint}>{t.network.others}</span><span class="num">↓ {rate(data.processTraffic.others.download)}</span><span class="num">↑ {rate(data.processTraffic.others.upload)}</span></div>
-      <p>{t.network.othersHint}</p>
-    {:else}<p>{t.network.unmeasured}</p>{/if}
-  </section>
+      <p class="gateway num">{interpolate(t.network.gatewayBand, { jitter: measured(data.gateway.jitter, "ms"), loss: measured(data.gateway.loss, "%") })}</p>
+    {/if}
+
+    <section class="traffic" aria-labelledby="network-traffic">
+      <h3 id="network-traffic">{t.network.traffic}</h3>
+      {#if history.length === 0}
+        <p class="note">{t.network.noSamples}</p>
+      {:else}
+        <svg viewBox="0 0 {W} 84" role="img" aria-label="{t.network.chart}. {chartSummary}" preserveAspectRatio="none">
+          <path class="grid" d="M6 {TOP}H{W - 6} M6 {(TOP + BOTTOM) / 2}H{W - 6} M6 {BOTTOM}H{W - 6}" />
+          {#if history.length === 1}
+            <circle class="download" cx={x(0)} cy={y(history[0].download)} r="3" />
+            <rect class="upload" x={x(0) - 3} y={y(history[0].upload) - 3} width="6" height="6" />
+          {:else}
+            <polyline class="download" points={points("download")} />
+            <polyline class="upload" points={points("upload")} />
+          {/if}
+        </svg>
+      {/if}
+      <dl class="rates num">
+        <div class="download"><dt><svg class="key" aria-hidden="true" viewBox="0 0 18 6"><line class="download" x1="0" y1="3" x2="18" y2="3" /></svg><span aria-hidden="true">↓&nbsp;</span>{t.network.download}</dt><dd>{data.traffic ? rate(data.traffic.download) : t.network.noValue}</dd></div>
+        <div class="upload"><dt><svg class="key" aria-hidden="true" viewBox="0 0 18 6"><line class="upload" x1="0" y1="3" x2="18" y2="3" /></svg><span aria-hidden="true">↑&nbsp;</span>{t.network.upload}</dt><dd>{data.traffic ? rate(data.traffic.upload) : t.network.noValue}</dd></div>
+      </dl>
+    </section>
+
+    <section class="apps" aria-labelledby="network-apps">
+      <h3 id="network-apps">{t.network.processTraffic}</h3>
+      {#if apps}
+        {#if apps.empty}<p class="note">{t.network.noProcesses}</p>{/if}
+        <ul aria-describedby="network-apps-scale">
+          {#each apps.rows as app (app.others ? "others" : `app:${app.name}`)}
+            <li class="app" class:others={app.others}>
+              <span class="name" title={app.others ? t.network.othersHint : app.name}>{app.name}</span>
+              <span class="bars" aria-hidden="true"><i style:width={width(app.download, apps.max)}></i><i class="up" style:width={width(app.upload, apps.max)}></i></span>
+              <span class="app-rates num"><span>↓ {rate(app.download)}</span> <span>↑ {rate(app.upload)}</span></span>
+            </li>
+          {/each}
+        </ul>
+        <p class="note">{t.network.others}: {t.network.othersHint}</p>
+        <p id="network-apps-scale" class="note">{t.network.appsScale}</p>
+      {:else}
+        <p class="note">{connected ? t.network.unmeasured : t.network.disconnected}</p>
+      {/if}
+    </section>
+  {/if}
 </div>
+
 <style>
-  .process-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; padding: 4px 0; font-size: 12px; }
-  .process-row > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .network { padding: 4px 16px 16px; overflow-y: auto; }
-  section { padding: 12px 0; border-bottom: 1px solid var(--line); }
-  h2 { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
-  strong { font-size: 22px; }
-  p { font-size: 12px; margin-top: 6px; color: var(--muted); }
-  .good { color: var(--ok); } .regular { color: var(--warn); } .poor { color: var(--bad); }
-  .tags { display: flex; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 11px; }
-  .tags span { background: var(--surface-2); padding: 3px 6px; border-radius: 4px; }
-  dl { display: flex; justify-content: space-between; gap: 12px; }
-  dt { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  dd { font-size: 12px; }
-  svg { width: 100%; height: 64px; background: var(--surface); margin-bottom: 8px; }
-  polyline { fill: none; stroke-width: 1.5; }
-  .download { stroke: var(--accent); } .upload { stroke: var(--muted); }
+  .network { padding: 16px 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 12px; flex: 1; font-size: 12px; }
+  .blank { display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
+  .axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .axis { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--surface-2); border-left: 4px solid var(--line); }
+  .axis-name { font: 10px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .axis b { font-size: 15px; font-weight: 500; }
+  .axis.ok { border-left-color: var(--ok); } .axis.ok b { color: var(--ok); }
+  .axis.warn { border-left-color: var(--warn); } .axis.warn b { color: var(--warn); }
+  .axis.bad { border-left-color: var(--bad); } .axis.bad b { color: var(--bad); }
+  .connection { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 11px; }
+  .connection .active { color: var(--accent); }
+  .reasons { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .reasons.warning { color: var(--warn); } .reasons.risk { color: var(--bad); }
+  .instruments { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: start; gap: 14px; }
+  .latency { display: flex; flex-direction: column; gap: 2px; }
+  .latency strong { font-size: 46px; font-weight: 300; line-height: 1.05; letter-spacing: -1px; }
+  .latency .unit { font-size: 15px; letter-spacing: 0; color: var(--muted); }
+  .latency .absent { font-size: 18px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .caption { display: block; font: 10px var(--mono); letter-spacing: 0.7px; text-transform: uppercase; color: var(--muted); }
+  .speed-instrument { position: relative; display: flex; flex-direction: column; gap: 6px; }
+  .speed { width: 100%; padding: 12px 8px; color: var(--accent); background: var(--surface-2); border: 1px solid var(--line); border-radius: 0 20px 0 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .speed:hover:not(:disabled) { filter: brightness(1.15); }
+  .speed:disabled { cursor: default; }
+  .speed:disabled .caption { opacity: 0.7; }
+  .speed:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .speed-values { display: flex; justify-content: center; gap: 12px; }
+  .speed-values b { font-size: 22px; font-weight: 400; }
+  .speed-none { font-size: 13px; color: var(--muted); }
+  /* Test age and date: on pointer and keyboard focus, always when old or not repeatable now. */
+  .when { display: none; font-size: 11px; color: var(--muted); }
+  .when.shown, .speed:hover + .when, .speed:focus-visible + .when { display: block; }
+  .when.old { color: var(--warn); }
+  .note { font-size: 11px; color: var(--muted); }
+  .note.warn { color: var(--warn); }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0; }
+  .metrics dt { font-size: 11px; color: var(--muted); }
+  .metrics dd { margin: 3px 0 0; font-size: 13px; }
+  .gateway { font-size: 11px; color: var(--muted); padding: 4px 8px; background: var(--surface); border-left: 3px solid var(--line); }
+  h3 { font: 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .traffic svg { display: block; width: 100%; height: 84px; }
+  .grid { stroke: var(--line); stroke-dasharray: 2 4; fill: none; }
+  polyline, .key line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+  polyline.download, .key .download { stroke: var(--accent); }
+  polyline.upload, .key .upload { stroke: var(--band-blue); stroke-dasharray: 5 3; }
+  .key { width: 18px; height: 6px; margin-right: 6px; vertical-align: middle; }
+  circle.download { fill: var(--accent); } rect.upload { fill: var(--band-blue); }
+  .rates { display: flex; justify-content: space-between; gap: 12px; margin: 6px 0 0; font-size: 12px; }
+  .rates div { display: flex; gap: 6px; }
+  .rates dt { color: var(--muted); }
+  .rates dd { margin: 0; }
+  .rates .download dd { color: var(--accent); }
+  .apps { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .apps ul { margin: 0; padding: 0; list-style: none; }
+  .app { display: grid; grid-template-columns: minmax(56px, 90px) minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 6px 0; font-size: 12px; }
+  .app .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app.others .name { color: var(--muted); }
+  .bars { display: grid; gap: 3px; }
+  .bars i { display: block; height: 4px; min-width: 1px; background: var(--accent); border-radius: 0 4px 4px 0; }
+  .bars i.up { background: var(--band-blue); }
+  .app-rates { display: flex; flex-direction: column; font-size: 11px; color: var(--muted); text-align: right; }
 </style>

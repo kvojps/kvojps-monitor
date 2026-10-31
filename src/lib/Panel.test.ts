@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Panel from "./Panel.svelte";
 import type { Module, Core, Snapshot, InitialState } from "./core";
 import networkSpeed from "./network/fixtures/speed.json";
+import networkFull from "./network/fixtures/full.json";
 import notebook from "./system/fixtures/notebook.json";
 import waitingAgents from "./agents/fixtures/waiting.json";
 import aiFull from "./ai/fixtures/full.json";
@@ -551,5 +552,34 @@ describe("Trello module in the panel", () => {
     expect(card).toHaveFocus();
     expect(card).toHaveAttribute("aria-pressed", "true");
     expect(scroller.scrollTop).toBe(120);
+  });
+});
+
+describe("Network module in the panel", () => {
+  it("explains there is no reading before the first network snapshot", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    const network = await screen.findByRole("region", { name: "Rede" });
+    expect(within(network).getByText("Sem leitura da rede ainda")).toBeInTheDocument();
+  });
+
+  it("shows the instruments from the snapshot and sends a speed test to the core", async () => {
+    const { core } = fakeCore({ snapshots: [networkFull as Snapshot] });
+    const runSpeedTest = vi.fn();
+    render(Panel, { core: { ...core, runSpeedTest } });
+    const network = await screen.findByRole("region", { name: "Rede" });
+    expect(within(network).getByRole("group", { name: "Latência da internet" })).toHaveTextContent("20 ms");
+    expect(within(network).getAllByRole("listitem")).toHaveLength(6);
+    await userEvent.click(within(network).getByRole("button", { name: "Testar velocidade" }));
+    expect(runSpeedTest).toHaveBeenCalledOnce();
+  });
+
+  it("keeps focus on the speed test when a network snapshot arrives", async () => {
+    const { core, publish } = fakeCore({ snapshots: [networkFull as Snapshot] });
+    render(Panel, { core });
+    const network = await screen.findByRole("region", { name: "Rede" });
+    within(network).getByRole("button", { name: "Testar velocidade" }).focus();
+    await publish({ ...(networkFull as Snapshot), updatedAt: networkFull.updatedAt + 1000 });
+    expect(within(network).getByRole("button", { name: "Testar velocidade" })).toHaveFocus();
   });
 });

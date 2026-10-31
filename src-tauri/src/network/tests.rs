@@ -1579,3 +1579,79 @@ fn resume_discards_traffic_baseline_and_collects_without_waiting() {
     assert!(data.history.is_empty());
     assert_eq!(data.internet.latency, Some(20.0));
 }
+
+#[test]
+fn full_ui_fixture_is_a_snapshot_published_by_core() {
+    // Connected, measured speed, several traffic samples and six apps, so the
+    // core's top five cut applies.
+    let Scenario {
+        network,
+        root,
+        nm,
+        probe: _,
+        clock,
+    } = scenario();
+    nm.0.lock().unwrap().metered = false;
+    let replies = TcpReplies(Default::default());
+    let http = FakeSpeed::default();
+    let mut network = network
+        .with_processes(replies.clone())
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    let apps = ["firefox", "codex", "claude", "code", "slack", "spotify"];
+    let mut pids = Vec::new();
+    for (rank, name) in apps.iter().enumerate() {
+        for _ in 0..apps.len() - rank {
+            let pid = pids.len() as u32 + 1;
+            process_owner(&root, pid, 1000, pid, name);
+            pids.push(pid);
+        }
+    }
+    let reply = |index: usize| {
+        Some(
+            pids.iter()
+                .flat_map(|&pid| socket_reply(index, pid, pid as u64, 1000))
+                .collect::<Vec<_>>(),
+        )
+    };
+    *replies.0.lock().unwrap() = reply(0);
+    network.process_visible(true);
+    let (mut received, mut sent) = (818_860_497u64, 122_353_707u64);
+    let mut result = None;
+    for (second, (down, up)) in [
+        (0, 0),
+        (60_000, 12_000),
+        (148_000, 30_000),
+        (96_000, 21_000),
+        (210_000, 64_000),
+        (182_000, 47_000),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        received += down;
+        sent += up;
+        root.write(
+            "/proc/net/dev",
+            &format!("wlo1: {received} 0 0 0 0 0 0 0 {sent} 0 0 0 0 0 0 0\n"),
+        );
+        if second == 1 {
+            http.0.lock().unwrap().1 = Some(Ok((8.0, 3.0)));
+        }
+        if second == 4 {
+            *replies.0.lock().unwrap() = reply(1);
+        }
+        result = network.step().or(result);
+        clock.advance(1000);
+    }
+    let (when, data) = result.unwrap();
+    assert_eq!(data.process_traffic.as_ref().unwrap().apps.len(), 5);
+    assert!(data.speed.is_some());
+    let json = serde_json::to_string_pretty(&snapshot(when, &data)).unwrap() + "\n";
+    let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../src/lib/network/fixtures/full.json");
+    if std::env::var_os("UPDATE_FIXTURES").is_some() {
+        std::fs::write(file, json).unwrap();
+    } else {
+        assert_eq!(std::fs::read_to_string(file).unwrap(), json);
+    }
+}
