@@ -4,13 +4,13 @@
 
 **Blocked by:** 03 (Módulo Sistema ao vivo), 04 (Qualidade da rede e tráfego total) — ambos concluídos
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] Usar nas seções de CPU, RAM, Discos e Bateria o mesmo padrão de separação do Módulo Rede: linha inferior de `1px solid var(--line)` e espaçamento vertical equivalente (`padding: 12px 0`)
 - [x] Ajustar o espaçamento atual do Sistema para evitar somar o `gap` existente ao espaçamento dos separadores
 - [x] Manter a bateria oculta quando ausente, sem deixar seção ou separador vazio
 - [x] Preservar os gráficos, barras, textos e regras de atenção existentes
-- [ ] Verificar visualmente a consistência entre Rede e Sistema nos temas claro e escuro e executar a checagem de tipos e os testes de UI existentes
+- [x] Verificar visualmente a consistência entre Rede e Sistema nos temas claro e escuro e executar a checagem de tipos e os testes de UI existentes
 
 ## Referências
 
