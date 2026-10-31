@@ -353,6 +353,8 @@ fn github_request(
 pub trait Keyring: Send {
     fn read(&self, account: &str) -> Result<Option<String>, ()>;
     fn save(&self, account: &str, secret: &str) -> Result<(), ()>;
+    /// Removing a missing entry succeeds.
+    fn delete(&self, account: &str) -> Result<(), ()>;
 }
 pub struct UnavailableKeyring;
 impl Keyring for UnavailableKeyring {
@@ -360,6 +362,9 @@ impl Keyring for UnavailableKeyring {
         Err(())
     }
     fn save(&self, _: &str, _: &str) -> Result<(), ()> {
+        Err(())
+    }
+    fn delete(&self, _: &str) -> Result<(), ()> {
         Err(())
     }
 }
@@ -378,5 +383,12 @@ impl Keyring for SecretService {
             .map_err(|_| ())?
             .set_password(secret)
             .map_err(|_| ())
+    }
+    fn delete(&self, account: &str) -> Result<(), ()> {
+        let entry = keyring::Entry::new("kvojps-monitor", account).map_err(|_| ())?;
+        match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(_) => Err(()),
+        }
     }
 }

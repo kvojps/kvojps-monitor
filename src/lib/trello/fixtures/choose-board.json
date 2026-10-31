@@ -1,0 +1,19 @@
+{
+  "account": {
+    "login": "exemplo"
+  },
+  "board": null,
+  "boards": [
+    {
+      "id": "000000000000000000000002",
+      "name": "Quadro 1"
+    },
+    {
+      "id": "000000000000000000000003",
+      "name": "Quadro 2"
+    }
+  ],
+  "lists": null,
+  "refreshing": false,
+  "state": "chooseBoard"
+}

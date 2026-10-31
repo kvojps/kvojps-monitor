@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/svelte";
+import { render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Panel from "./Panel.svelte";
@@ -127,7 +127,23 @@ it("opens GitHub settings from setup and sends the pasted token to the core", as
   await userEvent.click(screen.getByRole("button", { name: "Colar token clássico" }));
   expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
   await userEvent.type(screen.getByLabelText("Token clássico (escopo repo)"), "private-token");
-  await userEvent.click(screen.getByRole("button", { name: "Validar e salvar" }));
+  const github = screen.getByRole("region", { name: "GitHub" });
+  await userEvent.click(within(github).getByRole("button", { name: "Validar e salvar" }));
   expect(saveGithubToken).toHaveBeenCalledWith("private-token");
   expect(await screen.findByText("Conectado como exemplo")).toBeInTheDocument();
+});
+
+it("opens Trello settings from the empty module and sends key and token to the core", async () => {
+  const { default: empty } = await import("./trello/fixtures/empty.json");
+  const { core } = fakeCore({ lastModule: "trello", snapshots: [{ module: "trello", updatedAt: null, data: empty }] });
+  const connectTrello = vi.fn().mockResolvedValue("exemplo");
+  render(Panel, { core: { ...core, connectTrello } });
+  await userEvent.click(await screen.findByRole("button", { name: "Configurar" }));
+  expect(core.reportModuleVisible).toHaveBeenLastCalledWith(null);
+  const trello = screen.getByRole("region", { name: "Trello" });
+  await userEvent.type(within(trello).getByLabelText("API key"), "0123abcd");
+  await userEvent.type(within(trello).getByLabelText("Token"), "private-token");
+  await userEvent.click(within(trello).getByRole("button", { name: "Validar e salvar" }));
+  expect(connectTrello).toHaveBeenCalledWith("0123abcd", "private-token");
+  expect(await within(trello).findByText("Conectado como exemplo")).toBeInTheDocument();
 });

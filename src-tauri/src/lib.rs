@@ -14,6 +14,7 @@ mod snapshot;
 mod state;
 mod strings;
 mod system;
+mod trello;
 
 use std::sync::Mutex;
 
@@ -85,6 +86,13 @@ pub fn run() {
             commands::close_panel,
             commands::refresh_github,
             commands::save_github_token,
+            commands::refresh_trello,
+            commands::connect_trello,
+            commands::select_trello_board,
+            commands::disconnect_trello,
+            commands::open_trello_authorization,
+            commands::open_trello_card,
+            commands::open_trello_admin,
             commands::run_speed_test,
             commands::set_automatic_speed,
         ])

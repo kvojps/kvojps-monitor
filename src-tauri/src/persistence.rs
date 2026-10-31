@@ -8,6 +8,7 @@ pub trait Storage: Send {
     fn read(&self, path: &str) -> io::Result<String>;
     fn write(&self, path: &str, data: &str) -> io::Result<()>;
     fn rename(&self, from: &str, to: &str) -> io::Result<()>;
+    fn remove(&self, path: &str) -> io::Result<()>;
 }
 
 pub struct DiskStorage(pub PathBuf);
@@ -22,6 +23,12 @@ impl Storage for DiskStorage {
     }
     fn rename(&self, from: &str, to: &str) -> io::Result<()> {
         std::fs::rename(self.0.join(from), self.0.join(to))
+    }
+    fn remove(&self, path: &str) -> io::Result<()> {
+        match std::fs::remove_file(self.0.join(path)) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+            result => result,
+        }
     }
 }
 
@@ -63,6 +70,33 @@ struct Featured {
     when: u64,
 }
 
+/// Board structure without card titles, which are user content.
+#[derive(Deserialize, Serialize)]
+struct CachedTrello {
+    board: TrelloBoard,
+    lists: Vec<TrelloList>,
+}
+#[derive(Deserialize, Serialize)]
+struct TrelloBoard {
+    id: String,
+    name: String,
+}
+#[derive(Deserialize, Serialize)]
+struct TrelloList {
+    id: String,
+    name: String,
+    cards: Vec<TrelloCard>,
+}
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TrelloCard {
+    id: String,
+    url: String,
+    labels: Vec<String>,
+    due: Option<u64>,
+    due_complete: bool,
+}
+
 pub struct Cache<S>(pub S);
 impl<S: Storage> Cache<S> {
     pub fn save(&self, snapshot: &Snapshot) -> io::Result<()> {
@@ -85,6 +119,17 @@ impl<S: Storage> Cache<S> {
                 data["featured"]["title"] = json!("");
             }
         }
+        if module == Module::Trello {
+            data["state"] = json!("stale");
+            data["refreshing"] = json!(false);
+            data["account"] = Value::Null;
+            data["boards"] = json!([]);
+            for list in data["lists"].as_array_mut().into_iter().flatten() {
+                for card in list["cards"].as_array_mut().into_iter().flatten() {
+                    card["name"] = json!("");
+                }
+            }
+        }
         Some(Snapshot {
             module,
             updated_at: body["updatedAt"].as_u64(),
@@ -96,6 +141,11 @@ fn sanitize(module: Module, data: &Value) -> io::Result<Value> {
     match module {
         Module::Github => {
             let clean: CachedGithub =
+                serde_json::from_value(data.clone()).map_err(io::Error::other)?;
+            serde_json::to_value(clean).map_err(io::Error::other)
+        }
+        Module::Trello => {
+            let clean: CachedTrello =
                 serde_json::from_value(data.clone()).map_err(io::Error::other)?;
             serde_json::to_value(clean).map_err(io::Error::other)
         }
@@ -162,6 +212,8 @@ impl<S: Storage> Logs<S> {
 pub trait Persistence: Send {
     fn load(&self, module: Module) -> Option<Snapshot>;
     fn save(&self, snapshot: &Snapshot);
+    /// Forget the cached snapshot, e.g. after disconnecting an account.
+    fn clear(&self, module: Module);
     fn log(&self, record: LogRecord);
 }
 pub struct LocalPersistence<C, L> {
@@ -175,6 +227,9 @@ impl<C: Storage, L: Storage> Persistence for LocalPersistence<C, L> {
     fn save(&self, snapshot: &Snapshot) {
         let _ = self.cache.save(snapshot);
     }
+    fn clear(&self, module: Module) {
+        let _ = self.cache.0.remove(&format!("{}.json", module.id()));
+    }
     fn log(&self, record: LogRecord) {
         let _ = self.logs.record(record);
     }
@@ -185,6 +240,7 @@ impl Persistence for Volatile {
         None
     }
     fn save(&self, _: &Snapshot) {}
+    fn clear(&self, _: Module) {}
     fn log(&self, _: LogRecord) {}
 }
 

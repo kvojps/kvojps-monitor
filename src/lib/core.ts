@@ -52,6 +52,14 @@ export interface Core {
   setAutomaticSpeed?(enabled: boolean): void;
   refreshGithub?(): void;
   saveGithubToken?(token: string): Promise<string>;
+  refreshTrello?(): void;
+  /** Resolves with the account login; rejects with a credential error code. */
+  connectTrello?(key: string, token: string): Promise<string>;
+  selectTrelloBoard?(board: string): Promise<void>;
+  disconnectTrello?(): Promise<void>;
+  openTrelloAdmin?(): void;
+  openTrelloAuthorization?(key: string): void;
+  openTrelloCard?(url: string): void;
   closePanel(): void;
 }
 
@@ -66,6 +74,13 @@ export const tauriCore: Core = {
   setAutomaticSpeed: (enabled) => void invoke("set_automatic_speed", { enabled }),
   saveGithubToken: (token) => invoke<string>("save_github_token", { token }),
   refreshGithub: () => void invoke("refresh_github"),
+  refreshTrello: () => void invoke("refresh_trello"),
+  connectTrello: (key, token) => invoke<string>("connect_trello", { key, token }),
+  selectTrelloBoard: (board) => invoke<void>("select_trello_board", { board }),
+  disconnectTrello: () => invoke<void>("disconnect_trello"),
+  openTrelloAdmin: () => void invoke("open_trello_admin"),
+  openTrelloAuthorization: (key) => void invoke("open_trello_authorization", { key }),
+  openTrelloCard: (url) => void invoke("open_trello_card", { url }),
   closePanel: () => void invoke("close_panel"),
 };
 
@@ -100,4 +115,27 @@ export interface GithubData {
   refreshing: boolean;
   calendar: { restrictedContributionsCount: number; contributionCalendar: {totalContributions:number; weeks: {contributionDays: {date:string; contributionCount:number; color:string}[]}[]} } | null;
   featured: {name:string; commits:number; total:number; title:string; when:number} | null;
+}
+
+export interface TrelloCard {
+  id: string;
+  /** Empty when restored from the disk cache, which never stores titles. */
+  name: string;
+  url: string;
+  /** Trello color names, e.g. green or sky_light. */
+  labels: string[];
+  due: number | null;
+  dueComplete: boolean;
+  overdue: boolean;
+}
+export interface TrelloData {
+  state: "missingCredential" | "chooseBoard" | "ready" | "stale" | "error" | "invalidCredential";
+  refreshing: boolean;
+  paused?: boolean;
+  lastSuccessAt?: number | null;
+  failureSince?: number | null;
+  account: { login: string } | null;
+  boards: { id: string; name: string }[];
+  board: { id: string; name: string } | null;
+  lists: { id: string; name: string; cards: TrelloCard[] }[] | null;
 }

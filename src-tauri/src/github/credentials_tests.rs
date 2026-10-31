@@ -12,6 +12,10 @@ impl Keyring for Vault {
         *self.0.lock().unwrap() = Some(secret.into());
         Ok(())
     }
+    fn delete(&self, _: &str) -> Result<(), ()> {
+        *self.0.lock().unwrap() = None;
+        Ok(())
+    }
 }
 struct Validation;
 impl Http for Validation {

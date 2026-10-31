@@ -1,0 +1,79 @@
+{
+  "account": {
+    "login": "exemplo"
+  },
+  "board": {
+    "id": "000000000000000000000002",
+    "name": "Quadro 1"
+  },
+  "boards": [
+    {
+      "id": "000000000000000000000002",
+      "name": "Quadro 1"
+    },
+    {
+      "id": "000000000000000000000003",
+      "name": "Quadro 2"
+    }
+  ],
+  "lists": [
+    {
+      "cards": [
+        {
+          "due": 1793447940000,
+          "dueComplete": false,
+          "id": "000000000000000000000005",
+          "labels": [
+            "red",
+            "sky_light"
+          ],
+          "name": "Card 1.1",
+          "overdue": true,
+          "url": "https://trello.com/c/00000005"
+        },
+        {
+          "due": 1793718000000,
+          "dueComplete": false,
+          "id": "000000000000000000000007",
+          "labels": [],
+          "name": "Card 1.2",
+          "overdue": false,
+          "url": "https://trello.com/c/00000007"
+        },
+        {
+          "due": 1793447940000,
+          "dueComplete": true,
+          "id": "000000000000000000000f01",
+          "labels": [
+            "red",
+            "sky_light"
+          ],
+          "name": "Card concluído",
+          "overdue": false,
+          "url": "https://trello.com/c/00000005"
+        },
+        {
+          "due": 1793451600000,
+          "dueComplete": false,
+          "id": "000000000000000000000f02",
+          "labels": [
+            "red",
+            "sky_light"
+          ],
+          "name": "Card futuro",
+          "overdue": false,
+          "url": "https://trello.com/c/00000005"
+        }
+      ],
+      "id": "000000000000000000000004",
+      "name": "Lista 1"
+    },
+    {
+      "cards": [],
+      "id": "000000000000000000000008",
+      "name": "Lista 2"
+    }
+  ],
+  "refreshing": false,
+  "state": "ready"
+}

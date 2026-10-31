@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icon from "./Icon.svelte";
-  import { MODULES, type GithubData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import { MODULES, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
   import GithubSettings from "./github/GithubSettings.svelte";
   import GithubModule from "./github/GithubModule.svelte";
+  import TrelloModule from "./trello/TrelloModule.svelte";
+  import TrelloSettings from "./trello/TrelloSettings.svelte";
   import NetworkModule from "./network/NetworkModule.svelte";
   import SystemModule from "./system/SystemModule.svelte";
   import { interpolate, t } from "./strings";
@@ -79,12 +81,23 @@
       {#if view === "github" && snapshots.github}
         <GithubModule data={snapshots.github.data as GithubData} refresh={() => core.refreshGithub?.()} configure={() => selecionar("settings")} />
       {/if}
+      {#if view === "trello" && snapshots.trello}
+        <TrelloModule data={snapshots.trello.data as TrelloData} refresh={() => core.refreshTrello?.()}
+          configure={() => selecionar("settings")} openCard={(url) => core.openTrelloCard?.(url)} />
+      {/if}
       {#if view === "network" && snapshots.network?.data}
         <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
       {/if}
       {#if view === "settings"}
         <GithubSettings data={snapshots.github?.data as GithubData | undefined}
           save={(token) => core.saveGithubToken ? core.saveGithubToken(token) : Promise.reject("offline")} />
+      {/if}
+      {#if view === "settings"}
+        <TrelloSettings data={snapshots.trello?.data as TrelloData | undefined}
+          connect={(key, token) => core.connectTrello ? core.connectTrello(key, token) : Promise.reject("offline")}
+          selectBoard={(board) => core.selectTrelloBoard ? core.selectTrelloBoard(board) : Promise.reject("offline")}
+          disconnect={() => core.disconnectTrello ? core.disconnectTrello() : Promise.reject("offline")}
+          openAdmin={() => core.openTrelloAdmin?.()} authorize={(key) => core.openTrelloAuthorization?.(key)} />
       {/if}
       {#if view === "settings" && snapshots.network}
         <section class="network-settings" aria-label={t.modules.network}>

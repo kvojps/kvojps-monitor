@@ -109,5 +109,41 @@
       "offline": "Sem conexão, tente de novo",
       "keyringUnavailable": "GNOME Keyring indisponível. Ative ou desbloqueie o chaveiro para salvar; o token não foi salvo."
     }
+  },
+  "trello": {
+    "refresh": "Atualizar Trello",
+    "refreshing": "Atualizando…",
+    "configure": "Configurar",
+    "missingCredential": "Trello não conectado",
+    "chooseBoard": "Escolha um quadro nas Configurações",
+    "invalidCredential": "Credencial inválida · Reconectar",
+    "error": "Não foi possível atualizar o Trello",
+    "failureAge": "Falha ao atualizar {age}",
+    "updatedAge": "Atualizado {age}",
+    "emptyList": "Sem cards",
+    "hiddenTitle": "Título disponível após atualizar",
+    "openCard": "Duplo clique abre o card no navegador",
+    "due": "Entrega {date}",
+    "overdue": "Vencido: {date}",
+    "labels": "Etiquetas: {colors}",
+    "keyStep": "1. Crie um app em trello.com/apps/admin e gere uma API key na aba Trello Auth.",
+    "openAdmin": "Abrir trello.com/apps/admin",
+    "keyLabel": "API key",
+    "tokenStep": "2. Gere um token e cole abaixo.",
+    "generateToken": "Gerar token",
+    "tokenLabel": "Token",
+    "save": "Validar e salvar",
+    "validating": "Validando…",
+    "connected": "Conectado como {login}",
+    "boardStep": "3. Escolha o quadro.",
+    "boardLabel": "Quadro",
+    "noBoards": "Nenhum quadro aberto nesta conta",
+    "disconnect": "Desconectar",
+    "credentialErrors": {
+      "invalidCredential": "Key ou token inválido",
+      "offline": "Sem conexão, tente de novo",
+      "keyringUnavailable": "GNOME Keyring indisponível. Ative ou desbloqueie o chaveiro para salvar; a key e o token não foram salvos."
+    },
+    "disconnectFailed": "Não foi possível apagar a key e o token: GNOME Keyring indisponível."
   }
 }

@@ -71,3 +71,70 @@ pub async fn save_github_token(
     rx.await
         .map_err(|_| crate::github::CredentialError::KeyringUnavailable)?
 }
+
+#[tauri::command]
+pub fn refresh_trello(collector: State<crate::trello::Collector>) {
+    let _ = collector.0.send(crate::trello::Command::Refresh);
+}
+
+/// Send a command with a reply channel to the Trello collector thread.
+async fn ask_trello<T>(
+    collector: State<'_, crate::trello::Collector>,
+    command: impl FnOnce(
+        tokio::sync::oneshot::Sender<Result<T, crate::trello::CredentialError>>,
+    ) -> crate::trello::Command,
+) -> Result<T, crate::trello::CredentialError> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    collector
+        .0
+        .send(command(tx))
+        .map_err(|_| crate::trello::CredentialError::KeyringUnavailable)?;
+    rx.await
+        .map_err(|_| crate::trello::CredentialError::KeyringUnavailable)?
+}
+
+#[tauri::command]
+pub async fn connect_trello(
+    key: String,
+    token: String,
+    collector: State<'_, crate::trello::Collector>,
+) -> Result<String, crate::trello::CredentialError> {
+    ask_trello(collector, |reply| {
+        crate::trello::Command::Connect(key, token, reply)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn select_trello_board(
+    board: String,
+    collector: State<'_, crate::trello::Collector>,
+) -> Result<(), crate::trello::CredentialError> {
+    ask_trello(collector, |reply| {
+        crate::trello::Command::SelectBoard(board, reply)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn disconnect_trello(
+    collector: State<'_, crate::trello::Collector>,
+) -> Result<(), crate::trello::CredentialError> {
+    ask_trello(collector, crate::trello::Command::Disconnect).await
+}
+
+// Async commands run off the main thread while xdg-open hands the URL over.
+#[tauri::command]
+pub async fn open_trello_authorization(key: String) -> Result<(), crate::trello::CredentialError> {
+    crate::trello::open_authorization(&crate::ports::SystemProcesses, &key)
+}
+
+#[tauri::command]
+pub async fn open_trello_card(url: String) {
+    crate::trello::open_card(&crate::ports::SystemProcesses, &url);
+}
+
+#[tauri::command]
+pub async fn open_trello_admin() {
+    crate::trello::open_admin(&crate::ports::SystemProcesses);
+}
