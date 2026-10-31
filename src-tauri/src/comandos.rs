@@ -41,3 +41,8 @@ pub fn informar_modulo_visivel(
 pub fn fechar_painel(app: AppHandle) {
     painel::fechar(&app);
 }
+
+#[tauri::command]
+pub fn atualizar_github(coletor: State<crate::github::Coletor>) {
+    let _ = coletor.0.send(true);
+}

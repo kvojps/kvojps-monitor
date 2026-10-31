@@ -65,5 +65,20 @@
     "semAlertas": "Sem alertas",
     "atencao": "Atenção",
     "risco": "Risco"
+  },
+  "github": {
+    "atualizar": "Atualizar GitHub",
+    "atualizando": "Atualizando…",
+    "configurar": "Configurar",
+    "login": "Rodar `gh auth login`",
+    "instrucao": "No terminal, execute gh auth login e depois atualize este Módulo.",
+    "semGh": "GitHub não conectado",
+    "vazio": "Sem commits nos últimos 7 dias",
+    "calendario": "Calendário de contribuições",
+    "contribuicoes": "{total} contribuições no ano",
+    "privadas": "{total} contribuições privadas (anônimas)",
+    "contagem": "{commits} commits em 7 dias · {total} no total",
+    "erro": "Não foi possível atualizar o GitHub",
+    "destaque": "Repo em destaque"
   }
 }

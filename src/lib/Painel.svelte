@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icone from "./Icone.svelte";
-  import { MODULOS, type DadosRede, type DadosSistema, type Modulo, type Nucleo, type Snapshot } from "./nucleo";
+  import { MODULOS, type DadosGithub, type DadosRede, type DadosSistema, type Modulo, type Nucleo, type Snapshot } from "./nucleo";
+  import ModuloGithub from "./github/ModuloGithub.svelte";
   import ModuloRede from "./rede/ModuloRede.svelte";
   import ModuloSistema from "./sistema/ModuloSistema.svelte";
   import { preencher, t } from "./strings";
@@ -74,6 +75,9 @@
           </span>
         {/if}
       </header>
+      {#if vista === "github" && snapshots.github}
+        <ModuloGithub dados={snapshots.github.dados as DadosGithub} atualizar={() => nucleo.atualizarGithub?.()} />
+      {/if}
       {#if vista === "rede" && snapshots.rede?.dados}
         <ModuloRede dados={snapshots.rede.dados as DadosRede} />
       {/if}

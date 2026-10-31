@@ -2,6 +2,7 @@ mod autostart;
 mod coleta;
 mod comandos;
 mod estado;
+mod github;
 mod icone;
 mod indicador;
 mod modulo;
@@ -81,6 +82,7 @@ pub fn run() {
             comandos::estado_inicial,
             comandos::informar_modulo_visivel,
             comandos::fechar_painel,
+            comandos::atualizar_github,
         ])
         .build(tauri::generate_context!())
         .expect("falha ao iniciar o kvojps-monitor")

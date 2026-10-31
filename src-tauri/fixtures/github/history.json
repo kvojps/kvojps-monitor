@@ -1,0 +1,22 @@
+{
+  "data": {
+    "repository": {
+      "defaultBranchRef": {
+        "target": {
+          "janela": {
+            "totalCount": 27,
+            "nodes": [
+              {
+                "committedDate": "2026-10-31T02:40:02Z",
+                "messageHeadline": "Atualiza documenta\u00e7\u00e3o"
+              }
+            ]
+          },
+          "total": {
+            "totalCount": 27
+          }
+        }
+      }
+    }
+  }
+}

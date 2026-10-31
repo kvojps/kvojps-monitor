@@ -10,6 +10,7 @@ use crate::sistema;
 pub fn iniciar(app: &AppHandle) {
     app.manage(sistema::Coletor::iniciar(app.clone()));
     crate::rede::iniciar(app.clone());
+    crate::github::iniciar(app.clone());
 }
 
 /// Chamada depois de toda mudança no Painel ou na vista.

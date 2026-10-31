@@ -215,3 +215,49 @@ impl Notificador for NotificadorDesktop {
         );
     }
 }
+
+/// Processos de curta duração. Saídas e erros nunca são registrados.
+pub trait Processos: Send {
+    fn executar(&self, programa: &str, args: &[&str]) -> Result<String, ()>;
+}
+pub struct ProcessosSistema;
+impl Processos for ProcessosSistema {
+    fn executar(&self, programa: &str, args: &[&str]) -> Result<String, ()> {
+        let saida = std::process::Command::new(programa)
+            .args(args)
+            .output()
+            .map_err(|_| ())?;
+        if !saida.status.success() {
+            return Err(());
+        }
+        String::from_utf8(saida.stdout).map_err(|_| ())
+    }
+}
+/// Somente o endpoint GraphQL do GitHub; credencial emprestada por uma atualização.
+pub trait Http: Send {
+    fn graphql(&self, credencial: &str, corpo: &serde_json::Value)
+        -> Result<serde_json::Value, ()>;
+}
+pub struct HttpGithub;
+impl Http for HttpGithub {
+    fn graphql(
+        &self,
+        credencial: &str,
+        corpo: &serde_json::Value,
+    ) -> Result<serde_json::Value, ()> {
+        reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|_| ())?
+            .post("https://api.github.com/graphql")
+            .header("User-Agent", "kvojps-monitor")
+            .bearer_auth(credencial)
+            .json(corpo)
+            .send()
+            .map_err(|_| ())?
+            .error_for_status()
+            .map_err(|_| ())?
+            .json()
+            .map_err(|_| ())
+    }
+}

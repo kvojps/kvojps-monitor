@@ -48,6 +48,7 @@ export interface Nucleo {
   ouvirSnapshots(cb: (s: Snapshot) => void): Promise<() => void>;
   /** null quando a vista atual não é um Módulo (Configurações). */
   informarModuloVisivel(modulo: Modulo | null): void;
+  atualizarGithub?(): void;
   fecharPainel(): void;
 }
 
@@ -58,6 +59,7 @@ export const nucleoTauri: Nucleo = {
     return () => paradas.forEach((parar) => parar());
   },
   informarModuloVisivel: (modulo) => void invoke("informar_modulo_visivel", { modulo }),
+  atualizarGithub: () => void invoke("atualizar_github"),
   fecharPainel: () => void invoke("fechar_painel"),
 };
 
@@ -74,4 +76,11 @@ export interface DadosRede {
   internet: MedidasRede;
   trafego: TrafegoRede | null;
   historico: TrafegoRede[];
+}
+
+export interface DadosGithub {
+  estado: string;
+  atualizando: boolean;
+  calendario: { restrictedContributionsCount: number; contributionCalendar: {totalContributions:number; weeks: {contributionDays: {date:string; contributionCount:number; color:string}[]}[]} } | null;
+  destaque: {nome:string; commits:number; total:number; titulo:string; quando:number} | null;
 }
