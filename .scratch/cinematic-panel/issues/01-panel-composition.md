@@ -12,6 +12,10 @@ Explorar com protótipo local uma central de comando maior, incluindo a alternat
 
 ## Comments
 
+### Revisão de compactação autorizada — 2026-10-31
+
+O usuário autorizou rever a composição aprovada: janela de aproximadamente 1100 × 700, sem rolagem na visão principal, remoção de título/subtítulo gerais, redução de faixas e repetição, ações por ícones, Agentes resumidos por anel junto de IA e listas extensas em detalhes sobrepostos. O novo [mapa Painel compacto sem rolagem](../../compact-panel/map.md) conduz a validação. A autorização reabre essas restrições visuais; não constitui aprovação de uma composição ainda não prototipada.
+
 ### Exploração de composição — aguardando avaliação
 
 Protótipo disponível em [Protótipo de composição do Painel](../composition-prototype.md), com inventário das funções atuais, três composições, fixtures utilizadas e limites de simulação. Código descartável em `src/lib/cinematic-prototype/`, entrada independente `cinematic-prototype.html`; execução por `npm run prototype:cinematic`.

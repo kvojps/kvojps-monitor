@@ -5,6 +5,10 @@ Status: resolved
 Map: [Painel cinematográfico para trabalho](../map.md)
 Blocked by: 01, 02, 04
 
+## Comments — revisão de compactação
+
+Em 2026-10-31, o usuário autorizou revisar tamanho, composição e acesso a detalhes no [mapa Painel compacto sem rolagem](../../compact-panel/map.md). As regras de janela a 95%, seis áreas separadas e ausência de detalhes sobrepostos serão revistas por protótipo e nova consolidação; a spec anterior permanece referência das funções e do visual até essa validação.
+
 ## Question
 
 O protótipo e as decisões aprovadas definem o redesign completo com clareza suficiente para implementação, preservando todos os comportamentos atuais?
