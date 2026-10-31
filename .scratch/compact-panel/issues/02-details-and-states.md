@@ -1,7 +1,7 @@
 # Validar detalhes sob demanda e estados do Painel compacto
 
 Type: prototype
-Status: claimed
+Status: resolved
 Map: [Painel compacto sem rolagem](../map.md)
 Blocked by: 01
 
@@ -30,3 +30,11 @@ Aguardando avaliação visual e de interação do usuário. Este ticket permanec
 O usuário aprovou a revisão apresentada com “Perfeito”. A referência aprovada é o quadro em colunas da composição B, com movimentação por seleção de card/lista de destino e atalho por arraste, atualização do resumo e reversão em falha, conforme o [protótipo](../composition-prototype.md#segunda-rodada--quadro-completo-do-trello).
 
 A aprovação é visual e do fluxo apresentado; não constitui validação do gesto de arraste real nem da integração Trello de produção. O ticket permanece aberto para os demais detalhes e estados descritos na pergunta; esta aprovação não os resolve implicitamente.
+
+## Answer
+
+Após a apresentação das pendências (sessões, processos de rede, estados/acessibilidade e consolidação), o usuário confirmou: “Se for como está no protótipo concordo com tudo”. Ficam aprovados os detalhes de sessões e aplicativos conforme a referência apresentada, além do quadro Trello já aprovado, na composição B e dentro da janela de aproximadamente 1100 × 700 confirmada na conversa.
+
+O anel usa sessões ativas e encerradas ainda retidas como denominador, com quantidade trabalhando no centro e legenda dos cinco estados; detalhes de sessões e processos abrem na área central com rolagem e fechamento/retorno de foco. A aprovação cobre a referência visual e o fluxo mostrado, sem certificar estados que o protótipo não demonstrou. Esses casos preservam as regras anteriores e seguem como critérios de implementação (zero versus leitura indisponível, recuperação, notificações direcionadas, escalas e listas densas), sem nova redução de cobertura.
+
+Fonte visual e evidências no [registro do protótipo](../composition-prototype.md). A consolidação e a revisão final do documento seguem em [Consolidar a especificação do Painel compacto](03-compact-specification.md).

@@ -21,10 +21,11 @@ Uma especificação visual validada por protótipo para um Painel de aproximadam
 ## Decisions so far
 
 - [Validar a distribuição compacta do Painel](issues/01-compact-composition.md): escolhida B — Núcleo lateral; quadro completo do Trello e movimentação seguem na validação de detalhes.
+- [Validar detalhes sob demanda e estados do Painel compacto](issues/02-details-and-states.md): aprovados os detalhes conforme o protótipo; estados não demonstrados preservam as regras anteriores e exigem verificação na implementação.
 
 ## Not yet specified
 
-- Ajustes que a avaliação visual revelar para densidade, textos longos e equilíbrio entre instrumentos e informações secundárias.
+Nenhuma área adicional identificada; consolidação e revisão final cobertas pelo ticket existente.
 
 ## Out of scope
 
