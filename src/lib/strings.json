@@ -1,0 +1,24 @@
+{
+  "indicador": {
+    "titulo": "kvojps-monitor",
+    "abrirPainel": "Abrir painel"
+  },
+  "trilho": {
+    "rotulo": "Módulos"
+  },
+  "modulos": {
+    "ia": "IA",
+    "agentes": "Agentes",
+    "github": "GitHub",
+    "trello": "Trello",
+    "rede": "Rede",
+    "sistema": "Sistema"
+  },
+  "configuracoes": {
+    "titulo": "Configurações"
+  },
+  "cabecalho": {
+    "atualizado": "atualizado {hora}",
+    "semDados": "sem dados ainda"
+  }
+}
