@@ -21,4 +21,9 @@ pub fn visibility_changed(app: &AppHandle) {
         .unwrap()
         .module_visible();
     app.state::<system::Collector>().report(visible);
+    if let Some(collector) = app.try_state::<crate::network::Collector>() {
+        let _ = collector.0.send(crate::network::Command::Visible(
+            visible == Some(crate::module::Module::Network),
+        ));
+    }
 }

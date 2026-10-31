@@ -75,3 +75,27 @@ it("shows test progress and a metadata-only failure", async () => {
   await view.rerender({ data: failed.data as NetworkData });
   expect(screen.getByRole("status")).toHaveTextContent("Não foi possível medir a velocidade");
 });
+
+it("shows attributed apps and explains traffic that cannot be attributed", async () => {
+  const fixture = await import("./fixtures/processes.json");
+  render(NetworkModule, { data: fixture.default.data as NetworkData });
+  const processes = screen.getByRole("region", { name: "Tráfego por aplicativo" });
+  expect(processes).toHaveTextContent("firefox");
+  expect(processes).toHaveTextContent("↓ 4 KB/s");
+  expect(processes).toHaveTextContent("↑ 2 KB/s");
+  expect(processes).toHaveTextContent("codex");
+  expect(screen.getByText("Outros")).toHaveAttribute("title", "UDP/QUIC, processos do sistema e conexões curtas");
+});
+
+it("shows an empty TCP window with the remaining interface traffic", async () => {
+  const fixture = await import("./fixtures/processes-empty.json");
+  render(NetworkModule, { data: fixture.default.data as NetworkData });
+  expect(screen.getByText("Nenhum aplicativo com tráfego TCP nesta janela")).toBeInTheDocument();
+  expect(screen.getByText("Outros")).toBeInTheDocument();
+});
+
+it("shows pending attribution until diagnostics provide a baseline", () => {
+  render(NetworkModule, { data });
+  expect(screen.getByRole("region", { name: "Tráfego por aplicativo" })).toHaveTextContent("Aguardando medição");
+  expect(screen.queryByText("Outros")).not.toBeInTheDocument();
+});

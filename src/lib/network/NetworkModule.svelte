@@ -80,8 +80,20 @@
       <div><dt>{t.network.upload}</dt><dd class="num">↑ {data.traffic ? rate(data.traffic.upload) : t.network.noValue}</dd></div>
     </dl>
   </section>
+  <section aria-label={t.network.processTraffic}>
+    <h2>{t.network.processTraffic}</h2>
+    {#if data.connected && data.processTraffic}
+      {#each data.processTraffic.apps as app}
+        <div class="process-row"><span>{app.name}</span><span class="num">↓ {rate(app.download)}</span><span class="num">↑ {rate(app.upload)}</span></div>
+      {:else}<p>{t.network.noProcesses}</p>{/each}
+      <div class="process-row"><span title={t.network.othersHint}>{t.network.others}</span><span class="num">↓ {rate(data.processTraffic.others.download)}</span><span class="num">↑ {rate(data.processTraffic.others.upload)}</span></div>
+      <p>{t.network.othersHint}</p>
+    {:else}<p>{t.network.unmeasured}</p>{/if}
+  </section>
 </div>
 <style>
+  .process-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; padding: 4px 0; font-size: 12px; }
+  .process-row > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .network { padding: 4px 16px 16px; overflow-y: auto; }
   section { padding: 12px 0; border-bottom: 1px solid var(--line); }
   h2 { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }

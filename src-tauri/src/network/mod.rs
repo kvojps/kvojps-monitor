@@ -1,6 +1,7 @@
 //! Continuous network collection with a sanitized cache of the last speed measurement.
 mod network_manager;
 mod probe;
+mod process;
 mod security;
 mod speed;
 pub use security::*;
@@ -17,6 +18,8 @@ use std::net::{IpAddr, SocketAddr, SocketAddrV6};
 
 #[derive(Debug, Clone, Default, Deserialize, PartialEq)]
 pub struct Connection {
+    #[serde(default)]
+    pub addresses: Vec<IpAddr>,
     pub id: String,
     pub kind: String,
     pub connectivity: u32,
@@ -71,6 +74,7 @@ pub struct Traffic {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkData {
+    pub process_traffic: Option<process::ProcessTraffic>,
     pub speed: Option<SpeedResult>,
     pub speed_available: bool,
     pub speed_running: bool,
@@ -91,6 +95,7 @@ pub struct NetworkData {
 type Counters = HashMap<String, (u64, u64)>;
 
 pub struct Network<A, N, S, R, V = NoopCheck, T = NoopNotifier> {
+    processes: Option<process::Attribution>,
     speed: Option<speed::SpeedTests>,
     check: V,
     notifier: T,
@@ -109,6 +114,7 @@ pub struct Network<A, N, S, R, V = NoopCheck, T = NoopNotifier> {
 impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
     pub fn new(files: A, nm: N, probe: S, clock: R) -> Self {
         Self {
+            processes: None,
             speed: None,
             check: NoopCheck,
             notifier: NoopNotifier,
@@ -131,6 +137,7 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
         notifier: T,
     ) -> Network<A, N, S, R, V, T> {
         Network {
+            processes: self.processes,
             speed: self.speed,
             files: self.files,
             nm: self.nm,
@@ -151,6 +158,15 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
 impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports::Notifier>
     Network<A, N, S, R, V, T>
 {
+    pub fn with_processes(mut self, diagnostics: impl process::Diagnostics + 'static) -> Self {
+        self.processes = Some(process::Attribution::new(diagnostics));
+        self
+    }
+    pub fn process_visible(&mut self, visible: bool) {
+        if let Some(processes) = &mut self.processes {
+            processes.visible(visible);
+        }
+    }
     pub fn with_speed(
         mut self,
         transport: impl speed::Transport + 'static,
@@ -186,7 +202,11 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
         if self.connection.id != connection.id
             || self.connection.interface != connection.interface
             || self.connection.gateway != connection.gateway
+            || self.connection.addresses != connection.addresses
         {
+            if let Some(processes) = &mut self.processes {
+                processes.reset();
+            }
             self.samples.clear();
             self.previous = None;
             self.history.clear();
@@ -206,6 +226,19 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
         }
         let connected = self.connection.connected();
         let traffic = self.traffic(self.clock.now());
+        if let Some(processes) = &mut self.processes {
+            if connected {
+                processes.step(
+                    now,
+                    &self.files,
+                    &self.connection.interface,
+                    &self.connection.addresses,
+                    self.previous.as_ref().map(|(_, counters)| counters),
+                );
+            } else {
+                processes.reset();
+            }
+        }
         if connected && now >= self.next_ping {
             self.next_ping = now + 5000;
             let gateway = self.connection.gateway.map(|ip| match ip {
@@ -263,6 +296,7 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
         Some((
             now,
             NetworkData {
+                process_traffic: self.processes.as_ref().and_then(|p| p.data.clone()),
                 speed: self.speed.as_ref().and_then(|s| s.last.clone()),
                 speed_available: connected
                     && self.connection.connectivity == 4
@@ -371,6 +405,7 @@ fn classify(g: &Measurements, i: &Measurements, connectivity: u32) -> Quality {
     }
 }
 pub enum Command {
+    Visible(bool),
     FullSpeed,
     AutomaticSpeed(bool),
 }
@@ -386,7 +421,8 @@ pub fn start(app: tauri::AppHandle) {
             PingSocket,
             crate::ports::SystemClock,
         )
-        .with_security(SystemCheck(SystemReadings), crate::ports::DesktopNotifier);
+        .with_security(SystemCheck(SystemReadings), crate::ports::DesktopNotifier)
+        .with_processes(process::KernelDiagnostics);
         network = match (dirs::cache_dir(), dirs::state_dir()) {
             (Some(cache), Some(state)) => network.with_speed(
                 speed::Worker::new(speed::Cloudflare),
@@ -411,6 +447,7 @@ pub fn start(app: tauri::AppHandle) {
         }
         // Publish the cached speed before the first live probe can block.
         let initial = NetworkData {
+            process_traffic: None,
             connected: false,
             wired: false,
             vpn: false,
@@ -431,6 +468,7 @@ pub fn start(app: tauri::AppHandle) {
         loop {
             for command in rx.try_iter() {
                 match command {
+                    Command::Visible(visible) => network.process_visible(visible),
                     Command::FullSpeed => network.request_speed(),
                     Command::AutomaticSpeed(enabled) => network.automatic_speed(enabled),
                 }

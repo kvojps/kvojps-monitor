@@ -1035,3 +1035,526 @@ fn metered_transition_drops_a_pending_http_future_without_waiting_for_timeout() 
         .recv_timeout(std::time::Duration::from_secs(2))
         .unwrap();
 }
+
+fn recorded_local_address() -> [u8; 4] {
+    reading_nm().active[0]
+        .addresses
+        .iter()
+        .find_map(|ip| match ip {
+            std::net::IpAddr::V4(ip) => Some(ip.octets()),
+            _ => None,
+        })
+        .unwrap()
+}
+#[derive(Clone)]
+struct RecordedTcp(std::sync::Arc<std::sync::Mutex<usize>>);
+impl super::process::Diagnostics for RecordedTcp {
+    fn uid(&self) -> u32 {
+        1000
+    }
+    fn dump(&self) -> std::io::Result<Vec<u8>> {
+        let index = *self.0.lock().unwrap();
+        assert_ne!(index, 98, "hidden module must not request diagnostics");
+        if index == 99 {
+            return Err(std::io::ErrorKind::PermissionDenied.into());
+        }
+        let mut bytes = std::fs::read(
+            crate::ports::fakes::fixtures().join(format!("network/tcp/{index}.bin")),
+        )?;
+        // Replay the recorded socket on a non-loopback address with a stable test owner.
+        bytes[24..28].copy_from_slice(&recorded_local_address());
+        bytes[40..44].copy_from_slice(&[192, 0, 2, 2]);
+        bytes[80..84].copy_from_slice(&1000u32.to_ne_bytes());
+        Ok(bytes)
+    }
+}
+#[test]
+fn publishes_process_rates_only_while_visible_using_recorded_tcp_counters() {
+    let clock = FakeClock::at(1000);
+    let root = FakeRoot::from("network");
+    let owner: serde_json::Value =
+        serde_json::from_str(include_str!("../../fixtures/network/tcp/owner.json")).unwrap();
+    root.write(
+        "/proc/123/status",
+        include_str!("../../fixtures/network/tcp/status.txt"),
+    );
+    root.write(
+        "/proc/123/comm",
+        &include_str!("../../fixtures/network/tcp/comm.txt").replace(
+            include_str!("../../fixtures/network/tcp/comm.txt").trim(),
+            "browser",
+        ),
+    );
+    root.write("/proc/123/fd/4", "");
+    std::os::unix::fs::symlink(
+        owner["fdLink"].as_str().unwrap(),
+        root.dir.path().join("proc/123/fd/5"),
+    )
+    .unwrap();
+    let index = std::sync::Arc::new(std::sync::Mutex::new(98));
+    let mut network = Network::new(root.clone(), Nm, Ping(20.0), clock.clone())
+        .with_processes(RecordedTcp(index.clone()));
+    assert!(network.step().unwrap().1.process_traffic.is_none());
+    *index.lock().unwrap() = 0;
+    network.process_visible(true);
+    clock.advance(1000);
+    assert!(network.step().unwrap().1.process_traffic.is_none());
+    *index.lock().unwrap() = 1;
+    root.write(
+        "/proc/net/dev",
+        "wlo1: 818878449 0 0 0 0 0 0 0 122362683 0 0 0 0 0 0 0\n",
+    );
+    clock.advance(2000);
+    let data = network.step().unwrap().1;
+    let traffic = data.process_traffic.unwrap();
+    assert_eq!(traffic.apps[0].name, "browser");
+    assert_eq!(traffic.apps[0].download, 2048.0);
+    assert_eq!(traffic.apps[0].upload, 1024.0);
+    assert_eq!(data.quality, Some(Quality::Good));
+    network.process_visible(false);
+    *index.lock().unwrap() = 98;
+    clock.advance(2000);
+    assert!(network.step().unwrap().1.process_traffic.is_none());
+    *index.lock().unwrap() = 99;
+    network.process_visible(true);
+    clock.advance(1000);
+    assert!(network.step().unwrap().1.process_traffic.is_none());
+}
+
+#[derive(Clone)]
+struct TcpReplies(std::sync::Arc<std::sync::Mutex<Option<Vec<u8>>>>);
+impl super::process::Diagnostics for TcpReplies {
+    fn uid(&self) -> u32 {
+        1000
+    }
+    fn dump(&self) -> std::io::Result<Vec<u8>> {
+        self.0
+            .lock()
+            .unwrap()
+            .clone()
+            .ok_or_else(|| std::io::ErrorKind::PermissionDenied.into())
+    }
+}
+fn socket_reply(index: usize, inode: u32, cookie: u64, uid: u32) -> Vec<u8> {
+    let mut bytes =
+        std::fs::read(crate::ports::fakes::fixtures().join(format!("network/tcp/{index}.bin")))
+            .unwrap();
+    bytes[24..28].copy_from_slice(&recorded_local_address());
+    bytes[40..44].copy_from_slice(&[192, 0, 2, 2]);
+    bytes[60..68].copy_from_slice(&cookie.to_ne_bytes());
+    bytes[80..84].copy_from_slice(&uid.to_ne_bytes());
+    bytes[84..88].copy_from_slice(&inode.to_ne_bytes());
+    bytes
+}
+fn process_owner(root: &FakeRoot, pid: u32, uid: u32, inode: u32, name: &str) {
+    let status = include_str!("../../fixtures/network/tcp/status.txt")
+        .lines()
+        .map(|line| {
+            if line.starts_with("Uid:") {
+                format!("Uid:\t{uid}\t{uid}\t{uid}\t{uid}")
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    root.write(&format!("/proc/{pid}/status"), &status);
+    root.write(
+        &format!("/proc/{pid}/comm"),
+        include_str!("../../fixtures/network/tcp/comm.txt"),
+    );
+    root.write(&format!("/proc/{pid}/fd/0"), "");
+    let owner: serde_json::Value =
+        serde_json::from_str(include_str!("../../fixtures/network/tcp/owner.json")).unwrap();
+    let fd_link = owner["fdLink"]
+        .as_str()
+        .unwrap()
+        .replace(&owner["inode"].to_string(), &inode.to_string());
+    std::os::unix::fs::symlink(fd_link, root.dir.path().join(format!("proc/{pid}/fd/3"))).unwrap();
+    std::os::unix::fs::symlink(
+        std::path::Path::new(owner["exeLink"].as_str().unwrap()).with_file_name(name),
+        root.dir.path().join(format!("proc/{pid}/exe")),
+    )
+    .unwrap();
+}
+#[test]
+fn groups_shared_app_names_and_deduplicates_shared_sockets_before_selecting_top_five() {
+    let root = FakeRoot::from("network");
+    let clock = FakeClock::at(1000);
+    let replies = TcpReplies(Default::default());
+    let mut network =
+        Network::new(root.clone(), Nm, Ping(20.0), clock.clone()).with_processes(replies.clone());
+    for pid in 1..=8 {
+        process_owner(
+            &root,
+            pid,
+            1000,
+            pid,
+            if pid <= 2 {
+                "browser"
+            } else {
+                [
+                    "", "", "", "alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+                ][pid as usize]
+            },
+        );
+    }
+    process_owner(&root, 9, 1000, 1, "browser"); // Shared FD must count once.
+    process_owner(&root, 10, 0, 10, "system");
+    let dump = |index| {
+        (1..=10)
+            .flat_map(|inode| {
+                socket_reply(
+                    index,
+                    inode,
+                    inode as u64,
+                    if inode == 10 { 0 } else { 1000 },
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    *replies.0.lock().unwrap() = Some(dump(0));
+    network.process_visible(true);
+    network.step();
+    *replies.0.lock().unwrap() = Some(dump(1));
+    root.write(
+        "/proc/net/dev",
+        "wlo1: 818958449 0 0 0 0 0 0 0 122402683 0 0 0 0 0 0 0\n",
+    );
+    clock.advance(2000);
+    let data = network.step().unwrap().1;
+    let traffic = data.process_traffic.unwrap();
+    assert_eq!(
+        traffic
+            .apps
+            .iter()
+            .map(|a| a.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["browser", "alpha", "beta", "delta", "epsilon"]
+    );
+    assert_eq!(traffic.apps[0].download, 4096.0);
+    assert_eq!(traffic.apps[0].upload, 2048.0);
+    // Eight owned sockets; apps outside the top five still count as attributed.
+    assert_eq!(traffic.others.download, 33616.0);
+    assert_eq!(traffic.others.upload, 16808.0);
+    assert!(!serde_json::to_string(&traffic).unwrap().contains("192.0.2"));
+    assert!(!serde_json::to_string(&traffic).unwrap().contains("system"));
+}
+#[test]
+fn averages_the_same_window_for_apps_and_others_then_expires_old_activity() {
+    let root = FakeRoot::from("network");
+    process_owner(&root, 1, 1000, 1, "browser");
+    let clock = FakeClock::at(1000);
+    let replies = TcpReplies(Default::default());
+    let mut network =
+        Network::new(root.clone(), Nm, Ping(20.0), clock.clone()).with_processes(replies.clone());
+    *replies.0.lock().unwrap() = Some(socket_reply(0, 1, 1, 1000));
+    network.process_visible(true);
+    network.step();
+    *replies.0.lock().unwrap() = Some(socket_reply(1, 1, 1, 1000));
+    root.write(
+        "/proc/net/dev",
+        "wlo1: 818866641 0 0 0 0 0 0 0 122356779 0 0 0 0 0 0 0\n",
+    );
+    clock.advance(2000);
+    let data = network.step().unwrap().1.process_traffic.unwrap();
+    assert_eq!(data.apps[0].download, 2048.0);
+    assert_eq!(data.others.download, 2048.0);
+    clock.advance(1000);
+    // New counters aren't sampled until the 2 s deadline.
+    *replies.0.lock().unwrap() = None;
+    assert_eq!(
+        network.step().unwrap().1.process_traffic.unwrap().apps[0].download,
+        2048.0
+    );
+    *replies.0.lock().unwrap() = Some(socket_reply(1, 1, 1, 1000));
+    clock.advance(1000);
+    let data = network.step().unwrap().1.process_traffic.unwrap();
+    assert_eq!(data.apps[0].download, 1024.0);
+    assert_eq!(data.others.download, 1024.0);
+    clock.advance(2000);
+    network.step();
+    clock.advance(2000);
+    network.step();
+    clock.advance(2000);
+    let data = network.step().unwrap().1.process_traffic.unwrap();
+    assert!(data.apps.is_empty());
+    assert_eq!(data.others.download, 0.0);
+}
+#[test]
+fn inaccessible_or_malformed_diagnostics_clear_attribution_without_affecting_quality() {
+    let root = FakeRoot::from("network");
+    process_owner(&root, 1, 1000, 1, "browser");
+    let clock = FakeClock::at(1000);
+    let replies = TcpReplies(Default::default());
+    let mut network =
+        Network::new(root, Nm, Ping(20.0), clock.clone()).with_processes(replies.clone());
+    network.process_visible(true);
+    for bytes in [None, Some(vec![1, 2, 3]), Some(socket_reply(0, 1, 1, 1000))] {
+        *replies.0.lock().unwrap() = bytes;
+        let data = network.step().unwrap().1;
+        assert!(data.process_traffic.is_none());
+        assert_eq!(data.quality, Some(Quality::Good));
+        clock.advance(2000);
+    }
+}
+
+#[test]
+fn process_ui_fixture_is_a_snapshot_published_by_core() {
+    for (name, index) in [("processes", 1), ("processes-empty", 0)] {
+        let root = FakeRoot::from("network");
+        let clock = FakeClock::at(1_793_457_126_000);
+        let replies = TcpReplies(Default::default());
+        let mut network = Network::new(root.clone(), Nm, Ping(20.0), clock.clone())
+            .with_processes(replies.clone());
+        process_owner(&root, 1, 1000, 1, "firefox");
+        process_owner(&root, 2, 1000, 2, "firefox");
+        process_owner(&root, 3, 1000, 3, "codex");
+        *replies.0.lock().unwrap() = Some(
+            (1..=3)
+                .flat_map(|i| socket_reply(0, i, i as u64, 1000))
+                .collect(),
+        );
+        network.process_visible(true);
+        network.step();
+        *replies.0.lock().unwrap() = Some(
+            (1..=3)
+                .flat_map(|i| socket_reply(index, i, i as u64, 1000))
+                .collect(),
+        );
+        root.write(
+            "/proc/net/dev",
+            "wlo1: 818872785 0 0 0 0 0 0 0 122359851 0 0 0 0 0 0 0\n",
+        );
+        clock.advance(2000);
+        let (when, data) = network.step().unwrap();
+        let json = serde_json::to_string_pretty(&snapshot(when, &data)).unwrap() + "\n";
+        let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join(format!("../src/lib/network/fixtures/{name}.json"));
+        if std::env::var_os("UPDATE_FIXTURES").is_some() {
+            std::fs::write(file, json).unwrap();
+        } else {
+            assert_eq!(std::fs::read_to_string(file).unwrap(), json);
+        }
+    }
+}
+
+#[test]
+fn excludes_loopback_foreign_users_and_reused_or_new_sockets() {
+    let root = FakeRoot::from("network");
+    let clock = FakeClock::at(1000);
+    let replies = TcpReplies(Default::default());
+    for pid in 1..=7 {
+        process_owner(
+            &root,
+            pid,
+            if pid == 3 { 2000 } else { 1000 },
+            pid,
+            &format!("app{pid}"),
+        );
+    }
+    let mut network =
+        Network::new(root.clone(), Nm, Ping(20.0), clock.clone()).with_processes(replies.clone());
+    let dump = |index| {
+        let mut bytes = Vec::new();
+        for inode in 1..=7 {
+            let mut socket = socket_reply(
+                index,
+                inode,
+                if index == 1 && inode == 4 {
+                    444
+                } else {
+                    inode as u64
+                },
+                if inode == 2 { 2000 } else { 1000 },
+            );
+            if inode == 5 {
+                socket[24..28].copy_from_slice(&[127, 0, 0, 1]);
+            }
+            if inode == 6 && index == 0 {
+                continue;
+            }
+            if inode == 7 {
+                // IPv6 loopback uses the same inet_diag_msg layout.
+                socket[16] = 10;
+                socket[24..40].copy_from_slice(&std::net::Ipv6Addr::LOCALHOST.octets());
+                socket[40..56].copy_from_slice(&std::net::Ipv6Addr::LOCALHOST.octets());
+            }
+            bytes.extend(socket);
+        }
+        bytes
+    };
+    *replies.0.lock().unwrap() = Some(dump(0));
+    network.process_visible(true);
+    network.step();
+    *replies.0.lock().unwrap() = Some(dump(1));
+    root.write(
+        "/proc/net/dev",
+        "wlo1: 818878449 0 0 0 0 0 0 0 122362683 0 0 0 0 0 0 0\n",
+    );
+    clock.advance(2000);
+    let data = network.step().unwrap().1.process_traffic.unwrap();
+    assert_eq!(data.apps.len(), 1);
+    assert_eq!(data.apps[0].name, "app1");
+    assert_eq!(data.apps[0].download, 2048.0);
+    assert_eq!(data.others.download, 7952.0);
+}
+
+#[test]
+fn restarting_visibility_or_changing_connection_discards_stale_process_history() {
+    let root = FakeRoot::from("network");
+    process_owner(&root, 1, 1000, 1, "browser");
+    let clock = FakeClock::at(1000);
+    let replies = TcpReplies(Default::default());
+    let nm = FakeNetworkManager(std::sync::Arc::new(std::sync::Mutex::new(
+        Nm.connection().unwrap(),
+    )));
+    let mut network =
+        Network::new(root, nm.clone(), Ping(20.0), clock.clone()).with_processes(replies.clone());
+    network.process_visible(true);
+    *replies.0.lock().unwrap() = Some(socket_reply(0, 1, 1, 1000));
+    network.step();
+    *replies.0.lock().unwrap() = Some(socket_reply(1, 1, 1, 1000));
+    clock.advance(2000);
+    assert_eq!(
+        network.step().unwrap().1.process_traffic.unwrap().apps[0].download,
+        2048.0
+    );
+    network.process_visible(false);
+    clock.advance(20_000);
+    *replies.0.lock().unwrap() = Some(socket_reply(2, 1, 1, 1000));
+    network.process_visible(true);
+    assert!(network.step().unwrap().1.process_traffic.is_none());
+    *replies.0.lock().unwrap() = Some(socket_reply(3, 1, 1, 1000));
+    clock.advance(2000);
+    assert_eq!(
+        network.step().unwrap().1.process_traffic.unwrap().apps[0].download,
+        2048.0
+    );
+    nm.0.lock().unwrap().id = "new-network".into();
+    clock.advance(1000);
+    assert!(network.step().unwrap().1.process_traffic.is_none());
+    *nm.0.lock().unwrap() = Connection::default();
+    clock.advance(1000);
+    assert!(network.step().unwrap().1.process_traffic.is_none());
+}
+
+#[test]
+fn attributes_primary_link_and_its_vpn_addresses_but_excludes_a_second_physical_link() {
+    let mut reading = reading_nm();
+    reading.active[0].addresses = vec!["192.0.2.1".parse().unwrap()];
+    let mut secondary = reading.active[0].clone();
+    secondary.path = "/secondary".into();
+    secondary.interface = "eth0".into();
+    secondary.addresses = vec!["192.0.2.10".parse().unwrap()];
+    let mut vpn = reading.active[0].clone();
+    vpn.path = "/vpn".into();
+    vpn.vpn = true;
+    vpn.interface = "tun0".into();
+    vpn.addresses = vec!["10.8.0.2".parse().unwrap()];
+    reading.primary = vpn.path.clone();
+    reading.active.extend([secondary, vpn]);
+    let root = FakeRoot::from("network");
+    for pid in 1..=3 {
+        process_owner(&root, pid, 1000, pid, &format!("app{pid}"));
+    }
+    let clock = FakeClock::at(1000);
+    let replies = TcpReplies(Default::default());
+    let mut network = Network::new(
+        root.clone(),
+        NetworkManagerDbus(FakeDbus(reading)),
+        Ping(20.0),
+        clock.clone(),
+    )
+    .with_processes(replies.clone());
+    network.process_visible(true);
+    let dump = |index| {
+        (1..=3)
+            .flat_map(|inode| {
+                let mut socket = socket_reply(index, inode, inode as u64, 1000);
+                let address = match inode {
+                    1 => [192, 0, 2, 1],
+                    2 => [192, 0, 2, 10],
+                    _ => [10, 8, 0, 2],
+                };
+                socket[24..28].copy_from_slice(&address);
+                socket
+            })
+            .collect()
+    };
+    *replies.0.lock().unwrap() = Some(dump(0));
+    network.step();
+    *replies.0.lock().unwrap() = Some(dump(1));
+    root.write(
+        "/proc/net/dev",
+        "wlo1: 818878449 0 0 0 0 0 0 0 122362683 0 0 0 0 0 0 0\n",
+    );
+    clock.advance(2000);
+    let data = network.step().unwrap().1.process_traffic.unwrap();
+    assert_eq!(
+        data.apps
+            .iter()
+            .map(|app| app.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["app1", "app3"]
+    );
+    assert_eq!(data.others.download, 5904.0);
+}
+
+#[test]
+fn accepts_native_ipv6_and_mapped_external_ipv4_but_never_mapped_loopback() {
+    let root = FakeRoot::from("network");
+    let clock = FakeClock::at(1000);
+    let replies = TcpReplies(Default::default());
+    for pid in 1..=3 {
+        process_owner(&root, pid, 1000, pid, &format!("app{pid}"));
+    }
+    let mut network =
+        Network::new(root.clone(), Nm, Ping(20.0), clock.clone()).with_processes(replies.clone());
+    let local_v6 = reading_nm().active[0]
+        .addresses
+        .iter()
+        .find_map(|ip| match ip {
+            std::net::IpAddr::V6(ip) => Some(*ip),
+            _ => None,
+        })
+        .unwrap();
+    let dump = |index| {
+        (1..=3)
+            .flat_map(|inode| {
+                let mut socket = socket_reply(index, inode, inode as u64, 1000);
+                socket[16] = 10;
+                let local = if inode == 1 {
+                    local_v6
+                } else if inode == 2 {
+                    std::net::Ipv4Addr::from(recorded_local_address()).to_ipv6_mapped()
+                } else {
+                    std::net::Ipv4Addr::LOCALHOST.to_ipv6_mapped()
+                };
+                let remote: std::net::Ipv6Addr = "2001:db8::1".parse().unwrap();
+                socket[24..40].copy_from_slice(&local.octets());
+                socket[40..56].copy_from_slice(&remote.octets());
+                socket
+            })
+            .collect()
+    };
+    *replies.0.lock().unwrap() = Some(dump(0));
+    network.process_visible(true);
+    network.step();
+    *replies.0.lock().unwrap() = Some(dump(1));
+    root.write(
+        "/proc/net/dev",
+        "wlo1: 818878449 0 0 0 0 0 0 0 122362683 0 0 0 0 0 0 0\n",
+    );
+    clock.advance(2000);
+    let data = network.step().unwrap().1.process_traffic.unwrap();
+    assert_eq!(
+        data.apps
+            .iter()
+            .map(|app| app.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["app1", "app2"]
+    );
+    assert_eq!(data.others.download, 5904.0);
+}

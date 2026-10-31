@@ -24,6 +24,7 @@
       "latency": 301.0,
       "loss": 0.0
     },
+    "processTraffic": null,
     "quality": "poor",
     "reasons": [],
     "security": "noAlerts",

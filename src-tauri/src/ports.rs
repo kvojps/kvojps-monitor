@@ -21,6 +21,9 @@ pub trait Files: Send {
     /// Directory entry names.
     fn list(&self, dir: &str) -> io::Result<Vec<String>>;
     fn space(&self, mount_point: &str) -> io::Result<Space>;
+    fn read_link(&self, _path: &str) -> io::Result<PathBuf> {
+        Err(io::ErrorKind::Unsupported.into())
+    }
 }
 
 /// Real filesystem under dir (/ in production).
@@ -51,6 +54,10 @@ impl Files for RootFilesystem {
         std::fs::read_dir(self.path(dir))?
             .map(|e| Ok(e?.file_name().to_string_lossy().into_owned()))
             .collect()
+    }
+
+    fn read_link(&self, path: &str) -> io::Result<PathBuf> {
+        std::fs::read_link(self.path(path))
     }
 
     fn space(&self, mount_point: &str) -> io::Result<Space> {
@@ -133,6 +140,10 @@ pub mod fakes {
 
         fn list(&self, dir: &str) -> io::Result<Vec<String>> {
             RootFilesystem::at(self.dir.path()).list(dir)
+        }
+
+        fn read_link(&self, path: &str) -> io::Result<PathBuf> {
+            RootFilesystem::at(self.dir.path()).read_link(path)
         }
 
         fn space(&self, mount: &str) -> io::Result<Space> {

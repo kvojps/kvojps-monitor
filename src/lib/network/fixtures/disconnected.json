@@ -15,6 +15,7 @@
       "latency": null,
       "loss": null
     },
+    "processTraffic": null,
     "quality": null,
     "reasons": [],
     "security": null,

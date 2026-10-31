@@ -1,0 +1,6 @@
+{
+  "uid": 1000,
+  "inode": 12345,
+  "fdLink": "socket:[12345]",
+  "exeLink": "/usr/bin/python3"
+}

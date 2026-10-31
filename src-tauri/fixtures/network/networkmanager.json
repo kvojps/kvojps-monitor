@@ -16,7 +16,13 @@
         "rsn": 392,
         "key_mgmt": "wpa-psk",
         "pairwise": []
-      }
+      },
+      "addresses": [
+        "192.0.2.102",
+        "2001:db8::2",
+        "2001:db8::1",
+        "fe80::1"
+      ]
     },
     {
       "path": "/org/freedesktop/NetworkManager/ActiveConnection/1",

@@ -1,0 +1,8 @@
+Name:	python3
+State:	R (running)
+Tgid:	123
+Pid:	123
+PPid:	1
+Uid:	1000	1000	1000	1000
+Gid:	1000	1000	1000	1000
+Groups:	1000

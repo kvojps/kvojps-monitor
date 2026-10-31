@@ -73,7 +73,11 @@
     "ageMinutes": "há {value} min",
     "ageHours": "há {value} h",
     "ageSeconds": "há {value} s",
-    "speedUnavailable": "Teste indisponível sem internet ou em conexão limitada."
+    "speedUnavailable": "Teste indisponível sem internet ou em conexão limitada.",
+    "processTraffic": "Tráfego por aplicativo",
+    "others": "Outros",
+    "othersHint": "UDP/QUIC, processos do sistema e conexões curtas",
+    "noProcesses": "Nenhum aplicativo com tráfego TCP nesta janela"
   },
   "github": {
     "refresh": "Atualizar GitHub",

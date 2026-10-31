@@ -15,3 +15,12 @@ As flags seguem os contratos oficiais de [segurança do AP](https://networkmanag
 Para o ticket 06, `speed.json` registra somente os bytes e a duração total de duas transferências reais de 10 KB contra `https://speed.cloudflare.com/__down?bytes=10000` e `https://speed.cloudflare.com/__up`, em 31/10/2026, usando curl. O upload continha bytes zero gerados localmente; as respostas foram descartadas, sem captura de IP ou cabeçalhos. Os testes reutilizam esses tempos e contagens para verificar a conversão em Mbps pelo núcleo; os volumes de 25/10 MB e 100/50 MB são verificados na porta HTTP, sem consumir esses volumes nos testes. Não se trata de um benchmark da rede.
 
 Os estados `Metered` (0 a 4) e o UUID do perfil seguem a [API oficial do NetworkManager](https://networkmanager.dev/docs/api/latest/nm-dbus-types.html#NMMetered). Os cenários de conexão limitada são variações controladas da fixture; estados desconhecidos bloqueiam testes por precaução. O UUID do perfil físico, a interface e os UUIDs dos perfis VPN ativos (incluindo qual é a rota primária) identificam a rede da medição, sem SSID ou nome de perfil. Os snapshots `speed*.json` também são produzidos pelo núcleo com portas injetadas. Os endpoints seguem o [cliente oficial da Cloudflare](https://github.com/cloudflare/speedtest).
+
+Para o ticket 07, `address-data.json` registra `AddressData` IPv4 e IPv6 da
+conexão primária via D-Bus em 31/10/2026; a lista extraída alimenta `addresses`
+em `networkmanager.json`. Recaptura: `python3 src-tauri/fixtures/network/capture-address-data.py`.
+Atribuição TCP aceita somente origens da interface física selecionada e das
+VPNs ativas, incluindo IPv4 mapeado em IPv6; fontes de outra interface física
+ficam fora. Os testes derivam dessa leitura os cenários com interfaces simultâneas
+ou VPN, sem exigir que existam na máquina de testes.
+Contrato: [AddressData](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.IP4Config.html#gdbus-property-org-freedesktop-NetworkManager-IP4Config.AddressData).

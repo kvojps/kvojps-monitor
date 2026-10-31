@@ -1,0 +1,2 @@
+# Preserve whitespace in the verbatim /proc capture used by the ownership fixtures.
+src-tauri/fixtures/network/tcp/status.txt -whitespace

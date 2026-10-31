@@ -24,6 +24,7 @@
       "latency": 20.0,
       "loss": 0.0
     },
+    "processTraffic": null,
     "quality": "good",
     "reasons": [
       "Rede aberta sem OWE"

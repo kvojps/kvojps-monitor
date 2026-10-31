@@ -22,6 +22,8 @@ pub struct NetworkManagerReading {
 }
 #[derive(Clone, Deserialize)]
 pub struct ActiveConnection {
+    #[serde(default)]
+    pub addresses: Vec<std::net::IpAddr>,
     pub path: String,
     #[serde(default)]
     pub network_id: String,
@@ -99,6 +101,7 @@ impl<P: NetworkManagerProperties> NetworkManager for NetworkManagerDbus<P> {
         let mut physical: Option<Connection> = None;
         let mut vpn = false;
         let mut routes = Vec::new();
+        let mut vpn_addresses = Vec::new();
         let mut primary_route = String::new();
         for active in reading.active.into_iter().filter(|a| a.state == 2) {
             let is_vpn = active.vpn || active.kind == "wireguard";
@@ -108,6 +111,7 @@ impl<P: NetworkManagerProperties> NetworkManager for NetworkManagerDbus<P> {
             }
             if is_vpn {
                 routes.push(active.profile_id().to_string());
+                vpn_addresses.extend(active.addresses.iter().copied());
             }
             if is_vpn || active.kind == "loopback" {
                 continue;
@@ -117,6 +121,7 @@ impl<P: NetworkManagerProperties> NetworkManager for NetworkManagerDbus<P> {
                 continue;
             }
             physical = Some(Connection {
+                addresses: active.addresses,
                 id: active.path,
                 network_id: active.network_id,
                 route_id: String::new(),
@@ -136,6 +141,9 @@ impl<P: NetworkManagerProperties> NetworkManager for NetworkManagerDbus<P> {
         }
         let mut connection = physical.unwrap_or_default();
         connection.vpn = vpn;
+        connection.addresses.extend(vpn_addresses);
+        connection.addresses.sort();
+        connection.addresses.dedup();
         routes.sort();
         connection.route_id = if routes.is_empty() {
             String::new()
@@ -188,6 +196,7 @@ fn read_dbus() -> zbus::Result<NetworkManagerReading> {
         let kind: String = active.get_property("Type")?;
         let vpn: bool = active.get_property("Vpn")?;
         let mut reading = ActiveConnection {
+            addresses: Vec::new(),
             path: path.to_string(),
             network_id: active.get_property("Uuid")?,
             metered: 0,
@@ -260,6 +269,8 @@ fn read_dbus() -> zbus::Result<NetworkManagerReading> {
                     }
                 }
             }
+        }
+        if state == 2 && reading.kind != "loopback" {
             for (field, contract, gateway) in [
                 (
                     "Ip4Config",
@@ -274,8 +285,19 @@ fn read_dbus() -> zbus::Result<NetworkManagerReading> {
             ] {
                 let config: OwnedObjectPath = active.get_property(field)?;
                 if config.as_str() != "/" {
-                    *gateway =
-                        Proxy::new(&bus, DESTINATION, config, contract)?.get_property("Gateway")?;
+                    let config = Proxy::new(&bus, DESTINATION, config, contract)?;
+                    *gateway = config.get_property("Gateway")?;
+                    let addresses: Vec<
+                        std::collections::HashMap<String, zbus::zvariant::OwnedValue>,
+                    > = config.get_property("AddressData")?;
+                    reading
+                        .addresses
+                        .extend(addresses.iter().filter_map(|entry| {
+                            <&str>::try_from(entry.get("address")?)
+                                .ok()?
+                                .parse::<std::net::IpAddr>()
+                                .ok()
+                        }));
                 }
             }
         }
