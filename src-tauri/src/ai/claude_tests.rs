@@ -77,6 +77,7 @@ impl Home {
             wrapper: ".local/share/kvojps-monitor/claude-statusline".into(),
             cache: ".cache/kvojps-monitor/claude-statusline.json".into(),
             executable: "/usr/bin/kvojps-monitor".into(),
+            usage_choice: ".config/kvojps-monitor/claude-usage.json".into(),
         }
     }
     fn claude(&self) -> Claude<DiskStorage, Installed, Changes, FakeClock> {
@@ -353,6 +354,7 @@ fn a_status_line_update_publishes_both_windows_with_the_plan() {
             "state": "ready",
             "plan": "pro",
             "statusLine": "connected",
+            "usage": "off",
             "reading": {
                 "source": "statusLine",
                 "readAt": NOW + 5_000,
@@ -376,7 +378,7 @@ fn without_a_reading_the_module_asks_for_a_claude_code_session() {
     claude.step(false);
     assert_eq!(
         claude.data(),
-        json!({"state": "empty", "plan": "pro", "statusLine": "connected", "reading": null})
+        json!({"state": "empty", "plan": "pro", "statusLine": "connected", "usage": "off", "reading": null})
     );
 }
 
@@ -577,7 +579,46 @@ fn ui_fixtures_match_published_snapshots() {
         claude.step(false);
         combine(codex(), &claude)
     };
+    let usage = {
+        let home = usage::home();
+        let api = usage::Api::default();
+        let mut claude = usage::collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        let mut sonnet = usage::response();
+        sonnet["seven_day_sonnet"] =
+            json!({"utilization": 33.0, "resets_at": "2026-11-05T14:00:00+00:00"});
+        api.answer(Ok(sonnet));
+        claude.step(false);
+        combine(codex(), &claude)
+    };
+    let expired = {
+        let home = usage::home();
+        let api = usage::Api::default();
+        let mut claude = usage::collector(&home, &api);
+        claude.connect().unwrap();
+        home.status_line_runs(&usage::status_payload());
+        claude.set_usage(true).unwrap();
+        api.answer(Err(crate::ports::HttpError::response(401, None)));
+        claude.step(false);
+        combine(codex(), &claude)
+    };
+    let failure = {
+        let home = usage::home();
+        let api = usage::Api::default();
+        let mut claude = usage::collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        claude.step(false);
+        for delay in [300_000, 30_000, 60_000] {
+            api.answer(Err(crate::ports::HttpError::response(503, None)));
+            home.clock.advance(delay);
+            claude.step(false);
+        }
+        combine(codex(), &claude)
+    };
     for (name, snapshot) in [
+        ("claude-usage", usage),
+        ("claude-failure", failure),
+        ("claude-expired", expired),
         ("claude-missing", missing),
         ("claude-connected", connected),
         ("claude-replaced", replaced),
@@ -595,5 +636,444 @@ fn ui_fixtures_match_published_snapshots() {
         }
         let fixture: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
         assert_eq!(snapshot.data, fixture, "{name}");
+    }
+}
+
+/// Opt-in `oauth/usage`, with the recorded response and a clock when it was taken.
+mod usage {
+    use super::*;
+    use crate::ports::HttpError;
+
+    /// Shortly before the recorded response: both windows still valid.
+    const NOW: u64 = 1793401200000;
+    const FIVE_HOUR_RESET: u64 = 1793413800000;
+    const WEEKLY_RESET: u64 = 1793887200000;
+
+    pub(super) fn response() -> Value {
+        serde_json::from_str(
+            &std::fs::read_to_string(fixtures().join("claude/oauth-usage.json")).unwrap(),
+        )
+        .unwrap()
+    }
+
+    /// The status line payload at the same time, with other percentages.
+    pub(super) fn status_payload() -> String {
+        let mut status: Value = serde_json::from_str(&payload()).unwrap();
+        status["rate_limits"] = json!({
+            "five_hour": {"used_percentage": 20.0, "resets_at": FIVE_HOUR_RESET / 1000},
+            "seven_day": {"used_percentage": 8.0, "resets_at": WEEKLY_RESET / 1000},
+        });
+        status.to_string()
+    }
+
+    /// Answers queued in order; every token received is recorded.
+    #[derive(Clone, Default)]
+    pub(super) struct Api {
+        answers: Arc<Mutex<Vec<Result<Value, HttpError>>>>,
+        tokens: Arc<Mutex<Vec<String>>>,
+    }
+    impl Api {
+        pub(super) fn answer(&self, answer: Result<Value, HttpError>) {
+            self.answers.lock().unwrap().push(answer);
+        }
+        fn calls(&self) -> usize {
+            self.tokens.lock().unwrap().len()
+        }
+    }
+    impl UsageApi for Api {
+        fn usage(&self, token: &str) -> Result<Value, HttpError> {
+            self.tokens.lock().unwrap().push(token.to_owned());
+            let mut answers = self.answers.lock().unwrap();
+            if answers.is_empty() {
+                Ok(response())
+            } else {
+                answers.remove(0)
+            }
+        }
+    }
+
+    /// A home whose Claude Code token is still valid at NOW.
+    pub(super) fn home() -> Home {
+        let home = Home::new();
+        home.clock.advance(NOW - super::NOW);
+        home.set_token("sk-ant-oat01-exemplo", NOW + 3_600_000);
+        home
+    }
+    impl Home {
+        fn set_token(&self, token: &str, expires_at: u64) {
+            let mut credentials: Value =
+                serde_json::from_str(&self.read(".claude/.credentials.json")).unwrap();
+            credentials["claudeAiOauth"]["accessToken"] = json!(token);
+            credentials["claudeAiOauth"]["expiresAt"] = json!(expires_at);
+            self.write(".claude/.credentials.json", &credentials.to_string());
+        }
+    }
+
+    pub(super) fn collector(
+        home: &Home,
+        api: &Api,
+    ) -> Claude<DiskStorage, Installed, Changes, FakeClock> {
+        home.claude().with_usage(api.clone())
+    }
+
+    #[test]
+    fn opting_in_reads_both_windows_with_the_access_token() {
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.step(false);
+        assert_eq!(api.calls(), 0, "off by default");
+        claude.set_usage(true).unwrap();
+        assert!(claude.step(false));
+        assert_eq!(*api.tokens.lock().unwrap(), ["sk-ant-oat01-exemplo"]);
+        assert_eq!(
+            claude.data(),
+            json!({
+                "state": "ready",
+                "plan": "pro",
+                "statusLine": "off",
+                "usage": "on",
+                "reading": {
+                    "source": "oauthUsage",
+                    "readAt": NOW,
+                    "buckets": [{
+                        "id": "claude",
+                        "name": null,
+                        "primary": {"usedPercent": 15.0, "durationMins": 300, "resetsAt": FIVE_HOUR_RESET, "reset": false},
+                        "secondary": {"usedPercent": 6.0, "durationMins": 10080, "resetsAt": WEEKLY_RESET, "reset": false},
+                    }],
+                },
+            })
+        );
+    }
+
+    fn refused() -> Result<Value, HttpError> {
+        Err(HttpError::response(401, None))
+    }
+
+    #[test]
+    fn the_token_is_only_read_never_renewed_written_or_kept() {
+        let home = home();
+        let before = home.read(".claude/.credentials.json");
+        let state = tempfile::tempdir().unwrap();
+        let api = Api::default();
+        let mut claude = collector(&home, &api).with_persistence(disk(state.path()));
+        claude.set_usage(true).unwrap();
+        claude.step(false);
+        home.clock.advance(300_000);
+        api.answer(refused());
+        claude.step(true);
+        home.clock.advance(300_000);
+        claude.step(true);
+        // Only the access token, only to oauth/usage, and the file is untouched.
+        assert_eq!(*api.tokens.lock().unwrap(), ["sk-ant-oat01-exemplo"; 2]);
+        assert_eq!(home.read(".claude/.credentials.json"), before);
+        let cached = std::fs::read_to_string(state.path().join("cache/ai.json")).unwrap();
+        let log = std::fs::read_to_string(state.path().join("state/info.log")).unwrap();
+        for text in [cached, log, claude.data().to_string()] {
+            for forbidden in ["sk-ant", "oat01", "ort01", "Token", "token"] {
+                assert!(!text.contains(forbidden), "{forbidden} in {text}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_refused_token_falls_back_to_the_status_line_until_claude_code_renews_it() {
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        api.answer(refused());
+        home.status_line_runs(&payload());
+        assert!(claude.step(false));
+        assert_eq!(claude.data()["usage"], "expired");
+        assert_eq!(claude.data()["reading"]["source"], "statusLine");
+        // Neither the timer nor ↻ sends the refused token again.
+        home.clock.advance(3_600_000);
+        claude.step(false);
+        claude.step(true);
+        assert_eq!(api.calls(), 1);
+        // Claude Code renewed it: read again at the next check.
+        home.set_token("sk-ant-oat01-renovado", NOW + 7_200_000);
+        home.clock.advance(CHECK_INTERVAL);
+        assert!(claude.step(false));
+        assert_eq!(api.calls(), 2);
+        assert_eq!(api.tokens.lock().unwrap()[1], "sk-ant-oat01-renovado");
+        assert_eq!(claude.data()["usage"], "on");
+        assert_eq!(claude.data()["reading"]["source"], "oauthUsage");
+    }
+
+    #[test]
+    fn an_expired_token_is_never_sent() {
+        let home = home();
+        home.set_token("sk-ant-oat01-exemplo", NOW - 1);
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        assert!(claude.step(false));
+        assert_eq!(api.calls(), 0);
+        assert_eq!(claude.data()["usage"], "expired");
+    }
+
+    #[test]
+    fn weekly_limits_per_model_appear_only_when_not_null() {
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        claude.step(false);
+        assert_eq!(
+            claude.data()["reading"]["buckets"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+
+        let mut max = response();
+        max["seven_day_sonnet"] =
+            json!({"utilization": 33.0, "resets_at": "2026-11-05T14:00:00+00:00", "tangelo": 1});
+        max["cedar_ember"] = json!({"utilization": 99.0});
+        api.answer(Ok(max));
+        home.clock.advance(300_000);
+        claude.step(false);
+        assert_eq!(
+            claude.data()["reading"]["buckets"][1],
+            json!({
+                "id": "claude-sonnet",
+                "name": "Sonnet",
+                "primary": null,
+                "secondary": {"usedPercent": 33.0, "durationMins": 10080, "resetsAt": WEEKLY_RESET, "reset": false},
+            })
+        );
+        assert_eq!(
+            claude.data()["reading"]["buckets"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+    }
+
+    #[test]
+    fn with_both_sources_each_window_shows_its_newest_reading() {
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        let mut sonnet = response();
+        sonnet["seven_day_sonnet"] =
+            json!({"utilization": 33.0, "resets_at": "2026-11-05T14:00:00+00:00"});
+        api.answer(Ok(sonnet));
+        claude.step(false);
+        // A newer status line reading replaces both main windows and keeps the
+        // weekly per model, which only oauth/usage brings.
+        home.clock.advance(60_000);
+        home.status_line_runs(&status_payload());
+        assert!(claude.step(false));
+        let reading = &claude.data()["reading"];
+        assert_eq!(reading["source"], "statusLine");
+        assert_eq!(reading["readAt"], NOW + 60_000);
+        assert_eq!(reading["buckets"][0]["primary"]["usedPercent"], 20.0);
+        assert_eq!(reading["buckets"][0]["secondary"]["usedPercent"], 8.0);
+        assert_eq!(reading["buckets"][1]["secondary"]["usedPercent"], 33.0);
+        // The next oauth/usage reading is newer again.
+        home.clock.advance(240_000);
+        assert!(claude.step(false));
+        let reading = &claude.data()["reading"];
+        assert_eq!(reading["source"], "oauthUsage");
+        assert_eq!(reading["buckets"][0]["primary"]["usedPercent"], 15.0);
+        assert_eq!(claude.updated_at(), Some(NOW + 300_000));
+    }
+
+    #[test]
+    fn reads_every_five_minutes_and_backs_off_on_transient_failures() {
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        claude.step(false);
+        home.clock.advance(299_000);
+        claude.step(false);
+        assert_eq!(api.calls(), 1);
+        home.clock.advance(1_000);
+        claude.step(false);
+        assert_eq!(api.calls(), 2);
+        // 5xx, timeout, then 429 asking for more than the backoff.
+        api.answer(Err(HttpError::response(503, None)));
+        api.answer(Err(HttpError::default()));
+        api.answer(Err(HttpError::response(429, Some("600"))));
+        home.clock.advance(300_000);
+        claude.step(false);
+        home.clock.advance(29_000);
+        claude.step(true);
+        assert_eq!(api.calls(), 3, "manual refresh waits for the backoff too");
+        home.clock.advance(1_000);
+        claude.step(false);
+        home.clock.advance(60_000);
+        claude.step(false);
+        assert_eq!(api.calls(), 5);
+        assert_eq!(claude.data()["failureSince"], NOW + 600_000);
+        assert_eq!(
+            claude.data()["reading"]["source"],
+            "oauthUsage",
+            "last reading kept"
+        );
+        home.clock.advance(599_000);
+        claude.step(false);
+        assert_eq!(api.calls(), 5);
+        home.clock.advance(1_000);
+        claude.step(false);
+        assert_eq!(api.calls(), 6);
+        assert!(claude.data().get("failureSince").is_none());
+    }
+
+    #[test]
+    fn offline_and_before_its_turn_nothing_is_read() {
+        use crate::lifecycle::Status;
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        claude.lifecycle(Status {
+            online: false,
+            generation: 0,
+            ready_at: 0,
+        });
+        claude.step(true);
+        assert_eq!(api.calls(), 0);
+        // After GitHub, Trello and Codex: 9 s after reconnecting.
+        claude.lifecycle(Status {
+            online: true,
+            generation: 1,
+            ready_at: NOW,
+        });
+        home.clock.advance(8_999);
+        claude.step(false);
+        assert_eq!(api.calls(), 0);
+        home.clock.advance(1);
+        claude.step(false);
+        assert_eq!(api.calls(), 1);
+        // Resume: the new generation reads once more without waiting five minutes.
+        claude.lifecycle(Status {
+            online: true,
+            generation: 2,
+            ready_at: NOW + 60_000,
+        });
+        home.clock.advance(60_000);
+        claude.step(false);
+        assert_eq!(api.calls(), 2);
+    }
+
+    #[test]
+    fn the_opt_in_survives_a_restart_and_turning_it_off_goes_back_to_the_status_line() {
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        home.status_line_runs(&payload());
+        claude.set_usage(true).unwrap();
+        claude.step(false);
+        assert_eq!(claude.data()["reading"]["source"], "oauthUsage");
+
+        let mut restarted = collector(&home, &api);
+        restarted.step(false);
+        assert_eq!(restarted.data()["usage"], "on");
+        assert_eq!(api.calls(), 2);
+
+        restarted.set_usage(false).unwrap();
+        assert_eq!(restarted.data()["usage"], "off");
+        assert_eq!(restarted.data()["reading"]["source"], "statusLine");
+        home.clock.advance(3_600_000);
+        restarted.step(true);
+        assert_eq!(api.calls(), 2);
+    }
+
+    #[test]
+    fn a_refused_token_stays_blocked_after_a_restart() {
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        api.answer(refused());
+        claude.step(false);
+        let mut restarted = collector(&home, &api);
+        restarted.step(true);
+        assert_eq!(api.calls(), 1);
+        assert_eq!(restarted.data()["usage"], "expired");
+        // Claude Code renewed it while the app was closed.
+        home.set_token("sk-ant-oat01-renovado", NOW + 7_200_000);
+        let mut renewed = collector(&home, &api);
+        renewed.step(false);
+        assert_eq!(api.calls(), 2);
+        assert_eq!(renewed.data()["usage"], "on");
+    }
+
+    #[test]
+    fn a_restart_of_an_oauth_usage_window_is_published_without_a_new_reading() {
+        let home = home();
+        let api = Api::default();
+        home.set_token("sk-ant-oat01-exemplo", WEEKLY_RESET);
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        claude.step(false);
+        // Long backoff: no new reading arrives around the reset.
+        api.answer(Err(HttpError::response(429, Some("86400"))));
+        home.clock.advance(FIVE_HOUR_RESET - NOW - 1_000);
+        claude.step(false);
+        assert!(!claude.step(false));
+        home.clock.advance(2_000);
+        assert!(claude.step(false));
+        assert_eq!(
+            claude.data()["reading"]["buckets"][0]["primary"]["reset"],
+            true
+        );
+    }
+
+    #[test]
+    fn weekly_limits_per_model_come_only_from_the_newest_oauth_usage_reading() {
+        let home = home();
+        let state = tempfile::tempdir().unwrap();
+        let api = Api::default();
+        let mut claude = collector(&home, &api).with_persistence(disk(state.path()));
+        claude.set_usage(true).unwrap();
+        let mut sonnet = response();
+        sonnet["seven_day_sonnet"] =
+            json!({"utilization": 33.0, "resets_at": "2026-11-05T14:00:00+00:00"});
+        api.answer(Ok(sonnet));
+        claude.step(false);
+        home.clock.advance(60_000);
+        home.status_line_runs(&status_payload());
+        claude.step(false);
+        // Restart from the cache, where the newest reading is the status line;
+        // Sonnet came back null since then.
+        let mut restarted = collector(&home, &api).with_persistence(disk(state.path()));
+        restarted.step(false);
+        let buckets = restarted.data()["reading"]["buckets"].clone();
+        assert_eq!(buckets.as_array().unwrap().len(), 1, "{buckets}");
+    }
+
+    #[test]
+    fn offline_the_claude_part_reports_its_own_pause() {
+        use crate::lifecycle::Status;
+        let home = home();
+        let api = Api::default();
+        let mut claude = collector(&home, &api);
+        claude.set_usage(true).unwrap();
+        claude.lifecycle(Status {
+            online: true,
+            generation: 1,
+            ready_at: NOW,
+        });
+        claude.step(false);
+        assert_eq!(claude.data()["paused"], true, "before its turn");
+        home.clock.advance(9_000);
+        claude.step(false);
+        assert!(claude.data().get("paused").is_none());
+        claude.lifecycle(Status {
+            online: false,
+            generation: 1,
+            ready_at: NOW,
+        });
+        assert_eq!(claude.data()["paused"], true);
     }
 }

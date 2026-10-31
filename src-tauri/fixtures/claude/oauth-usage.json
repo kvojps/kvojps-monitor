@@ -1,0 +1,35 @@
+{
+  "five_hour": {
+    "utilization": 15.0,
+    "resets_at": "2026-10-31T02:30:00+00:00"
+  },
+  "seven_day": {
+    "utilization": 6.0,
+    "resets_at": "2026-11-05T14:00:00+00:00"
+  },
+  "seven_day_oauth_apps": null,
+  "seven_day_opus": null,
+  "seven_day_sonnet": null,
+  "seven_day_cowork": null,
+  "extra_usage": {
+    "is_enabled": false
+  },
+  "limits": [
+    {
+      "kind": "session",
+      "percent": 15.0,
+      "resets_at": "2026-10-31T02:30:00+00:00",
+      "severity": "normal"
+    },
+    {
+      "kind": "weekly_all",
+      "percent": 6.0,
+      "resets_at": "2026-11-05T14:00:00+00:00",
+      "severity": "normal"
+    }
+  ],
+  "seven_day_breakdown": {
+    "claude_code": 4.0,
+    "chat": 2.0
+  }
+}

@@ -98,7 +98,8 @@
       {#if view === "settings"}
         <AiSettings data={snapshots.ai?.data as AiData | undefined}
           connect={() => core.connectClaude ? core.connectClaude() : Promise.reject("unwritable")}
-          disconnect={() => core.disconnectClaude ? core.disconnectClaude() : Promise.reject("unwritable")} />
+          disconnect={() => core.disconnectClaude ? core.disconnectClaude() : Promise.reject("unwritable")}
+          setUsage={(enabled) => core.setClaudeUsage ? core.setClaudeUsage(enabled) : Promise.reject("unwritable")} />
       {/if}
       {#if view === "settings"}
         <GithubSettings data={snapshots.github?.data as GithubData | undefined}

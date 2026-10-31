@@ -1,8 +1,9 @@
 //! AI module: Codex usage limits from a long-lived `codex app-server`, with the
 //! newest rollout snapshot as fallback, and Claude limits from the Claude Code
-//! status line.
+//! status line and, opted in, the `oauth/usage` endpoint.
 mod claude;
 mod process;
+mod usage;
 use crate::module::Module;
 use crate::persistence::Storage;
 use crate::persistence::{Event, LogRecord, Persistence, Volatile};
@@ -30,6 +31,7 @@ pub enum Source {
     AppServer,
     Rollout,
     StatusLine,
+    OauthUsage,
 }
 
 /// One usage window; percent and reset come from the source, never assumed.
@@ -651,6 +653,8 @@ pub enum Command {
     Refresh,
     ConnectClaude(tokio::sync::oneshot::Sender<Result<(), ClaudeError>>),
     DisconnectClaude(tokio::sync::oneshot::Sender<Result<(), ClaudeError>>),
+    /// The `oauth/usage` opt-in, only on the user's click.
+    SetClaudeUsage(bool, tokio::sync::oneshot::Sender<Result<(), ClaudeError>>),
 }
 pub struct Collector(pub std::sync::mpsc::Sender<Command>);
 pub fn start(app: tauri::AppHandle) {
@@ -686,6 +690,7 @@ pub fn start(app: tauri::AppHandle) {
                 .unwrap_or_default()
                 .to_string_lossy()
                 .into_owned(),
+            usage_choice: path(dirs::config_dir(), "kvojps-monitor/claude-usage.json"),
         };
         let watch = crate::ports::FileWatch::new(std::path::Path::new(&locations.cache));
         let mut claude = claude::Claude::new(
@@ -694,7 +699,8 @@ pub fn start(app: tauri::AppHandle) {
             watch,
             crate::ports::SystemClock,
             locations,
-        );
+        )
+        .with_usage(usage::AnthropicUsage);
         if let (Some(cache), Some(state)) = (dirs::cache_dir(), dirs::state_dir()) {
             use crate::persistence::{Cache, DiskStorage, LocalPersistence, Logs};
             let shared = SharedCache::new(LocalPersistence {
@@ -719,10 +725,15 @@ pub fn start(app: tauri::AppHandle) {
                     let _ = reply.send(claude.disconnect());
                     changed = true;
                 }
+                Some(Command::SetClaudeUsage(enabled, reply)) => {
+                    let _ = reply.send(claude.set_usage(enabled));
+                    changed = true;
+                }
                 _ => {}
             }
             let status = *app.state::<crate::lifecycle::Shared>().lock().unwrap();
             codex.lifecycle(status);
+            claude.lifecycle(status);
             let visible = app
                 .state::<std::sync::Mutex<crate::state::AppState>>()
                 .lock()

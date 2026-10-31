@@ -1,10 +1,12 @@
 //! Claude usage limits from the Claude Code status line. After the user's click,
 //! a wrapper chains their own status line and copies only `rate_limits` to a
-//! cache file that this collector watches.
+//! cache file that this collector watches. Opted in, the undocumented
+//! `oauth/usage` endpoint is read too, and each window shows its newest reading.
+use super::usage::{self, Token, UsageApi};
 use super::{restarted, Bucket, Reading, Source, Window};
 use crate::module::Module;
 use crate::persistence::{Event, LogRecord, Persistence, Storage, Volatile};
-use crate::ports::{Clock, Programs, Watch};
+use crate::ports::{Clock, HttpError, Programs, Watch};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -20,6 +22,8 @@ pub struct Locations {
     pub cache: String,
     /// Program the wrapper runs as `<executable> statusline <cache>`.
     pub executable: String,
+    /// App configuration that keeps the `oauth/usage` opt-in.
+    pub usage_choice: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -37,6 +41,27 @@ pub enum StatusLine {
     Connected,
     /// Another tool changed `statusLine` after connecting; never rewritten here.
     Replaced,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Usage {
+    Off,
+    On,
+    /// The token expired or was refused: the status line is shown until
+    /// Claude Code renews it. The app never does.
+    Expired,
+}
+
+/// The `oauth/usage` opt-in, kept in the app configuration.
+#[derive(Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UsageChoice {
+    enabled: bool,
+    /// Expiry of the refused token, so a restart never sends it again.
+    /// Metadata only: the token itself is never stored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    refused_expires_at: Option<u64>,
 }
 
 /// Kept in the app configuration while connected.
@@ -119,9 +144,24 @@ pub struct Claude<S, P, W, R> {
     detected: Option<bool>,
     plan: Option<String>,
     status_line: StatusLine,
+    /// Newest status line reading.
     reading: Option<Reading>,
     checked_at: Option<u64>,
     stepped_at: u64,
+    api: Box<dyn UsageApi>,
+    /// The user opted in to `oauth/usage`; read from the app configuration.
+    usage_enabled: bool,
+    /// Newest `oauth/usage` reading.
+    usage_reading: Option<Reading>,
+    /// Identity of a token that expired or was refused; never sent again.
+    rejected: Option<u64>,
+    usage_pending: bool,
+    usage_at: Option<u64>,
+    manual_at: Option<u64>,
+    failures: usize,
+    failure_since: Option<u64>,
+    retry_at: u64,
+    lifecycle: Option<crate::lifecycle::Status>,
 }
 
 impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
@@ -139,7 +179,46 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             reading: None,
             checked_at: None,
             stepped_at: 0,
+            api: Box::new(usage::NoUsage),
+            usage_enabled: false,
+            usage_reading: None,
+            rejected: None,
+            usage_pending: true,
+            usage_at: None,
+            manual_at: None,
+            failures: 0,
+            failure_since: None,
+            retry_at: 0,
+            lifecycle: None,
         }
+    }
+
+    /// The `oauth/usage` endpoint, used only after the user opts in.
+    pub fn with_usage(mut self, api: impl UsageApi + 'static) -> Self {
+        self.api = Box::new(api);
+        let choice = self.usage_choice();
+        self.usage_enabled = choice.enabled;
+        // Still the refused token: Claude Code has not renewed it yet.
+        if let (true, Some(refused)) = (choice.enabled, choice.refused_expires_at) {
+            self.rejected = self
+                .token()
+                .filter(|token| token.expires_at == Some(refused))
+                .map(|token| token.id());
+        }
+        self
+    }
+
+    fn usage_choice(&self) -> UsageChoice {
+        self.storage
+            .read(&self.locations.usage_choice)
+            .ok()
+            .and_then(|text| serde_json::from_str(&text).ok())
+            .unwrap_or_default()
+    }
+
+    /// Read for one request or comparison, never kept.
+    fn token(&self) -> Option<Token> {
+        Token::read(&self.storage.read(&self.locations.credentials).ok()?)
     }
 
     /// Start from the sanitized disk cache.
@@ -147,7 +226,18 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
         if let Some(snapshot) = persistence.load(Module::Ai) {
             let claude = &snapshot.data["claude"];
             self.plan = claude["plan"].as_str().map(str::to_owned);
-            self.reading = serde_json::from_value(claude["reading"].clone()).ok();
+            let reading: Option<Reading> = serde_json::from_value(claude["reading"].clone()).ok();
+            match reading {
+                Some(reading) if reading.source == Source::OauthUsage => {
+                    self.usage_reading = Some(reading)
+                }
+                // Weekly limits per model come only from `oauth/usage`.
+                Some(mut reading) => {
+                    reading.buckets.retain(|bucket| bucket.id == "claude");
+                    self.reading = Some(reading);
+                }
+                None => {}
+            }
         }
         self.persistence = Box::new(persistence);
         self
@@ -274,6 +364,178 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             .map_err(|_| ClaudeError::Unwritable)
     }
 
+    /// Turn the `oauth/usage` opt-in on or off; off goes back to the status line at once.
+    pub fn set_usage(&mut self, enabled: bool) -> Result<(), ClaudeError> {
+        let choice = UsageChoice {
+            enabled,
+            ..self.usage_choice()
+        };
+        self.write(
+            &self.locations.usage_choice,
+            &serde_json::to_string(&choice).unwrap(),
+        )?;
+        self.usage_enabled = enabled;
+        self.usage_pending = true;
+        self.usage_reading = None;
+        self.failures = 0;
+        self.failure_since = None;
+        self.retry_at = 0;
+        self.persistence.save(&self.snapshot());
+        Ok(())
+    }
+
+    /// Each new connectivity generation (login, reconnect, resume) reads once.
+    pub fn lifecycle(&mut self, status: crate::lifecycle::Status) {
+        if self
+            .lifecycle
+            .is_none_or(|previous| previous.generation != status.generation)
+        {
+            self.usage_pending = true;
+            self.usage_at = None;
+            self.manual_at = None;
+            self.retry_at = 0;
+        }
+        self.lifecycle = Some(status);
+    }
+
+    /// Offline, or before this source's turn after login/reconnection.
+    fn paused(&self) -> bool {
+        self.lifecycle.is_some_and(|status| {
+            !status.online || self.clock.now() < status.ready_for(SOURCE_POSITION)
+        })
+    }
+
+    fn usage(&self) -> Usage {
+        match (self.usage_enabled, self.rejected) {
+            (false, _) => Usage::Off,
+            (true, None) => Usage::On,
+            (true, Some(_)) => Usage::Expired,
+        }
+    }
+
+    /// The token is read for this request only. One that expired or was
+    /// refused is never sent: Claude Code has to renew it.
+    fn read_usage(&mut self, manual: bool) -> bool {
+        let now = self.clock.now();
+        let since =
+            |at: Option<u64>, interval: u64| at.is_none_or(|t| now.saturating_sub(t) >= interval);
+        if self.usage() != Usage::On || self.paused() || now < self.retry_at {
+            return false;
+        }
+        let manual = manual && since(self.manual_at, MANUAL_WAIT);
+        // After a failure the backoff decides the next attempt.
+        let due = self.failures > 0 || since(self.usage_at, USAGE_INTERVAL);
+        if !(self.usage_pending || manual || due) {
+            return false;
+        }
+        if manual {
+            self.manual_at = Some(now);
+        }
+        self.usage_pending = false;
+        self.usage_at = Some(now);
+        let Some(token) = self.token() else {
+            return false;
+        };
+        if token.expires_at.is_some_and(|at| at <= now) {
+            self.refuse(&token);
+            self.log(Event::InvalidCredential, None, now);
+            return true;
+        }
+        match self.api.usage(&token.access_token) {
+            Ok(response) => match usage::buckets(&response) {
+                Some(buckets) => {
+                    self.usage_reading = Some(Reading {
+                        source: Source::OauthUsage,
+                        read_at: self.clock.now(),
+                        buckets,
+                    });
+                    self.failures = 0;
+                    self.failure_since = None;
+                    self.persistence.save(&self.snapshot());
+                    self.log(Event::Updated, Some(200), now);
+                }
+                // An unknown format: logged as a failed 200 and retried with backoff.
+                None => self.failed(
+                    HttpError {
+                        status: Some(200),
+                        ..HttpError::default()
+                    },
+                    now,
+                ),
+            },
+            Err(error) if error.status == Some(401) => {
+                self.refuse(&token);
+                self.log(Event::InvalidCredential, error.status, now);
+            }
+            Err(error) => self.failed(error, now),
+        }
+        true
+    }
+
+    /// Never send this token again, even after a restart.
+    fn refuse(&mut self, token: &Token) {
+        self.rejected = Some(token.id());
+        let choice = UsageChoice {
+            refused_expires_at: token.expires_at,
+            ..self.usage_choice()
+        };
+        let _ = self.write(
+            &self.locations.usage_choice,
+            &serde_json::to_string(&choice).unwrap(),
+        );
+    }
+
+    /// Transient failure: back off, keeping the last reading.
+    fn failed(&mut self, error: HttpError, started_at: u64) {
+        // Wait the full delay after a slow request finishes.
+        let now = self.clock.now();
+        self.failure_since.get_or_insert(now);
+        self.failures += 1;
+        self.retry_at = now
+            .saturating_add(
+                BACKOFF[(self.failures - 1).min(BACKOFF.len() - 1)].max(error.retry_after_ms),
+            )
+            .max(error.retry_after_at.unwrap_or(0));
+        self.log(Event::Failed, error.status, started_at);
+    }
+
+    /// Metadata only: never the token, paths or response content.
+    fn log(&self, event: Event, http_status: Option<u16>, started_at: u64) {
+        self.persistence.log(LogRecord {
+            source: Module::Ai,
+            event,
+            http_status,
+            duration_ms: self.clock.now().saturating_sub(started_at),
+        });
+    }
+
+    /// The main windows from the newest reading, the older one filling a missing
+    /// window; weekly limits per model from `oauth/usage`, only while on. Source
+    /// and age are those of the newest reading.
+    fn merged(&self) -> Option<Reading> {
+        let usage = self
+            .usage_reading
+            .as_ref()
+            .filter(|_| self.usage() == Usage::On);
+        let (Some(status), Some(usage)) = (&self.reading, usage) else {
+            return self.reading.as_ref().or(usage).cloned();
+        };
+        let (newer, older) = if usage.read_at >= status.read_at {
+            (usage, status)
+        } else {
+            (status, usage)
+        };
+        let mut merged = newer.clone();
+        if let (Some(main), Some(fallback)) = (merged.buckets.first_mut(), older.buckets.first()) {
+            main.primary = main.primary.take().or(fallback.primary.clone());
+            main.secondary = main.secondary.take().or(fallback.secondary.clone());
+        }
+        if newer.source == Source::StatusLine {
+            merged.buckets.extend(usage.buckets.iter().skip(1).cloned());
+        }
+        Some(merged)
+    }
+
     /// Detection, plan and status line, rechecked on a timer.
     fn check(&mut self) {
         let first = self.checked_at.is_none();
@@ -289,12 +551,22 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
         struct Oauth {
             subscription_type: Option<String>,
         }
-        let oauth = self
-            .storage
-            .read(&self.locations.credentials)
-            .ok()
-            .and_then(|text| serde_json::from_str::<Credentials>(&text).ok())
+        let credentials = self.storage.read(&self.locations.credentials).ok();
+        let oauth = credentials
+            .as_deref()
+            .and_then(|text| serde_json::from_str::<Credentials>(text).ok())
             .and_then(|credentials| credentials.claude_ai_oauth);
+        // Claude Code renewed the refused token: read again right away. The
+        // token is read only while one is refused, which needs the opt-in.
+        if self.rejected.is_some_and(|rejected| {
+            credentials
+                .as_deref()
+                .and_then(Token::read)
+                .is_some_and(|token| token.id() != rejected)
+        }) {
+            self.rejected = None;
+            self.usage_pending = true;
+        }
         self.detected = Some(self.programs.installed("claude") && oauth.is_some());
         if let Some(plan) = oauth.and_then(|oauth| oauth.subscription_type) {
             self.plan = Some(plan);
@@ -367,12 +639,7 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             }],
         });
         self.persistence.save(&self.snapshot());
-        self.persistence.log(LogRecord {
-            source: Module::Ai,
-            event: Event::Updated,
-            http_status: None,
-            duration_ms: self.clock.now().saturating_sub(started_at),
-        });
+        self.log(Event::Updated, None, started_at);
         true
     }
 
@@ -386,16 +653,21 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
                 .checked_at
                 .is_none_or(|at| now.saturating_sub(at) >= CHECK_INTERVAL)
         {
-            let before = (self.detected, self.plan.clone(), self.status_line);
+            let shown = |claude: &Self| {
+                let status = (claude.detected, claude.plan.clone(), claude.status_line);
+                (status, claude.usage())
+            };
+            let before = shown(self);
             self.check();
-            changed |= before != (self.detected, self.plan.clone(), self.status_line);
+            changed |= before != shown(self);
         }
         if self.watch.changed() || first || manual {
             changed |= self.read_copy();
         }
+        changed |= self.read_usage(manual);
         // A window restarting turns into "Reiniciado às" without a new reading.
         let since = std::mem::replace(&mut self.stepped_at, now);
-        changed |= self.reading.iter().flat_map(|r| &r.buckets).any(|bucket| {
+        changed |= self.merged().iter().flat_map(|r| &r.buckets).any(|bucket| {
             [&bucket.primary, &bucket.secondary]
                 .into_iter()
                 .flatten()
@@ -405,22 +677,30 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
     }
 
     pub fn data(&self) -> Value {
-        let reading = restarted(self.reading.clone(), self.clock.now());
+        let reading = restarted(self.merged(), self.clock.now());
         let state = match (self.detected, &reading) {
             (Some(false), _) => "missing",
             (_, Some(_)) => "ready",
             (_, None) => "empty",
         };
-        json!({
+        let mut data = json!({
             "state": state,
             "plan": self.plan,
             "statusLine": self.status_line,
+            "usage": self.usage(),
             "reading": reading,
-        })
+        });
+        if self.usage() == Usage::On && self.failures >= FAILURES_SHOWN {
+            data["failureSince"] = json!(self.failure_since);
+        }
+        if self.usage() == Usage::On && self.paused() {
+            data["paused"] = json!(true);
+        }
+        data
     }
 
     pub fn updated_at(&self) -> Option<u64> {
-        self.reading.as_ref().map(|reading| reading.read_at)
+        self.merged().map(|reading| reading.read_at)
     }
 
     /// Only the Claude part; the shared cache keeps the Codex part.
@@ -435,6 +715,15 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
 
 /// Recheck detection, plan and the status line this often.
 pub const CHECK_INTERVAL: u64 = 5_000;
+/// `oauth/usage` while opted in, whether or not the module is visible.
+const USAGE_INTERVAL: u64 = 300_000;
+const MANUAL_WAIT: u64 = 10_000;
+/// Order among remote sources after login or reconnection (GitHub 0, Trello 1, Codex 2).
+const SOURCE_POSITION: u64 = 3;
+/// "Falha ao atualizar há X" after this many consecutive failures.
+const FAILURES_SHOWN: usize = 3;
+/// Transient failures: 30 s, then doubling up to 15 min.
+const BACKOFF: [u64; 6] = [30_000, 60_000, 120_000, 240_000, 480_000, 900_000];
 
 #[cfg(test)]
 #[path = "claude_tests.rs"]

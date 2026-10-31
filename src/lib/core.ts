@@ -54,6 +54,8 @@ export interface Core {
   /** Rejects with a ClaudeError code; settings.json is changed only here. */
   connectClaude?(): Promise<void>;
   disconnectClaude?(): Promise<void>;
+  /** Opt-in to the undocumented oauth/usage endpoint; rejects with a ClaudeError code. */
+  setClaudeUsage?(enabled: boolean): Promise<void>;
   refreshGithub?(): void;
   saveGithubToken?(token: string): Promise<string>;
   refreshTrello?(): void;
@@ -82,6 +84,7 @@ export const tauriCore: Core = {
   refreshAi: () => void invoke("refresh_ai"),
   connectClaude: () => invoke<void>("connect_claude"),
   disconnectClaude: () => invoke<void>("disconnect_claude"),
+  setClaudeUsage: (enabled) => invoke<void>("set_claude_usage", { enabled }),
   refreshGithub: () => void invoke("refresh_github"),
   refreshTrello: () => void invoke("refresh_trello"),
   connectTrello: (key, token) => invoke<string>("connect_trello", { key, token }),
@@ -125,7 +128,7 @@ export interface AiWindow {
   reset: boolean;
 }
 export interface AiReading {
-  source: "appServer" | "rollout" | "statusLine";
+  source: "appServer" | "rollout" | "statusLine" | "oauthUsage";
   readAt: number;
   buckets: { id: string; name: string | null; primary: AiWindow | null; secondary: AiWindow | null }[];
 }
@@ -146,6 +149,12 @@ export interface AiData {
     plan: string | null;
     /** replaced: another tool changed statusLine after connecting. */
     statusLine: "off" | "connected" | "replaced";
+    /** oauth/usage opt-in; expired: token expired or refused, back to the status line. */
+    usage: "off" | "on" | "expired";
+    /** First of at least three consecutive failed oauth/usage reads. */
+    failureSince?: number | null;
+    /** oauth/usage waits for connectivity or its turn after login/reconnection. */
+    paused?: boolean;
     reading: AiReading | null;
   };
 }

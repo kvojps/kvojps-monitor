@@ -158,12 +158,25 @@
     "configure": "Configurar",
     "replaced": "Status line desconectada",
     "reconnect": "Reconectar",
+    "expired": "Token do Claude expirado · abra o Claude Code",
+    "allModels": "Todos os modelos",
     "settings": {
       "connect": "Conectar ao Claude Code",
       "disconnect": "Desconectar",
       "connected": "Conectado ao Claude Code pela status line",
       "replaced": "Status line desconectada: outra ferramenta trocou a status line do Claude Code.",
       "explanation": "O app instala uma status line no Claude Code que continua rodando a sua status line atual e copia só os limites de uso. Desconectar restaura a original.",
+      "usage": {
+        "title": "Leitura via oauth/usage (opcional)",
+        "explanation": "Mantém os limites sempre atualizados, mesmo sem sessão aberta, e mostra os semanais por modelo quando houver.",
+        "enable": "Ler via oauth/usage…",
+        "warningTitle": "Endpoint não documentado",
+        "warning": "oauth/usage é um endpoint não documentado da Anthropic: pode mudar ou parar sem aviso, e consultá-lo com o token do Claude Code fica numa zona cinzenta nos termos da Anthropic, com risco de bloqueio ou revogação do token. O app lê o token de ~/.claude/.credentials.json só em memória, consulta a cada 5 min e nunca renova o token: quando ele expira, volta à status line até você abrir o Claude Code.",
+        "confirm": "Entendi o risco, ligar",
+        "cancel": "Cancelar",
+        "on": "Leitura via oauth/usage ligada · a cada 5 min",
+        "disable": "Desligar oauth/usage"
+      },
       "errors": {
         "invalidSettings": "~/.claude/settings.json não é um JSON válido; nada foi alterado",
         "unwritable": "Não foi possível gravar a configuração do Claude Code"
@@ -175,7 +188,8 @@
     "sources": {
       "appServer": "app-server",
       "rollout": "rollout",
-      "statusLine": "status line"
+      "statusLine": "status line",
+      "oauthUsage": "oauth/usage"
     },
     "reading": "{source} · atualizado {age}",
     "now": "agora",

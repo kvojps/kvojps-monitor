@@ -30,6 +30,7 @@
     "state": "empty",
     "plan": "pro",
     "statusLine": "connected",
+    "usage": "off",
     "reading": null
   }
 }

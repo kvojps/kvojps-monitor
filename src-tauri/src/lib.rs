@@ -93,6 +93,7 @@ pub fn run() {
             commands::refresh_ai,
             commands::connect_claude,
             commands::disconnect_claude,
+            commands::set_claude_usage,
             commands::refresh_github,
             commands::save_github_token,
             commands::refresh_trello,

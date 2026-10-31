@@ -30,6 +30,7 @@
     "state": "missing",
     "plan": "pro",
     "statusLine": "off",
+    "usage": "off",
     "reading": null
   }
 }

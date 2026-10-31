@@ -136,3 +136,46 @@ it("explains a missing Claude Code", async () => {
   expect(screen.getByText("Claude Code não encontrado · instale e faça login no CLI")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Configurar" })).not.toBeInTheDocument();
 });
+
+/** Instant the oauth/usage fixtures were published. */
+const USAGE_NOW = 1793401200000;
+
+it("shows oauth/usage windows and weekly limits per model", async () => {
+  const { default: usage } = await import("./fixtures/claude-usage.json");
+  vi.setSystemTime(USAGE_NOW);
+  render(AiModule, { data: usage as AiData, refresh: vi.fn() });
+  const claude = screen.getByRole("region", { name: "Claude" });
+  expect(within(claude).getByText("oauth/usage · atualizado agora")).toBeInTheDocument();
+  expect(within(claude).getByText("Todos os modelos")).toBeInTheDocument();
+  expect(within(claude).getByText("Sonnet")).toBeInTheDocument();
+  const weekly = within(claude).getAllByRole("meter", { name: "Semanal" });
+  expect(weekly.map((meter) => meter.getAttribute("aria-valuenow"))).toEqual(["6", "33"]);
+  expect(within(claude).getByRole("meter", { name: "Sessão (5 h)" })).toHaveAttribute("aria-valuenow", "15");
+  expect(within(claude).queryByText(/Conecte o app ao Claude Code/)).not.toBeInTheDocument();
+});
+
+it("shows an expired Claude token and keeps the status line reading", async () => {
+  const { default: expired } = await import("./fixtures/claude-expired.json");
+  vi.setSystemTime(USAGE_NOW);
+  render(AiModule, { data: expired as AiData, refresh: vi.fn() });
+  const claude = screen.getByRole("region", { name: "Claude" });
+  expect(within(claude).getByRole("status")).toHaveTextContent("Token do Claude expirado · abra o Claude Code");
+  expect(within(claude).getByText("status line · atualizado agora")).toBeInTheDocument();
+  expect(within(claude).getByRole("meter", { name: "Sessão (5 h)" })).toHaveAttribute("aria-valuenow", "20");
+});
+
+it("shows sustained oauth/usage failures and keeps the last reading", async () => {
+  const { default: failure } = await import("./fixtures/claude-failure.json");
+  vi.setSystemTime(USAGE_NOW + 420_000);
+  render(AiModule, { data: failure as AiData, refresh: vi.fn() });
+  const claude = screen.getByRole("region", { name: "Claude" });
+  expect(within(claude).getByText("Falha ao atualizar há 2 minutos")).toBeInTheDocument();
+  expect(within(claude).getByText("oauth/usage · atualizado há 7 minutos")).toBeInTheDocument();
+});
+
+it("hides oauth/usage failures while Claude is paused offline", async () => {
+  const { default: failure } = await import("./fixtures/claude-failure.json");
+  const paused = { ...(failure as AiData), claude: { ...(failure as AiData).claude!, paused: true } };
+  render(AiModule, { data: paused, refresh: vi.fn() });
+  expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
+});

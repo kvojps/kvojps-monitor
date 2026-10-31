@@ -67,6 +67,18 @@ pub async fn disconnect_claude(
     ask_ai(collector, crate::ai::Command::DisconnectClaude).await
 }
 
+/// Only on the user's click, after the warning about the undocumented endpoint.
+#[tauri::command]
+pub async fn set_claude_usage(
+    enabled: bool,
+    collector: State<'_, crate::ai::Collector>,
+) -> Result<(), crate::ai::ClaudeError> {
+    ask_ai(collector, |reply| {
+        crate::ai::Command::SetClaudeUsage(enabled, reply)
+    })
+    .await
+}
+
 async fn ask_ai(
     collector: State<'_, crate::ai::Collector>,
     command: impl FnOnce(

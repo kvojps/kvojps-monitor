@@ -41,6 +41,10 @@
   function plan(type: string) {
     return (t.ai.plans as Record<string, string>)[type] ?? type;
   }
+  /** Claude's main bucket covers every model; per model buckets carry their name. */
+  function bucketName(bucket: { id: string; name: string | null }) {
+    return bucket.name ?? (bucket.id === "claude" ? t.ai.allModels : bucket.id);
+  }
   function refreshNow() {
     allowedAt = Date.now() + 10000;
     refresh();
@@ -54,7 +58,7 @@
 {#snippet limits(reading: AiReading)}
   <span class="faint">{interpolate(t.ai.reading, { source: t.ai.sources[reading.source], age: age(reading.readAt) })}</span>
   {#each reading.buckets as bucket (bucket.id)}
-    {#if reading.buckets.length > 1}<span class="label">{bucket.name ?? bucket.id}</span>{/if}
+    {#if reading.buckets.length > 1}<span class="label">{bucketName(bucket)}</span>{/if}
     {#each windows(bucket) as window}
       <div class="window">
         <div class="line">
@@ -89,9 +93,14 @@
       {#if claude.state === "missing"}
         <p class="secondary">{t.ai.missingClaude}</p>
       {:else}
+        {#if claude.usage === "expired"}
+          <p role="status" class="alert">{t.ai.expired}</p>
+        {:else if claude.usage === "on" && claude.failureSince != null && !claude.paused}
+          <p role="status" class="secondary">{interpolate(t.ai.failureAge, { age: age(claude.failureSince) })}</p>
+        {/if}
         {#if claude.statusLine === "replaced"}
           <p role="status" class="alert">{t.ai.replaced} · <button class="link" onclick={reconnect}>{t.ai.reconnect}</button></p>
-        {:else if claude.statusLine === "off"}
+        {:else if claude.statusLine === "off" && claude.usage !== "on"}
           <p class="secondary">{t.ai.offClaude} · <button class="link" onclick={configure}>{t.ai.configure}</button></p>
         {/if}
         {#if claude.reading}

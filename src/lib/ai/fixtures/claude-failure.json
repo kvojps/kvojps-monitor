@@ -1,0 +1,58 @@
+{
+  "codex": {
+    "plan": "plus",
+    "reading": {
+      "buckets": [
+        {
+          "id": "codex",
+          "name": null,
+          "primary": {
+            "durationMins": 300,
+            "reset": false,
+            "resetsAt": 1793467355000,
+            "usedPercent": 91.0
+          },
+          "secondary": {
+            "durationMins": 10080,
+            "reset": false,
+            "resetsAt": 1793814230000,
+            "usedPercent": 48.0
+          }
+        }
+      ],
+      "readAt": 1793460871000,
+      "source": "appServer"
+    },
+    "state": "ready"
+  },
+  "refreshing": false,
+  "claude": {
+    "state": "ready",
+    "plan": "pro",
+    "statusLine": "off",
+    "usage": "on",
+    "reading": {
+      "source": "oauthUsage",
+      "readAt": 1793401200000,
+      "buckets": [
+        {
+          "id": "claude",
+          "name": null,
+          "primary": {
+            "usedPercent": 15.0,
+            "durationMins": 300,
+            "resetsAt": 1793413800000,
+            "reset": false
+          },
+          "secondary": {
+            "usedPercent": 6.0,
+            "durationMins": 10080,
+            "resetsAt": 1793887200000,
+            "reset": false
+          }
+        }
+      ]
+    },
+    "failureSince": 1793401500000
+  }
+}

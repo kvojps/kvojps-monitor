@@ -30,6 +30,7 @@
     "state": "ready",
     "plan": "pro",
     "statusLine": "replaced",
+    "usage": "off",
     "reading": {
       "source": "statusLine",
       "readAt": 1738420000000,
