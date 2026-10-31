@@ -45,7 +45,7 @@ impl<N: crate::network::NetworkManager, S: Session, R: Clock> Lifecycle<N, S, R>
         let sleeping = self.session.preparing_for_sleep().unwrap_or(self.sleeping);
         let resumed = self.sleeping && !sleeping;
         let online = !sleeping && self.network.connection().is_ok_and(|c| c.connectivity == 4);
-        if resumed || (online && !self.status.online) {
+        if online && (resumed || !self.status.online) {
             self.status.generation += 1;
             self.status.ready_at = self.clock.now().max(self.login_at);
         }
@@ -74,8 +74,7 @@ impl Logind {
                     shared.lock().unwrap().push_back(sleeping);
                 }
                 for message in signals {
-                    let (sleeping,): (bool,) = message.body().deserialize()?;
-                    shared.lock().unwrap().push_back(sleeping);
+                    shared.lock().unwrap().push_back(sleep_state(&message)?);
                 }
                 Ok(())
             })();
@@ -84,6 +83,11 @@ impl Logind {
         Self(state)
     }
 }
+fn sleep_state(message: &zbus::Message) -> zbus::Result<bool> {
+    let (sleeping,): (bool,) = message.body().deserialize()?;
+    Ok(sleeping)
+}
+
 impl Session for Logind {
     fn preparing_for_sleep(&self) -> Option<bool> {
         self.0.lock().unwrap().pop_front()
@@ -129,7 +133,7 @@ mod tests {
         *sleep.lock().unwrap() = false;
         assert!(!lifecycle.step().online);
         *online.lock().unwrap() = 4;
-        assert_eq!(lifecycle.step().generation, 3);
+        assert_eq!(lifecycle.step().generation, 2);
     }
 }
 
@@ -150,7 +154,10 @@ pub fn start(app: &tauri::AppHandle) {
         loop {
             let status = lifecycle.step();
             *shared.lock().unwrap() = status;
-            if status.generation != generation {
+            if status.online
+                && crate::ports::SystemClock.now() >= status.ready_for(0)
+                && status.generation != generation
+            {
                 generation = status.generation;
                 app.state::<crate::system::Collector>().resume();
                 let _ = app
@@ -190,5 +197,39 @@ mod scheduling_tests {
         assert_eq!(status.ready_for(0), 15_000);
         assert_eq!(status.ready_for(1), 18_000);
         assert_eq!(status.ready_for(2), 21_000);
+    }
+}
+
+#[cfg(test)]
+mod adapter_tests {
+    use super::*;
+    #[test]
+    fn logind_decodes_boolean_bodies_and_preserves_sleep_resume_order() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/session/logind.json")).unwrap();
+        let queue = std::sync::Arc::new(std::sync::Mutex::new(std::collections::VecDeque::new()));
+        queue
+            .lock()
+            .unwrap()
+            .push_back(fixture["preparingForSleep"].as_bool().unwrap());
+        for sleeping in fixture["sleepResumeSequence"].as_array().unwrap() {
+            let message = zbus::Message::signal(
+                "/org/freedesktop/login1",
+                "org.freedesktop.login1.Manager",
+                "PrepareForSleep",
+            )
+            .unwrap()
+            .build(&(sleeping.as_bool().unwrap(),))
+            .unwrap();
+            queue
+                .lock()
+                .unwrap()
+                .push_back(sleep_state(&message).unwrap());
+        }
+        let logind = Logind(queue);
+        assert_eq!(logind.preparing_for_sleep(), Some(false));
+        assert_eq!(logind.preparing_for_sleep(), Some(true));
+        assert_eq!(logind.preparing_for_sleep(), Some(false));
+        assert_eq!(logind.preparing_for_sleep(), None);
     }
 }
