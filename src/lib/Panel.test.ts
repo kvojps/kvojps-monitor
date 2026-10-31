@@ -583,3 +583,25 @@ describe("Network module in the panel", () => {
     expect(within(network).getByRole("button", { name: "Testar velocidade" })).toHaveFocus();
   });
 });
+
+describe("System module in the panel", () => {
+  it("explains there is no reading before the first system snapshot", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    const system = await screen.findByRole("region", { name: "Sistema" });
+    expect(within(system).getByText("Sem leitura do sistema ainda")).toBeInTheDocument();
+  });
+
+  it("shows the instruments from the latest system snapshot", async () => {
+    const { core, publish } = fakeCore({ snapshots: [notebook as Snapshot] });
+    render(Panel, { core });
+    const system = await screen.findByRole("region", { name: "Sistema" });
+    expect(await within(system).findByRole("group", { name: "CPU" })).toHaveTextContent("2%");
+    expect(within(system).getByRole("meter", { name: "RAM" })).toBeInTheDocument();
+
+    const data = structuredClone(notebook.data);
+    data.cpu.usage = 37.6;
+    await publish({ ...(notebook as Snapshot), updatedAt: notebook.updatedAt + 2000, data });
+    expect(within(system).getByRole("group", { name: "CPU" })).toHaveTextContent("38%");
+  });
+});

@@ -745,6 +745,23 @@ mod tests {
                 c.root
                     .set_space("/mnt/data", space(1_000_000_000_000, 42_000_000_000));
             }
+            "missing" => {
+                c.root.remove("/sys/class/hwmon/hwmon4");
+                c.upower.respond("desktop");
+                let meminfo = c.root.read("/proc/meminfo").unwrap();
+                c.root.write(
+                    "/proc/meminfo",
+                    &meminfo
+                        .replace("SwapTotal:       4194300 kB", "SwapTotal:             0 kB")
+                        .replace("SwapFree:        3801600 kB", "SwapFree:              0 kB"),
+                );
+            }
+            // Just opened: a single CPU sample, so usage is still unknown.
+            "starting" => {
+                c.system.show();
+                sample_cpu(&c, 0);
+                return c.system.step().unwrap();
+            }
             _ => unreachable!(),
         }
         c.system.show();
@@ -763,7 +780,7 @@ mod tests {
     fn ui_snapshot_fixtures_come_from_core() {
         let dir =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/lib/system/fixtures");
-        for name in ["notebook", "desktop", "no-sensor", "warning"] {
+        for name in ["notebook", "desktop", "no-sensor", "warning", "missing", "starting"] {
             let (when, data) = ui_scenario(name);
             let json = serde_json::to_string_pretty(&snapshot(when, &data)).unwrap() + "\n";
             let file = dir.join(format!("{name}.json"));

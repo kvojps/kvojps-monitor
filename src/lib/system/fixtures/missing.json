@@ -1,0 +1,29 @@
+{
+  "module": "system",
+  "updatedAt": 1793457124000,
+  "data": {
+    "cpu": {
+      "usage": 2.0,
+      "history": [
+        2.3,
+        2.0
+      ],
+      "temperature": null
+    },
+    "ram": {
+      "used": 6113652736,
+      "total": 15588483072
+    },
+    "swap": null,
+    "disks": [
+      {
+        "mount": "/",
+        "used": 75644026880,
+        "total": 157396975616,
+        "free": 73683107840,
+        "warning": false
+      }
+    ],
+    "battery": null
+  }
+}

@@ -42,12 +42,9 @@
   },
   "system": {
     "cpu": "CPU",
-    "chartCpu": "Uso de CPU nos últimos 60 s",
     "temperature": "Temperatura",
     "ram": "RAM",
     "swap": "Swap",
-    "disks": "Discos",
-    "freeSpace": "{value} livres",
     "battery": "Bateria",
     "statesBattery": {
       "charging": "carregando",
@@ -57,9 +54,16 @@
       "pluggedIn": "na tomada",
       "unknown": "estado desconhecido"
     },
-    "toCharge": "{time} p/ carregar",
-    "remaining": "{time} restantes",
-    "noValue": "—"
+    "disk": "Disco {mount}",
+    "noReading": "Sem leitura do sistema ainda",
+    "measuring": "Medindo…",
+    "noSensor": "Sem sensor",
+    "hot": "Temperatura alta",
+    "noSwap": "Sem swap configurada",
+    "diskFull": "Pouco espaço em {mount}",
+    "noBattery": "Sem bateria detectada",
+    "lowBattery": "Bateria baixa",
+    "stale": "Leitura antiga · sem atualização {age}"
   },
   "network": {
     "quality": "Qualidade da rede",

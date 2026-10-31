@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from "svelte";
-  import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type Module, type Core, type Snapshot } from "./core";
+  import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
   import AgentSettings from "./agents/AgentSettings.svelte";
   import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
@@ -8,6 +8,7 @@
   import GithubModule from "./github/GithubModule.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
   import NetworkModule from "./network/NetworkModule.svelte";
+  import SystemModule from "./system/SystemModule.svelte";
   import TrelloModule from "./trello/TrelloModule.svelte";
   import TrelloSettings from "./trello/TrelloSettings.svelte";
   import { interpolate, t } from "./strings";
@@ -102,8 +103,7 @@
   }
 
   const NO_AI_READING: AiData = { refreshing: false, codex: { state: "empty", plan: null, reading: null } };
-  /** Module contents arrive with their instrument slices (tickets 02–07). */
-  const bodies: Partial<Record<Module, Snippet>> = { ai, agents, github, trello, network };
+  const bodies: Record<Module, Snippet> = { ai, agents, github, trello, network, system };
 
   const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
   const waitingCount = $derived(agentsData?.sessions.filter((s) => s.state === "waiting").length ?? 0);
@@ -181,6 +181,10 @@
 
 {#snippet network()}
   <NetworkModule data={(snapshots.network?.data as NetworkData | undefined) ?? null} runSpeed={() => core.runSpeedTest?.()} />
+{/snippet}
+
+{#snippet system()}
+  <SystemModule data={(snapshots.system?.data as SystemData | undefined) ?? null} updatedAt={snapshots.system?.updatedAt ?? null} />
 {/snippet}
 
 {#snippet moduleSection(module: Module, body?: Snippet)}
@@ -444,7 +448,6 @@
     border-top: 5px solid var(--module-band);
     /* Keep the station label in view when the first row is revealed. */
     scroll-margin-top: 60px;
-    /* Module instruments arrive with their own slices (tickets 02–07). */
     min-height: 260px;
   }
   .module.system { --module-band: var(--band-lavender); }

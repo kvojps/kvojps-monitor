@@ -18,6 +18,15 @@ export interface Memory {
   total: number;
 }
 
+/** A mounted disk in bytes; free is what df reports as available. */
+export interface Disk {
+  mount: string;
+  used: number;
+  total: number;
+  free: number;
+  warning: boolean;
+}
+
 /** System snapshot data, including warning decisions made by the core. */
 export interface SystemData {
   cpu: {
@@ -29,7 +38,7 @@ export interface SystemData {
   };
   ram: Memory;
   swap: Memory | null;
-  disks: { mount: string; used: number; total: number; free: number; warning: boolean }[];
+  disks: Disk[];
   battery: {
     percentage: number;
     state: "charging" | "discharging" | "full" | "empty" | "pluggedIn" | "unknown";
