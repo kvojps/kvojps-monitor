@@ -1,6 +1,6 @@
 # Protótipo de distribuição do Painel compacto
 
-Status: aguardando avaliação visual do usuário. Nenhuma composição aprovada.
+Status: composição B — Núcleo lateral escolhida pelo usuário. Detalhes e movimentação do Trello em revisão.
 Origem: [Validar a distribuição compacta do Painel](issues/01-compact-composition.md).
 Branch local: `prototype/compact-panel-composition`, sem push.
 
@@ -47,4 +47,17 @@ Verificadas abertura do diálogo de sessões e saída por Escape nas três compo
 
 ## Avaliação pendente
 
-Escolher uma composição ou combinação, avaliar legibilidade dos instrumentos e aceitar ou ajustar o fallback com rolagem quando o conteúdo não couber. A escolha exige resposta do usuário; o ticket permanece reivindicado e aberto.
+B — Núcleo lateral foi escolhida pelo usuário. A distribuição está resolvida; a validação de detalhes segue aberta, incluindo o novo quadro do Trello e os limites de escala/fallback.
+
+
+## Segunda rodada — Quadro completo do Trello
+
+Composição padrão agora é B. Abra o protótipo e clique em **Abrir quadro completo**. A área sobreposta usa até 1040 × 610 em navegador 1100 × 700, com listas de 228 px em faixa horizontal e rolagem vertical dentro de cada lista.
+
+Selecione um card e escolha uma lista em **Mover para**, confirmando em **Mover card**. Outra opção é usar **Mover para esta lista** na coluna de destino. Arraste entre colunas está disponível como atalho de ponteiro. Seleção e ações explícitas oferecem caminho por teclado; listas fora da faixa visível também aparecem no seletor de destino.
+
+A movimentação atualiza imediatamente o quadro e as contagens do resumo; a caixa **Simular falha na próxima movimentação** permite observar a reversão. As alterações vivem somente na memória da página. O botão **Abrir no Trello** e duplo clique apenas informam a ação simulada. Escape e **Fechar** fecham o detalhe; o foco retorna ao acionador e a seleção permanece ao reabrir.
+
+Verificados no navegador: movimentação de Card 1.1 da Lista 1 para Lista 2 (contagens 4/0 passam a 3/1), tentativa de retorno com falha e reversão (mantém 3/1), atualização do resumo e foco após Escape. O atalho de arraste foi implementado, mas não foi validado por gesto real nesta rodada. Ver [captura](assets/trello-board-prototype.png) e [resultados](assets/trello-prototype-results.json). `npm run check` passou sem erros ou avisos.
+
+Essa interação do quadro ainda aguarda avaliação do usuário. Os demais detalhes ilustrativos e os estados pendentes não se tornam aprovados pela escolha da composição B.

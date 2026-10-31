@@ -2,6 +2,7 @@
   // Three compositions on the same prototype surface, selected by ?variant=A|B|C.
   import { onMount } from "svelte";
   import Icon from "../Icon.svelte";
+  import TrelloBoardPrototype from "./TrelloBoardPrototype.svelte";
   import ai from "../ai/fixtures/claude-usage.json";
   import agents from "../agents/fixtures/states.json";
   import github from "../github/fixtures/full.json";
@@ -9,12 +10,15 @@
   import networkSnapshot from "../network/fixtures/full.json";
   import systemSnapshot from "../system/fixtures/notebook.json";
 
+  let board = $state(structuredClone(trello));
+  const previewCard = $derived(board.lists.flatMap(list=>list.cards)[0]);
+  const previewList = $derived(board.lists.find(list=>list.cards.some(card=>card.id===previewCard?.id)));
   const net = networkSnapshot.data;
   const system = systemSnapshot.data;
   const keys = ["A", "B", "C"];
   const names = ["Ponte horizontal", "Núcleo lateral", "Faixa de instrumentos"];
   const query = new URLSearchParams(location.search);
-  let variant = $state(keys.includes(query.get("variant") ?? "") ? query.get("variant")! : "A");
+  let variant = $state(keys.includes(query.get("variant") ?? "") ? query.get("variant")! : "B");
   let light = $state(query.get("theme") === "light");
   let reduced = $state(query.get("motion") === "reduced");
   let enlarged = $state(false);
@@ -22,6 +26,7 @@
   let feedback = $state("");
   let dialog: HTMLDialogElement;
   let details = $state("");
+  let detailReturnFocus: HTMLElement | null = null;
   let width = $state(1100);
   let height = $state(700);
   const states = [
@@ -57,7 +62,13 @@
       event.preventDefault(); switchVariant(event.key === "ArrowRight" ? 1 : -1);
     }
   }
-  function openDetails(name: string) { details = name; dialog.showModal(); }
+  function openDetails(name: string) {
+    detailReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    details = name; dialog.showModal();
+  }
+  function restoreDetailFocus() {
+    if (detailReturnFocus?.isConnected) detailReturnFocus.focus({ preventScroll: true });
+  }
   $effect(() => {
     document.documentElement.dataset.theme = light ? "light" : "dark";
     document.documentElement.dataset.motion = reduced ? "reduced" : "full";
@@ -152,9 +163,9 @@
 
     <section class="trello" aria-label="Trello">
       {@render heading("Trello", true, true)}
-      <div class="board-summary"><b>{trello.board.name}</b><span>{trello.lists.reduce((n,l)=>n+l.cards.length,0)} cards · {trello.lists.length} listas</span></div>
-      <div class="list-counts">{#each trello.lists as list}<div><span>{list.name}</span><b class="num">{list.cards.length}</b></div>{/each}</div>
-      <button class="card-preview" onclick={() => openDetails("Quadro Trello")}><small>Primeiro card · {trello.lists[0].name}</small><b>{longText ? "Reorganizar tarefas e documentação para próxima entrega do projeto" : trello.lists[0].cards[0].name}</b><span class="labels"><i></i><i></i></span></button>
+      <div class="board-summary"><b>{board.board.name}</b><span>{board.lists.reduce((n,l)=>n+l.cards.length,0)} cards · {board.lists.length} listas</span></div>
+      <div class="list-counts">{#each board.lists as list}<div><span>{list.name}</span><b class="num">{list.cards.length}</b></div>{/each}</div>
+      {#if previewCard}<button class="card-preview" onclick={() => openDetails("Quadro Trello")}><small>Primeiro card · {previewList?.name}</small><b>{longText ? "Reorganizar tarefas e documentação para próxima entrega do projeto" : previewCard.name}</b><span class="labels"><i></i><i></i></span></button>{:else}<p>Quadro sem cards</p>{/if}
       <button class="detail-button" onclick={() => openDetails("Quadro Trello")}>Abrir quadro completo ↗</button>
     </section>
 
@@ -181,13 +192,13 @@
   </aside>
 {/if}
 
-<dialog bind:this={dialog}>
+<dialog bind:this={dialog} onclose={restoreDetailFocus} class:board-details={details === "Quadro Trello"}>
   <header><h2>{details}</h2><button class="detail-button" onclick={() => dialog.close()}>Fechar ×</button></header>
-  <p class="source">Detalhe ilustrativo; localização e comportamento serão validados na próxima decisão.</p>
+  {#if details !== "Quadro Trello"}<p class="source">Detalhe ilustrativo; localização e comportamento serão validados na próxima decisão.</p>{/if}
   {#if details === "Sessões de agente"}
     {#each sessions as session}<article><b>{session.project} · {session.name ?? "Sem nome"}</b><p>{session.provider} · {states.find(s=>s.key===session.state)?.name}</p><small>{session.waitingFor ?? "Sem intervenção pendente"} · início {time(session.startedAt)}</small></article>{/each}
   {:else if details === "Quadro Trello"}
-    {#each trello.lists as list}<article><h3>{list.name}</h3>{#each list.cards as card}<p>{card.name} · {card.labels.join(", ") || "Sem etiquetas"} · {card.due ?? "Sem vencimento"}</p>{/each}</article>{/each}
+    <TrelloBoardPrototype bind:lists={board.lists} boardName={board.board.name}/>
   {:else if details === "Aplicativos de rede"}
     {#each [...net.processTraffic.apps,{name:"Outros",...net.processTraffic.others}] as app}<article><b>{app.name}</b><p class="num">↓ {rate(app.download)} · ↑ {rate(app.upload)}</p></article>{/each}
     <small>Outros inclui UDP/QUIC, processos do sistema e conexões curtas.</small>
@@ -286,6 +297,8 @@
   .switcher button { padding: 4px 7px; background: var(--bg); border-radius: 50%; }
   .switcher label { display: flex; align-items: center; gap: 4px; }
   dialog { margin: auto; width: min(680px,90vw); max-height: 80vh; overflow: auto; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); padding: 20px; }
+  dialog.board-details { width: min(1040px, 96vw); height: min(610px, 92vh); max-height: 92vh; overflow: hidden; }
+  dialog.board-details[open] { display: flex; flex-direction: column; }
   dialog::backdrop { background: #000a; }
   dialog article { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; overflow-wrap: anywhere; }
   dialog p { margin-top: 8px; }

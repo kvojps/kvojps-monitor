@@ -20,6 +20,8 @@ Uma especificação visual validada por protótipo para um Painel de aproximadam
 
 ## Decisions so far
 
+- [Validar a distribuição compacta do Painel](issues/01-compact-composition.md): escolhida B — Núcleo lateral; quadro completo do Trello e movimentação seguem na validação de detalhes.
+
 ## Not yet specified
 
 - Ajustes que a avaliação visual revelar para densidade, textos longos e equilíbrio entre instrumentos e informações secundárias.
