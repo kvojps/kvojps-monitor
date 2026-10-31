@@ -68,6 +68,8 @@ export interface DadosRede {
   cabeada: boolean;
   vpn: boolean;
   qualidade: "boa" | "regular" | "ruim" | null;
+  seguranca: "semAlertas" | "atencao" | "risco" | null;
+  motivos: string[];
   gateway: MedidasRede;
   internet: MedidasRede;
   trafego: TrafegoRede | null;

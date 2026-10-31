@@ -1,6 +1,8 @@
-//! Qualidade e tráfego: coleta contínua, sem cache em disco nem notificações.
+//! Segurança, Qualidade e tráfego: coleta contínua, sem cache em disco.
 mod network_manager;
+mod seguranca;
 mod sonda;
+pub use seguranca::*;
 #[cfg(test)]
 mod testes;
 
@@ -19,6 +21,8 @@ pub struct Conexao {
     pub vpn: bool,
     pub gateway: Option<IpAddr>,
     pub interface: String,
+    pub wifi: Option<Wifi>,
+    pub revisao: u64,
 }
 impl Conexao {
     fn conectada(&self) -> bool {
@@ -50,6 +54,8 @@ pub struct DadosRede {
     pub cabeada: bool,
     pub vpn: bool,
     pub qualidade: Option<Qualidade>,
+    pub seguranca: Option<Seguranca>,
+    pub motivos: Vec<String>,
     pub gateway: Medidas,
     pub internet: Medidas,
     pub trafego: Option<Trafego>,
@@ -58,7 +64,10 @@ pub struct DadosRede {
 
 type Contadores = HashMap<String, (u64, u64)>;
 
-pub struct Rede<A, N, S, R> {
+pub struct Rede<A, N, S, R, V = SemVerificacao, T = SemNotificador> {
+    verificacao: V,
+    notificador: T,
+    avaliacao: Avaliacao,
     arquivos: A,
     nm: N,
     sonda: S,
@@ -73,6 +82,9 @@ pub struct Rede<A, N, S, R> {
 impl<A: Arquivos, N: NetworkManager, S: Sonda, R: Relogio> Rede<A, N, S, R> {
     pub fn new(arquivos: A, nm: N, sonda: S, relogio: R) -> Self {
         Self {
+            verificacao: SemVerificacao,
+            notificador: SemNotificador,
+            avaliacao: Avaliacao::default(),
             arquivos,
             nm,
             sonda,
@@ -85,6 +97,37 @@ impl<A: Arquivos, N: NetworkManager, S: Sonda, R: Relogio> Rede<A, N, S, R> {
             historico: VecDeque::new(),
         }
     }
+    pub fn com_seguranca<V: Verificacao, T: crate::portas::Notificador>(
+        self,
+        verificacao: V,
+        notificador: T,
+    ) -> Rede<A, N, S, R, V, T> {
+        Rede {
+            arquivos: self.arquivos,
+            nm: self.nm,
+            sonda: self.sonda,
+            relogio: self.relogio,
+            proximo: self.proximo,
+            proximo_ping: self.proximo_ping,
+            conexao: self.conexao,
+            amostras: self.amostras,
+            anterior: self.anterior,
+            historico: self.historico,
+            verificacao,
+            notificador,
+            avaliacao: self.avaliacao,
+        }
+    }
+}
+impl<
+        A: Arquivos,
+        N: NetworkManager,
+        S: Sonda,
+        R: Relogio,
+        V: Verificacao,
+        T: crate::portas::Notificador,
+    > Rede<A, N, S, R, V, T>
+{
     pub fn passo(&mut self) -> Option<(u64, DadosRede)> {
         let agora = self.relogio.agora();
         if agora < self.proximo {
@@ -102,7 +145,18 @@ impl<A: Arquivos, N: NetworkManager, S: Sonda, R: Relogio> Rede<A, N, S, R> {
             self.historico.clear();
             self.proximo_ping = 0;
         }
+        let nova = self.conexao.id != conexao.id || self.conexao.interface != conexao.interface;
+        if nova {
+            self.avaliacao = Avaliacao::default();
+        }
         self.conexao = conexao;
+        let (seguranca, motivos) = self.avaliacao.avaliar(
+            &self.conexao,
+            agora,
+            &self.verificacao,
+            &self.nm,
+            &self.notificador,
+        );
         let conectada = self.conexao.conectada();
         let trafego = self.trafego(self.relogio.agora());
         if conectada && agora >= self.proximo_ping {
@@ -162,6 +216,8 @@ impl<A: Arquivos, N: NetworkManager, S: Sonda, R: Relogio> Rede<A, N, S, R> {
                 cabeada: self.conexao.tipo == "802-3-ethernet",
                 vpn: self.conexao.vpn,
                 qualidade,
+                seguranca,
+                motivos,
                 gateway,
                 internet,
                 trafego,
@@ -263,9 +319,21 @@ pub fn iniciar(app: tauri::AppHandle) {
             NetworkManagerDbus::conectar(),
             PingSocket,
             crate::portas::RelogioDoSistema,
+        )
+        .com_seguranca(
+            VerificacaoSistema(LeiturasSistema),
+            crate::portas::NotificadorDesktop,
         );
         loop {
             if let Some((quando, dados)) = rede.passo() {
+                if let Some(handle) =
+                    tauri::Manager::try_state::<ksni::Handle<crate::indicador::Indicador>>(&app)
+                {
+                    let risco = dados.badge_de_risco();
+                    tauri::async_runtime::block_on(
+                        handle.update(move |i| i.estado.badge_de_risco = risco),
+                    );
+                }
                 crate::snapshot::publicar(&app, snapshot(quando, &dados));
             }
             std::thread::sleep(std::time::Duration::from_millis(100));

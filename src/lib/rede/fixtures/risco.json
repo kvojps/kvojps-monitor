@@ -1,0 +1,38 @@
+{
+  "modulo": "rede",
+  "atualizadoEm": 1793457126000,
+  "dados": {
+    "cabeada": false,
+    "conectada": true,
+    "gateway": {
+      "jitter": 0.0,
+      "latencia": 2.0,
+      "perda": 0.0
+    },
+    "historico": [
+      {
+        "descida": 2048.0,
+        "subida": 1024.0
+      },
+      {
+        "descida": 1024.0,
+        "subida": 512.0
+      }
+    ],
+    "internet": {
+      "jitter": 0.0,
+      "latencia": 20.0,
+      "perda": 0.0
+    },
+    "motivos": [
+      "Rede aberta sem OWE"
+    ],
+    "qualidade": "boa",
+    "seguranca": "risco",
+    "trafego": {
+      "descida": 1024.0,
+      "subida": 512.0
+    },
+    "vpn": false
+  }
+}

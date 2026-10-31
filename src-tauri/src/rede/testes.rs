@@ -271,8 +271,14 @@ fn delta_por_segundo_ignora_loopback_e_tunel_e_aceita_reset() {
 #[test]
 fn fixtures_da_ui_sao_snapshots_publicados_pelo_nucleo() {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/lib/rede/fixtures");
-    for nome in ["boa", "ruim", "sem-conexao", "vpn"] {
+    for nome in ["boa", "ruim", "sem-conexao", "vpn", "atencao", "risco"] {
         let mut c = cenario();
+        if nome == "atencao" {
+            c.nm.0.lock().unwrap().conectividade = 2;
+        }
+        if nome == "risco" {
+            c.nm.0.lock().unwrap().wifi = Some(Wifi::default());
+        }
         if nome == "sem-conexao" {
             *c.nm.0.lock().unwrap() = Conexao::default();
         }
@@ -427,4 +433,250 @@ fn conectividade_limitada_com_gateway_vivo_e_ruim_mesmo_com_mediana_antiga_boa()
     let dados = medir(&mut c, Some(2.0), None);
     assert_eq!(dados.internet.latencia, Some(20.0));
     assert_eq!(dados.qualidade, Some(Qualidade::Ruim));
+}
+
+#[test]
+fn risco_notifica_uma_vez_por_conexao_e_badge_some_ao_desconectar() {
+    let c = cenario();
+    c.nm.0.lock().unwrap().wifi = Some(Wifi {
+        flags: 0,
+        wpa: 0,
+        rsn: 0,
+        key_mgmt: String::new(),
+        pairwise: vec![],
+    });
+    let avisos = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    struct NotificadorFalso(std::sync::Arc<std::sync::Mutex<Vec<crate::portas::Notificacao>>>);
+    impl crate::portas::Notificador for NotificadorFalso {
+        fn notificar(&self, aviso: crate::portas::Notificacao) {
+            self.0.lock().unwrap().push(aviso);
+        }
+    }
+    let mut rede = c
+        .rede
+        .com_seguranca(VerificacaoFalsa, NotificadorFalso(avisos.clone()));
+    assert!(rede.passo().unwrap().1.badge_de_risco());
+    c.relogio.avancar(1000);
+    c.nm.0.lock().unwrap().wifi = None;
+    assert!(!rede.passo().unwrap().1.badge_de_risco());
+    c.relogio.avancar(1000);
+    c.nm.0.lock().unwrap().wifi = Some(Wifi::default());
+    assert!(rede.passo().unwrap().1.badge_de_risco());
+    assert_eq!(avisos.lock().unwrap().len(), 1);
+    *c.nm.0.lock().unwrap() = Conexao::default();
+    c.relogio.avancar(1000);
+    let dados = rede.passo().unwrap().1;
+    assert_eq!(dados.seguranca, None);
+    assert!(!dados.badge_de_risco());
+    *c.nm.0.lock().unwrap() = Nm.conexao().unwrap();
+    c.nm.0.lock().unwrap().wifi = Some(Wifi::default());
+    c.relogio.avancar(1000);
+    rede.passo();
+    assert_eq!(
+        *avisos.lock().unwrap(),
+        vec![crate::portas::Notificacao::RedeEmRisco; 2]
+    );
+}
+struct VerificacaoFalsa;
+impl Verificacao for VerificacaoFalsa {
+    fn dns(&self) -> Option<bool> {
+        Some(false)
+    }
+    fn mac(&self, _: &Conexao) -> Option<String> {
+        None
+    }
+}
+
+#[test]
+fn criptografia_fisica_com_vpn_e_cabo_respeita_flags_e_perfil() {
+    for (flags, wpa, rsn, key, pairwise, esperado, motivo) in [
+        (0, 0, 0, "", "", Seguranca::Risco, "Rede aberta sem OWE"),
+        (1, 0, 0, "none", "", Seguranca::Risco, "Criptografia WEP"),
+        (1, 0x144, 0, "wpa-psk", "", Seguranca::Risco, "WPA com TKIP"),
+        (
+            1,
+            0,
+            0x188,
+            "wpa-psk",
+            "tkip",
+            Seguranca::Risco,
+            "WPA com TKIP",
+        ),
+        (0, 0, 0x800, "owe", "", Seguranca::SemAlertas, ""),
+        (1, 0, 0x188, "wpa-psk", "ccmp", Seguranca::SemAlertas, ""),
+        (1, 0, 0x400, "sae", "", Seguranca::SemAlertas, ""),
+    ] {
+        let mut c = cenario();
+        {
+            let mut nm = c.nm.0.lock().unwrap();
+            nm.vpn = true;
+            nm.wifi = Some(Wifi {
+                flags,
+                wpa,
+                rsn,
+                key_mgmt: key.into(),
+                pairwise: vec![pairwise.into()],
+            });
+        }
+        let dados = c.rede.passo().unwrap().1;
+        assert_eq!(dados.seguranca, Some(esperado));
+        if !motivo.is_empty() {
+            assert!(dados.motivos.contains(&motivo.to_string()));
+        }
+        c.nm.0.lock().unwrap().tipo = "802-3-ethernet".into();
+        c.relogio.avancar(1000);
+        assert_eq!(
+            c.rede.passo().unwrap().1.seguranca,
+            Some(Seguranca::SemAlertas)
+        );
+    }
+}
+
+#[derive(Clone)]
+struct VerificacaoControlada {
+    dns: std::sync::Arc<std::sync::Mutex<(Option<bool>, usize)>>,
+    mac: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+}
+impl Verificacao for VerificacaoControlada {
+    fn dns(&self) -> Option<bool> {
+        let mut d = self.dns.lock().unwrap();
+        d.1 += 1;
+        d.0
+    }
+    fn mac(&self, _: &Conexao) -> Option<String> {
+        self.mac.lock().unwrap().clone()
+    }
+}
+#[test]
+fn dns_e_portal_a_cada_dez_minutos_e_mac_preserva_alerta_na_mesma_conexao() {
+    let c = cenario();
+    let v = VerificacaoControlada {
+        dns: std::sync::Arc::new(std::sync::Mutex::new((Some(false), 0))),
+        mac: std::sync::Arc::new(std::sync::Mutex::new(Some("aa:bb:cc:dd:ee:ff".into()))),
+    };
+    let mut rede = c.rede.com_seguranca(v.clone(), SemNotificador);
+    assert_eq!(
+        rede.passo().unwrap().1.seguranca,
+        Some(Seguranca::SemAlertas)
+    );
+    *v.mac.lock().unwrap() = Some("11:22:33:44:55:66".into());
+    c.nm.0.lock().unwrap().revisao += 1;
+    c.relogio.avancar(1000);
+    assert_eq!(rede.passo().unwrap().1.seguranca, Some(Seguranca::Atencao));
+    assert_eq!(v.dns.lock().unwrap().1, 1);
+    v.dns.lock().unwrap().0 = Some(true);
+    c.relogio.avancar(599_000);
+    let dados = rede.passo().unwrap().1;
+    assert_eq!(dados.seguranca, Some(Seguranca::Risco));
+    assert!(dados
+        .motivos
+        .contains(&"DNS respondeu a um nome inexistente".into()));
+    assert_eq!(v.dns.lock().unwrap().1, 2);
+    c.nm.0.lock().unwrap().id.push('2');
+    v.dns.lock().unwrap().0 = Some(false);
+    c.nm.0.lock().unwrap().conectividade = 2;
+    c.relogio.avancar(1000);
+    let dados = rede.passo().unwrap().1;
+    assert_eq!(dados.seguranca, Some(Seguranca::Atencao));
+    assert_eq!(dados.motivos, vec!["Portal cativo detectado"]);
+    assert_eq!(v.dns.lock().unwrap().1, 3);
+}
+
+#[derive(Clone)]
+struct LeiturasGravadas {
+    dns: RespostaDns,
+    vizinhos: std::sync::Arc<std::sync::Mutex<String>>,
+}
+impl LeiturasSeguranca for LeiturasGravadas {
+    fn resolver(&self) -> Option<RespostaDns> {
+        Some(self.dns.clone())
+    }
+    fn vizinhos(&self, _: &Conexao) -> Option<String> {
+        Some(self.vizinhos.lock().unwrap().clone())
+    }
+}
+#[test]
+fn respostas_gravadas_passam_pelos_adapters_e_falhas_nao_viram_risco() {
+    let original: RespostaDns =
+        serde_json::from_str(include_str!("../../fixtures/rede/dns.json")).unwrap();
+    for (respondeu, erro, esperado) in [
+        (original.respondeu, original.erro, Seguranca::SemAlertas),
+        (
+            false,
+            Some("org.freedesktop.resolve1.DnsError.NXDOMAIN".into()),
+            Seguranca::SemAlertas,
+        ),
+        (true, None, Seguranca::Risco),
+        (
+            false,
+            Some("org.freedesktop.resolve1.Timeout".into()),
+            Seguranca::SemAlertas,
+        ),
+    ] {
+        let c = cenario();
+        let leituras = LeiturasGravadas {
+            dns: RespostaDns { respondeu, erro },
+            vizinhos: std::sync::Arc::new(std::sync::Mutex::new(
+                include_str!("../../fixtures/rede/vizinhos.json").into(),
+            )),
+        };
+        let vizinhos = leituras.vizinhos.clone();
+        let mut rede = c
+            .rede
+            .com_seguranca(VerificacaoSistema(leituras), SemNotificador);
+        assert_eq!(rede.passo().unwrap().1.seguranca, Some(esperado));
+        // Variação controlada da saída gravada: MAC alterado em evento do NM.
+        let mut texto = vizinhos.lock().unwrap();
+        *texto = texto.replace("02:00:00:00:00:01", "11:22:33:44:55:66");
+        drop(texto);
+        c.nm.0.lock().unwrap().revisao += 1;
+        c.relogio.avancar(1000);
+        assert!(rede
+            .passo()
+            .unwrap()
+            .1
+            .motivos
+            .contains(&"MAC do gateway mudou nesta conexão".into()));
+    }
+}
+
+#[test]
+fn portal_recupera_por_evento_e_mac_so_consulta_por_evento() {
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+    struct VerificacaoContada(Arc<AtomicUsize>);
+    impl Verificacao for VerificacaoContada {
+        fn dns(&self) -> Option<bool> {
+            Some(false)
+        }
+        fn mac(&self, _: &Conexao) -> Option<String> {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            None
+        }
+    }
+    let c = cenario();
+    c.nm.0.lock().unwrap().conectividade = 2;
+    let chamadas = Arc::new(AtomicUsize::new(0));
+    let mut rede = c
+        .rede
+        .com_seguranca(VerificacaoContada(chamadas.clone()), SemNotificador);
+    assert_eq!(rede.passo().unwrap().1.seguranca, Some(Seguranca::Atencao));
+    for _ in 0..5 {
+        c.relogio.avancar(1000);
+        rede.passo();
+    }
+    assert_eq!(chamadas.load(Ordering::SeqCst), 1);
+    {
+        let mut nm = c.nm.0.lock().unwrap();
+        nm.conectividade = 4;
+        nm.revisao += 1;
+    }
+    c.relogio.avancar(1000);
+    assert_eq!(
+        rede.passo().unwrap().1.seguranca,
+        Some(Seguranca::SemAlertas)
+    );
+    assert_eq!(chamadas.load(Ordering::SeqCst), 2);
 }

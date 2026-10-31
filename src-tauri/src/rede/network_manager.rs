@@ -1,4 +1,4 @@
-use super::Conexao;
+use super::{Conexao, Wifi};
 use serde::Deserialize;
 use std::io;
 use zbus::blocking::{Connection, Proxy};
@@ -6,6 +6,9 @@ use zbus::zvariant::OwnedObjectPath;
 
 pub trait NetworkManager: Send {
     fn conexao(&self) -> io::Result<Conexao>;
+    fn verificar_portal(&self) -> Option<bool> {
+        None
+    }
 }
 
 /// Propriedades lidas do D-Bus, antes de escolher o link físico.
@@ -14,6 +17,8 @@ pub struct LeituraNetworkManager {
     pub primaria: String,
     pub conectividade: u32,
     pub ativas: Vec<ConexaoAtiva>,
+    #[serde(default)]
+    pub revisao: u64,
 }
 #[derive(Clone, Deserialize)]
 pub struct ConexaoAtiva {
@@ -24,21 +29,57 @@ pub struct ConexaoAtiva {
     pub interface: String,
     pub gateway4: String,
     pub gateway6: String,
+    #[serde(default)]
+    pub wifi: Option<Wifi>,
 }
 
 /// Porta das propriedades do NetworkManager: os testes injetam a saída D-Bus gravada.
 pub trait PropriedadesNetworkManager: Send {
     fn ler(&self) -> io::Result<LeituraNetworkManager>;
+    fn portal(&self) -> Option<bool> {
+        None
+    }
 }
 pub struct NetworkManagerDbus<P = DbusSistema>(pub P);
-pub struct DbusSistema;
+pub struct DbusSistema(std::sync::Arc<std::sync::Mutex<Option<LeituraNetworkManager>>>);
 const DESTINO: &str = "org.freedesktop.NetworkManager";
 impl NetworkManagerDbus {
     pub fn conectar() -> Self {
-        Self(DbusSistema)
+        let cache = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let leitura = cache.clone();
+        std::thread::spawn(move || loop {
+            // Assina antes da leitura inicial, evitando perder uma troca de AP/perfil.
+            let resultado = (|| -> zbus::Result<()> {
+                let bus = Connection::system()?;
+                let regra = zbus::MatchRule::builder()
+                    .msg_type(zbus::message::Type::Signal)
+                    .sender(DESTINO)?
+                    .path_namespace("/org/freedesktop/NetworkManager")?
+                    .build();
+                let mensagens =
+                    zbus::blocking::MessageIterator::for_match_rule(regra, &bus, Some(256))?;
+                *leitura.lock().unwrap() = Some(ler_dbus()?);
+                let mut revisao = 0;
+                for mensagem in mensagens {
+                    mensagem?;
+                    revisao += 1;
+                    let mut atual = ler_dbus()?;
+                    atual.revisao = revisao;
+                    *leitura.lock().unwrap() = Some(atual);
+                }
+                Ok(())
+            })();
+            let _ = resultado;
+            *leitura.lock().unwrap() = None;
+            std::thread::sleep(std::time::Duration::from_secs(5));
+        });
+        Self(DbusSistema(cache))
     }
 }
 impl<P: PropriedadesNetworkManager> NetworkManager for NetworkManagerDbus<P> {
+    fn verificar_portal(&self) -> Option<bool> {
+        self.0.portal()
+    }
     fn conexao(&self) -> io::Result<Conexao> {
         let leitura = self.0.ler()?;
         let mut fisica: Option<Conexao> = None;
@@ -64,6 +105,8 @@ impl<P: PropriedadesNetworkManager> NetworkManager for NetworkManagerDbus<P> {
                     .ok()
                     .or_else(|| ativa.gateway6.parse().ok()),
                 interface: ativa.interface,
+                wifi: ativa.wifi,
+                revisao: leitura.revisao,
             });
         }
         let mut conexao = fisica.unwrap_or_default();
@@ -72,8 +115,18 @@ impl<P: PropriedadesNetworkManager> NetworkManager for NetworkManagerDbus<P> {
     }
 }
 impl PropriedadesNetworkManager for DbusSistema {
+    fn portal(&self) -> Option<bool> {
+        let bus = Connection::system().ok()?;
+        let nm = Proxy::new(&bus, DESTINO, "/org/freedesktop/NetworkManager", DESTINO).ok()?;
+        let estado: u32 = nm.call("CheckConnectivity", &()).ok()?;
+        Some(estado == 2)
+    }
     fn ler(&self) -> io::Result<LeituraNetworkManager> {
-        ler_dbus().map_err(io::Error::other)
+        self.0
+            .lock()
+            .unwrap()
+            .clone()
+            .ok_or_else(|| io::Error::other("NetworkManager indisponível"))
     }
 }
 fn ler_dbus() -> zbus::Result<LeituraNetworkManager> {
@@ -100,6 +153,7 @@ fn ler_dbus() -> zbus::Result<LeituraNetworkManager> {
             interface: String::new(),
             gateway4: String::new(),
             gateway6: String::new(),
+            wifi: None,
         };
         if estado == 2 && !vpn && !matches!(leitura.tipo.as_str(), "loopback" | "wireguard") {
             let dispositivos: Vec<OwnedObjectPath> = ativa.get_property("Devices")?;
@@ -111,6 +165,55 @@ fn ler_dbus() -> zbus::Result<LeituraNetworkManager> {
                     "org.freedesktop.NetworkManager.Device",
                 )?
                 .get_property("Interface")?;
+            }
+            if leitura.tipo == "802-11-wireless" {
+                if let Some(d) = dispositivos.first() {
+                    let wifi = Proxy::new(
+                        &bus,
+                        DESTINO,
+                        d.clone(),
+                        "org.freedesktop.NetworkManager.Device.Wireless",
+                    )?;
+                    let ap: OwnedObjectPath = wifi.get_property("ActiveAccessPoint")?;
+                    if ap.as_str() != "/" {
+                        let ap = Proxy::new(
+                            &bus,
+                            DESTINO,
+                            ap,
+                            "org.freedesktop.NetworkManager.AccessPoint",
+                        )?;
+                        let perfil: OwnedObjectPath = ativa.get_property("Connection")?;
+                        let perfil = Proxy::new(
+                            &bus,
+                            DESTINO,
+                            perfil,
+                            "org.freedesktop.NetworkManager.Settings.Connection",
+                        )?;
+                        // GetSettings omite segredos; nunca chama GetSecrets.
+                        let settings: std::collections::HashMap<
+                            String,
+                            std::collections::HashMap<String, zbus::zvariant::OwnedValue>,
+                        > = perfil.call("GetSettings", &())?;
+                        let seguranca = settings.get("802-11-wireless-security");
+                        let key_mgmt = seguranca
+                            .and_then(|s| s.get("key-mgmt"))
+                            .and_then(|v| <&str>::try_from(v).ok())
+                            .unwrap_or("")
+                            .to_string();
+                        let pairwise = seguranca
+                            .and_then(|s| s.get("pairwise"))
+                            .and_then(|v| v.try_clone().ok())
+                            .and_then(|v| Vec::<String>::try_from(v).ok())
+                            .unwrap_or_default();
+                        leitura.wifi = Some(Wifi {
+                            flags: ap.get_property("Flags")?,
+                            wpa: ap.get_property("WpaFlags")?,
+                            rsn: ap.get_property("RsnFlags")?,
+                            key_mgmt,
+                            pairwise,
+                        });
+                    }
+                }
             }
             for (campo, contrato, gateway) in [
                 (
@@ -134,6 +237,7 @@ fn ler_dbus() -> zbus::Result<LeituraNetworkManager> {
         ativas.push(leitura);
     }
     Ok(LeituraNetworkManager {
+        revisao: 0,
         primaria: primaria.to_string(),
         conectividade: nm.get_property("Connectivity")?,
         ativas,

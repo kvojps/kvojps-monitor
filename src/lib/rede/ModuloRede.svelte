@@ -14,6 +14,15 @@
 </script>
 
 <div class="rede">
+  <section aria-label={t.rede.seguranca}>
+    <h2>{t.rede.seguranca}</h2>
+    <strong class:regular={dados.seguranca === "atencao"} class:ruim={dados.seguranca === "risco"}>
+      {!dados.conectada ? t.rede.semConexao : dados.seguranca ? t.rede[dados.seguranca] : t.rede.semMedicao}
+    </strong>
+    {#if dados.conectada}
+      {#each dados.motivos as motivo}<p>{motivo}</p>{/each}
+    {/if}
+  </section>
   <section aria-label={t.rede.qualidade}>
     <h2>{t.rede.qualidade}</h2>
     <strong class:boa={dados.qualidade === "boa"} class:regular={dados.qualidade === "regular"} class:ruim={dados.qualidade === "ruim"}>
@@ -53,6 +62,7 @@
   section { padding: 12px 0; border-bottom: 1px solid var(--line); }
   h2 { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
   strong { font-size: 22px; }
+  p { font-size: 12px; margin-top: 6px; color: var(--muted); }
   .boa { color: var(--ok); } .regular { color: var(--warn); } .ruim { color: var(--bad); }
   .etiquetas { display: flex; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 11px; }
   .etiquetas span { background: var(--surface-2); padding: 3px 6px; border-radius: 4px; }

@@ -1,0 +1,1 @@
+[{"dst":"192.0.2.101","lladdr":"02:00:00:00:00:01","state":["STALE"]},{"dst":"fe80::2","lladdr":"02:00:00:00:00:01","router":null,"state":["REACHABLE"]}]

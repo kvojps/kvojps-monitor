@@ -15,7 +15,9 @@
       "latencia": null,
       "perda": null
     },
+    "motivos": [],
     "qualidade": null,
+    "seguranca": null,
     "trafego": null,
     "vpn": false
   }

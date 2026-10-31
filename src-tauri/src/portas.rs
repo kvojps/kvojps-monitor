@@ -177,3 +177,41 @@ pub mod falsos {
         }
     }
 }
+
+/// Eventos fechados: a porta não aceita conteúdo sensível nem texto livre.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Notificacao {
+    RedeEmRisco,
+}
+pub trait Notificador: Send {
+    fn notificar(&self, evento: Notificacao);
+}
+pub struct NotificadorDesktop;
+impl Notificador for NotificadorDesktop {
+    fn notificar(&self, _: Notificacao) {
+        let Ok(bus) = zbus::blocking::Connection::session() else {
+            return;
+        };
+        let Ok(proxy) = zbus::blocking::Proxy::new(
+            &bus,
+            "org.freedesktop.Notifications",
+            "/org/freedesktop/Notifications",
+            "org.freedesktop.Notifications",
+        ) else {
+            return;
+        };
+        let _: zbus::Result<u32> = proxy.call(
+            "Notify",
+            &(
+                "kvojps-monitor",
+                0u32,
+                "",
+                "Segurança da rede: Risco",
+                "A conexão apresenta sinais de risco. Consulte o Módulo Rede.",
+                Vec::<String>::new(),
+                std::collections::HashMap::<String, zbus::zvariant::Value>::new(),
+                -1i32,
+            ),
+        );
+    }
+}

@@ -60,6 +60,10 @@
     "grafico": "Tráfego total nos últimos 60 s",
     "descida": "Descida",
     "subida": "Subida",
-    "semValor": "—"
+    "semValor": "—",
+    "seguranca": "Segurança da rede",
+    "semAlertas": "Sem alertas",
+    "atencao": "Atenção",
+    "risco": "Risco"
   }
 }

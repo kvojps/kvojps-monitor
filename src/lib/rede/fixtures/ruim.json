@@ -24,7 +24,9 @@
       "latencia": 301.0,
       "perda": 0.0
     },
+    "motivos": [],
     "qualidade": "ruim",
+    "seguranca": "semAlertas",
     "trafego": {
       "descida": 1024.0,
       "subida": 512.0

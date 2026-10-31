@@ -9,7 +9,14 @@
       "vpn": false,
       "interface": "wlo1",
       "gateway4": "192.0.2.101",
-      "gateway6": "fe80::2"
+      "gateway6": "fe80::2",
+      "wifi": {
+        "flags": 1,
+        "wpa": 0,
+        "rsn": 392,
+        "key_mgmt": "wpa-psk",
+        "pairwise": []
+      }
     },
     {
       "caminho": "/org/freedesktop/NetworkManager/ActiveConnection/1",

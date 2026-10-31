@@ -24,11 +24,27 @@ it("mostra qualidade ruim sem confundir com Segurança da rede", () => {
 });
 it("mostra Sem conexão e não exibe medidas antigas", () => {
   render(ModuloRede, { dados: semConexao.dados as DadosRede });
-  expect(screen.getByText("Sem conexão")).toBeInTheDocument();
+  expect(screen.getAllByText("Sem conexão")).toHaveLength(2);
   expect(screen.queryByRole("region", { name: "Internet" })).not.toBeInTheDocument();
 });
 it("mostra as etiquetas Cabeada e VPN ativa", () => {
   render(ModuloRede, { dados: vpn.dados as DadosRede });
   expect(screen.getByText("VPN ativa")).toBeInTheDocument();
   expect(screen.getByText("Cabeada")).toBeInTheDocument();
+});
+
+it("mostra Segurança da rede independente da qualidade", () => {
+  render(ModuloRede, { dados });
+  expect(screen.getByRole("region", { name: "Segurança da rede" })).toHaveTextContent("Sem alertas");
+});
+
+it.each([
+  ["Atenção", "Portal cativo detectado", "atencao"],
+  ["Risco", "Rede aberta sem OWE", "risco"],
+])("mostra %s com o motivo vindo do núcleo", async (estado, motivo, nome) => {
+  const fixture = await import(`./fixtures/${nome}.json`);
+  render(ModuloRede, { dados: fixture.default.dados as DadosRede });
+  expect(screen.getByRole("region", { name: "Segurança da rede" })).toHaveTextContent(estado);
+  expect(screen.getByText(motivo)).toBeInTheDocument();
+  expect(screen.getByText("Boa")).toBeInTheDocument();
 });
