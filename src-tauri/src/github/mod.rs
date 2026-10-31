@@ -18,6 +18,7 @@ pub struct Github<P, H, R> {
     failures: usize,
     retry_at: u64,
     rejected: Option<u64>,
+    active_credential: Option<u64>,
     persistence: Box<dyn Persistence>,
     failure_since: Option<u64>,
     lifecycle: Option<crate::lifecycle::Status>,
@@ -31,6 +32,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             failures: 0,
             retry_at: 0,
             rejected: None,
+            active_credential: None,
             persistence: Box::new(Volatile),
             failure_since: None,
             keyring: Box::new(crate::ports::UnavailableKeyring),
@@ -69,14 +71,26 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         if self.lifecycle.is_some_and(|status| !status.online) {
             return Err(CredentialError::Offline);
         }
-        let identity = self.http.validate_github(token).map_err(|error| {
+        let response = self.http.github_validation(token).map_err(|error| {
             if matches!(error.status, Some(401 | 403)) {
                 CredentialError::InvalidToken
             } else {
                 CredentialError::Offline
             }
         })?;
-        if !identity.repo_scope {
+        if response.body.get("errors").is_some() {
+            return Err(CredentialError::InvalidToken);
+        }
+        let login = response.body["data"]["viewer"]["login"]
+            .as_str()
+            .filter(|login| !login.is_empty())
+            .ok_or(CredentialError::InvalidToken)?
+            .to_owned();
+        if !response
+            .scopes
+            .as_deref()
+            .is_some_and(|scopes| scopes.split(',').any(|scope| scope.trim() == "repo"))
+        {
             return Err(CredentialError::MissingRepo);
         }
         self.keyring
@@ -92,9 +106,9 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             .credential()
             .is_some_and(|(_, source)| source == "token")
         {
-            self.data["credential"] = json!({"source":"token", "login":identity.login});
+            self.data["credential"] = json!({"source":"token", "login":login});
         }
-        Ok(identity.login)
+        Ok(login)
     }
     pub fn with_persistence(
         processes: P,
@@ -211,7 +225,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         }
         self.refresh_pending = false;
         self.attempt_at = Some(now);
-        let calendar = force
+        let mut calendar = force
             || self
                 .calendar_at
                 .is_none_or(|t| now.saturating_sub(t) >= 3_600_000 || year(t) != year(now));
@@ -234,7 +248,13 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             self.failures = 0;
             self.failure_since = None;
         }
+        if self.active_credential != Some(credential) {
+            calendar = true;
+        }
         let result = self.query(token.trim(), source, now, calendar);
+        if result.is_ok() {
+            self.active_credential = Some(credential);
+        }
         let status = result.as_ref().err().and_then(|error| error.status);
         match result {
             Ok(()) => {

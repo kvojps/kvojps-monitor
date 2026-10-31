@@ -20,6 +20,11 @@
 - `gh auth token` continua prioritário e consultado a cada coleta. Sem autenticação no CLI, o token próprio é lido do keyring somente em memória. Salvar com sucesso libera o bloqueio de autenticação e agenda atualização completa.
 - Configurações → GitHub mostra a fonte e formulário mascarado, com erros junto do campo e confirmação com login. O campo é limpo após envio; submissões duplicadas são bloqueadas. O atalho “Colar token clássico” leva do Módulo às Configurações.
 - Fixtures de snapshot publicadas pelo núcleo cobrem `gh` e token próprio. Testes cobrem ausência de keyring, falhas de validação sem gravação, prioridade do CLI, retomada após 401, reinício, privacidade do cache/logs e formulário de UI.
-- `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (120 testes), `npm run check`, `npm test` (48 testes) e `npm run build`: aprovados.
+- `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (122 testes), `npm run check`, `npm test` (49 testes) e `npm run build`: aprovados.
 - Base da revisão: `3ef4cb1d56e1878de0e5bd587c65025361b93cea` (HEAD anterior ao trabalho).
 - Verificação manual no GNOME/Keyring real não realizada nesta execução.
+
+### Revisão final
+
+- **Standards:** sem achados restantes. A resposta de validação (corpo e header de escopos) foi capturada e anonimizada; o núcleo interpreta esses dados com testes para `repo` exato, escopos parciais/ausentes e corpos inválidos.
+- **Spec:** sem achados restantes. Mudanças automáticas de credencial forçam o calendário completo, evitando misturar contas; o login do token próprio continua visível após reabrir Configurações. Ambos com testes de regressão.

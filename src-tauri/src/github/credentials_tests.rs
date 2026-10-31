@@ -18,13 +18,11 @@ impl Http for Validation {
     fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
         unreachable!()
     }
-    fn validate_github(&self, _: &str) -> Result<crate::ports::GithubIdentity, HttpError> {
-        let viewer: Value =
-            serde_json::from_str(include_str!("../../fixtures/github/viewer.json")).unwrap();
-        Ok(crate::ports::GithubIdentity {
-            login: viewer["data"]["viewer"]["login"].as_str().unwrap().into(),
-            repo_scope: true,
-        })
+    fn github_validation(
+        &self,
+        _: &str,
+    ) -> Result<crate::ports::GithubValidationResponse, HttpError> {
+        Ok(serde_json::from_str(include_str!("../../fixtures/github/validation.json")).unwrap())
     }
 }
 #[test]
@@ -61,12 +59,14 @@ impl Http for InvalidValidation {
     fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
         unreachable!()
     }
-    fn validate_github(&self, _: &str) -> Result<crate::ports::GithubIdentity, HttpError> {
+    fn github_validation(
+        &self,
+        _: &str,
+    ) -> Result<crate::ports::GithubValidationResponse, HttpError> {
         if self.1 {
-            Ok(crate::ports::GithubIdentity {
-                login: "exemplo".into(),
-                repo_scope: false,
-            })
+            let mut response = Validation.github_validation("")?;
+            response.scopes = None;
+            Ok(response)
         } else {
             Err(HttpError {
                 status: self.0,
@@ -112,8 +112,11 @@ impl Http for RecoveringApi {
         }
         super::scenarios::Api { empty: false }.graphql(token, body)
     }
-    fn validate_github(&self, token: &str) -> Result<crate::ports::GithubIdentity, HttpError> {
-        Validation.validate_github(token)
+    fn github_validation(
+        &self,
+        token: &str,
+    ) -> Result<crate::ports::GithubValidationResponse, HttpError> {
+        Validation.github_validation(token)
     }
 }
 #[test]
@@ -211,4 +214,103 @@ fn own_token_and_commit_content_never_reach_cache_or_logs() {
         assert!(!text.contains("own-private-secret"));
         assert!(!text.contains("Atualiza documentação"));
     }
+}
+
+struct CapturedValidation {
+    scopes: Option<&'static str>,
+    body: Option<Value>,
+}
+impl Http for CapturedValidation {
+    fn graphql(&self, _: &str, _: &Value) -> Result<Value, HttpError> {
+        unreachable!()
+    }
+    fn github_validation(
+        &self,
+        token: &str,
+    ) -> Result<crate::ports::GithubValidationResponse, HttpError> {
+        let mut response = Validation.github_validation(token)?;
+        response.scopes = self.scopes.map(str::to_owned);
+        if let Some(body) = &self.body {
+            response.body = body.clone();
+        }
+        Ok(response)
+    }
+}
+#[test]
+fn only_exact_repo_scope_and_valid_viewer_can_be_saved() {
+    for (scopes, body, expected) in [
+        (
+            Some("repo:status, public_repo"),
+            None,
+            CredentialError::MissingRepo,
+        ),
+        (
+            Some("read:org, repo:invite"),
+            None,
+            CredentialError::MissingRepo,
+        ),
+        (Some(""), None, CredentialError::MissingRepo),
+        (None, None, CredentialError::MissingRepo),
+        (
+            Some("repo"),
+            Some(json!({"data":{"viewer":null}})),
+            CredentialError::InvalidToken,
+        ),
+        (
+            Some("repo"),
+            Some(json!({"errors":[{"message":"not authorized"}]})),
+            CredentialError::InvalidToken,
+        ),
+    ] {
+        let vault = Vault::default();
+        let mut github = Github::new(
+            super::tests::Gh,
+            CapturedValidation { scopes, body },
+            FakeClock::at(1793448000000),
+        )
+        .with_keyring(vault.clone());
+        assert_eq!(github.save_token("private-token"), Err(expected));
+        assert_eq!(vault.read("github").unwrap(), None);
+    }
+}
+
+struct RotatingGh(Arc<Mutex<String>>);
+impl Processes for RotatingGh {
+    fn execute(&self, _: &str, _: &[&str]) -> Result<String, ()> {
+        Ok(self.0.lock().unwrap().clone())
+    }
+}
+struct AccountApi;
+impl Http for AccountApi {
+    fn graphql(&self, token: &str, body: &Value) -> Result<Value, HttpError> {
+        let mut response = super::scenarios::Api { empty: false }.graphql(token, body)?;
+        if token == "account-b" && response["data"]["viewer"].is_object() {
+            response["data"]["viewer"]["login"] = json!("other-account");
+            response["data"]["viewer"]["contributionsCollection"]["contributionCalendar"]
+                ["totalContributions"] = json!(999);
+            assert!(
+                body["query"]
+                    .as_str()
+                    .unwrap()
+                    .contains("contributionsCollection"),
+                "account change must request its calendar"
+            );
+        }
+        Ok(response)
+    }
+}
+#[test]
+fn automatic_account_change_refreshes_the_calendar_with_the_identity() {
+    let token = Arc::new(Mutex::new("account-a".into()));
+    let clock = FakeClock::at(1793448000000);
+    let mut github = Github::new(RotatingGh(token.clone()), AccountApi, clock.clone());
+    github.step(true, false).unwrap();
+    *token.lock().unwrap() = "account-b".into();
+    clock.advance(300_000);
+    let data = github.step(true, false).unwrap().data;
+    assert_eq!(data["credential"]["login"], "other-account");
+    assert_eq!(
+        data["calendar"]["contributionCalendar"]["totalContributions"],
+        999
+    );
 }

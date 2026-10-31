@@ -1,0 +1,4 @@
+{
+  "scopes": "gist, read:org, repo, workflow",
+  "body": { "data": { "viewer": { "login": "exemplo" } } }
+}

@@ -27,6 +27,7 @@
   <h2>{t.modules.github}</h2>
   {#if data?.credential}
     <p>{data.credential.source === "gh" ? interpolate(t.github.viaGh, { login: data.credential.login }) : t.github.ownToken}</p>
+    {#if data.credential.source === "token"}<p>{interpolate(t.github.connected, { login: data.credential.login })}</p>{/if}
   {/if}
   <p>{t.github.login}</p>
   <p>{t.github.instruction}</p>

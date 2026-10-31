@@ -277,12 +277,13 @@ impl From<()> for HttpError {
     }
 }
 /// GitHub GraphQL endpoint only; borrow credentials for one refresh.
-pub struct GithubIdentity {
-    pub login: String,
-    pub repo_scope: bool,
+#[derive(serde::Deserialize)]
+pub struct GithubValidationResponse {
+    pub scopes: Option<String>,
+    pub body: serde_json::Value,
 }
 pub trait Http: Send {
-    fn validate_github(&self, _credential: &str) -> Result<GithubIdentity, HttpError> {
+    fn github_validation(&self, _credential: &str) -> Result<GithubValidationResponse, HttpError> {
         Err(HttpError::default())
     }
     fn graphql(
@@ -293,26 +294,18 @@ pub trait Http: Send {
 }
 pub struct GithubHttp;
 impl Http for GithubHttp {
-    fn validate_github(&self, credential: &str) -> Result<GithubIdentity, HttpError> {
+    fn github_validation(&self, credential: &str) -> Result<GithubValidationResponse, HttpError> {
         let response = github_request(
             credential,
             &serde_json::json!({"query":"query { viewer { login } }"}),
         )?;
-        let repo_scope = response
+        let scopes = response
             .headers()
             .get("x-oauth-scopes")
             .and_then(|value| value.to_str().ok())
-            .is_some_and(|scopes| scopes.split(',').any(|scope| scope.trim() == "repo"));
-        let body: serde_json::Value = response.json().map_err(|_| HttpError::default())?;
-        if body.get("errors").is_some() {
-            return Err(HttpError::default());
-        }
-        let login = body["data"]["viewer"]["login"]
-            .as_str()
-            .filter(|login| !login.is_empty())
-            .ok_or_else(HttpError::default)?
-            .to_owned();
-        Ok(GithubIdentity { login, repo_scope })
+            .map(str::to_owned);
+        let body = response.json().map_err(|_| HttpError::default())?;
+        Ok(GithubValidationResponse { scopes, body })
     }
 
     fn graphql(

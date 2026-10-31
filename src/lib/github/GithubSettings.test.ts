@@ -52,3 +52,15 @@ it("prevents duplicate submissions while validation is pending", async () => {
   expect(await screen.findByText("Conectado como exemplo")).toBeInTheDocument();
   expect(save).toHaveBeenCalledOnce();
 });
+
+it("keeps the own-token account visible when settings are reopened", async () => {
+  const { default: data } = await import("./fixtures/own-token.json");
+  const save = vi.fn();
+  const first = render(GithubSettings, { data, save });
+  expect(screen.getByText("Conectado como exemplo")).toBeInTheDocument();
+  first.unmount();
+  render(GithubSettings, { data, save });
+  expect(screen.getByText("token próprio")).toBeInTheDocument();
+  expect(screen.getByText("Conectado como exemplo")).toBeInTheDocument();
+  expect(save).not.toHaveBeenCalled();
+});
