@@ -100,23 +100,23 @@ describe("Panel stations", () => {
   it("shows cached snapshots at once and updates only the module the core pushes", async () => {
     const { core, publish } = fakeCore({ snapshots: [notebook as Snapshot] });
     render(Panel, { core });
-    expect(await within(await screen.findByRole("region", { name: "Sistema" })).findByRole("region", { name: "CPU" })).toBeInTheDocument();
+    expect(await within(await screen.findByRole("region", { name: "Sistema" })).findByText("atualizado 11:32")).toBeInTheDocument();
 
     await publish({ module: "network", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: null });
 
     expect(within(section("Rede")).getByText("atualizado 09:05")).toBeInTheDocument();
-    expect(within(section("Sistema")).getByRole("region", { name: "CPU" })).toBeInTheDocument();
+    expect(within(section("Sistema")).getByText("atualizado 11:32")).toBeInTheDocument();
   });
 
   it("keeps keyboard focus when a snapshot arrives", async () => {
     const { core, publish } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
-    render(Panel, { core: { ...core, refreshAi: vi.fn() } });
-    const refresh = await screen.findByRole("button", { name: "Atualizar IA" });
-    refresh.focus();
+    render(Panel, { core });
+    await screen.findByRole("region", { name: "IA" });
+    await userEvent.click(within(nav()).getByRole("button", { name: "IA" }));
 
     await publish({ module: "ai", updatedAt: 2, data: aiFull });
 
-    expect(screen.getByRole("button", { name: "Atualizar IA" })).toHaveFocus();
+    expect(section("IA")).toHaveFocus();
   });
 });
 
@@ -261,14 +261,13 @@ it("sends the network automatic speed preference from Settings", async () => {
   expect(setAutomaticSpeed).toHaveBeenCalledWith(false);
 });
 
-it("opens GitHub settings from setup and sends the pasted token to the core", async () => {
+it("sends a pasted GitHub token from Settings to the core", async () => {
   const { default: missing } = await import("./github/fixtures/missing-gh.json");
   const { core } = fakeCore({ snapshots: [{ module: "github", updatedAt: null, data: missing }] });
   const saveGithubToken = vi.fn().mockResolvedValue("exemplo");
   render(Panel, { core: { ...core, saveGithubToken } });
-  const github = await screen.findByRole("region", { name: "GitHub" });
-  await userEvent.click(within(github).getByRole("button", { name: "Configurar" }));
-  await userEvent.click(screen.getByRole("button", { name: "Colar token clássico" }));
+  await screen.findByRole("region", { name: "GitHub" });
+  await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
   expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
   await userEvent.type(screen.getByLabelText("Token clássico (escopo repo)"), "private-token");
   const settings = screen.getByRole("region", { name: "GitHub" });
@@ -277,13 +276,13 @@ it("opens GitHub settings from setup and sends the pasted token to the core", as
   expect(await screen.findByText("Conectado como exemplo")).toBeInTheDocument();
 });
 
-it("opens Trello settings from the empty module and sends key and token to the core", async () => {
+it("sends Trello key and token from Settings to the core", async () => {
   const { default: empty } = await import("./trello/fixtures/empty.json");
   const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: null, data: empty }] });
   const connectTrello = vi.fn().mockResolvedValue("exemplo");
   render(Panel, { core: { ...core, connectTrello } });
-  const module = await screen.findByRole("region", { name: "Trello" });
-  await userEvent.click(within(module).getByRole("button", { name: "Configurar" }));
+  await screen.findByRole("region", { name: "Trello" });
+  await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
   expect(core.reportVisibleModules).toHaveBeenLastCalledWith([]);
   const trello = screen.getByRole("region", { name: "Trello" });
   await userEvent.type(within(trello).getByLabelText("API key"), "0123abcd");
@@ -291,26 +290,6 @@ it("opens Trello settings from the empty module and sends key and token to the c
   await userEvent.click(within(trello).getByRole("button", { name: "Validar e salvar" }));
   expect(connectTrello).toHaveBeenCalledWith("0123abcd", "private-token");
   expect(await within(trello).findByText("Conectado como exemplo")).toBeInTheDocument();
-});
-
-it("sends a Trello move to the core with card and destination list", async () => {
-  const { default: full } = await import("./trello/fixtures/full.json");
-  const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: full }] });
-  const moveTrelloCard = vi.fn().mockResolvedValue(undefined);
-  render(Panel, { core: { ...core, moveTrelloCard } });
-  const [from, to] = full.lists;
-  await userEvent.click(await screen.findByText(from.cards[0].name));
-  await userEvent.click(screen.getByRole("region", { name: to.name }));
-  expect(moveTrelloCard).toHaveBeenCalledExactlyOnceWith(from.cards[0].id, to.id);
-});
-
-it("shows the AI module snapshot and sends its refresh to the core", async () => {
-  const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
-  const refreshAi = vi.fn();
-  render(Panel, { core: { ...core, refreshAi } });
-  expect(await screen.findByRole("region", { name: "ChatGPT / Codex" })).toBeInTheDocument();
-  await userEvent.click(screen.getByRole("button", { name: "Atualizar IA" }));
-  expect(refreshAi).toHaveBeenCalledOnce();
 });
 
 it("mirrors and clears the waiting alert on the Agents navigation item", async () => {
@@ -323,12 +302,13 @@ it("mirrors and clears the waiting alert on the Agents navigation item", async (
   expect(within(nav()).queryByLabelText("Aguardando você")).not.toBeInTheDocument();
 });
 
-it("opens at Agents and highlights the notification target", async () => {
+it("opens at Agents for a notification target without changing the last anchor", async () => {
+  const scroll = vi.mocked(Element.prototype.scrollIntoView);
   const { core } = fakeCore({ lastAnchor: "agents", agentTarget: waitingAgents.sessions[0].id,
     snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
-  const { container } = render(Panel, { core });
+  render(Panel, { core });
   await screen.findByRole("region", { name: "Agentes" });
-  await vi.waitFor(() => expect(container.querySelector("article.highlighted")).toHaveTextContent("Minha sessão"));
+  await vi.waitFor(() => expect(scroll.mock.contexts.at(-1)).toBe(section("Agentes")));
   expect(core.chooseAnchor).not.toHaveBeenCalled();
 });
 
@@ -347,7 +327,7 @@ it("brings an already open panel, even in Settings, to the session targeted by a
   const scroll = vi.mocked(Element.prototype.scrollIntoView);
   const { core } = fakeCore({ lastAnchor: "network", snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
   let target: ((session: string) => void) | undefined;
-  const { container } = render(Panel, { core: { ...core, listenAgentTarget: async (cb: (session: string) => void) => { target = cb; return () => {}; } } });
+  render(Panel, { core: { ...core, listenAgentTarget: async (cb: (session: string) => void) => { target = cb; return () => {}; } } });
   await screen.findByRole("region", { name: "Rede" });
   await userEvent.click(within(nav()).getByRole("button", { name: "Configurações" }));
   scroll.mockClear();
@@ -355,5 +335,5 @@ it("brings an already open panel, even in Settings, to the session targeted by a
   await act(() => target?.(waitingAgents.sessions[0].id));
 
   await vi.waitFor(() => expect(scroll.mock.contexts.at(-1)).toBe(section("Agentes")));
-  expect(container.querySelector("article.highlighted")).toHaveTextContent("Minha sessão");
+  expect(screen.queryByRole("heading", { name: "Configurações" })).not.toBeInTheDocument();
 });

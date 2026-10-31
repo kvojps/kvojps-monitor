@@ -1,16 +1,10 @@
 <script lang="ts">
-  import { onMount, tick, type Snippet } from "svelte";
-  import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import { onMount, tick } from "svelte";
+  import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type Module, type Core, type Snapshot } from "./core";
   import AgentSettings from "./agents/AgentSettings.svelte";
-  import AgentsModule from "./agents/AgentsModule.svelte";
-  import AiModule from "./ai/AiModule.svelte";
   import AiSettings from "./ai/AiSettings.svelte";
   import GithubSettings from "./github/GithubSettings.svelte";
-  import GithubModule from "./github/GithubModule.svelte";
-  import TrelloModule from "./trello/TrelloModule.svelte";
   import TrelloSettings from "./trello/TrelloSettings.svelte";
-  import NetworkModule from "./network/NetworkModule.svelte";
-  import SystemModule from "./system/SystemModule.svelte";
   import { interpolate, t } from "./strings";
 
   let { core }: { core: Core } = $props();
@@ -153,7 +147,7 @@
 
 <svelte:window onkeydown={onKeyDown} />
 
-{#snippet moduleSection(module: Module, body: Snippet)}
+{#snippet moduleSection(module: Module)}
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
     tabindex="-1" bind:this={sections[module]}>
     <header class="module-head">
@@ -164,42 +158,7 @@
       </div>
       <span class="code num" aria-hidden="true">{code(module)}</span>
     </header>
-    {@render body()}
   </section>
-{/snippet}
-
-{#snippet ai()}
-  {#if snapshots.ai?.data}
-    <AiModule data={snapshots.ai.data as AiData} refresh={() => core.refreshAi?.()}
-      configure={openSettings} reconnect={() => void core.connectClaude?.().catch(openSettings)} />
-  {/if}
-{/snippet}
-{#snippet system()}
-  {#if snapshots.system}
-    <SystemModule data={snapshots.system.data as SystemData} />
-  {/if}
-{/snippet}
-{#snippet agents()}
-  {#if snapshots.agents}
-    <AgentsModule data={snapshots.agents.data as AgentsData} target={agentTarget} />
-  {/if}
-{/snippet}
-{#snippet trello()}
-  {#if snapshots.trello}
-    <TrelloModule data={snapshots.trello.data as TrelloData} refresh={() => core.refreshTrello?.()}
-      configure={openSettings} openCard={(url) => core.openTrelloCard?.(url)}
-      moveCard={(card, list) => core.moveTrelloCard ? core.moveTrelloCard(card, list) : Promise.reject("offline")} />
-  {/if}
-{/snippet}
-{#snippet github()}
-  {#if snapshots.github}
-    <GithubModule data={snapshots.github.data as GithubData} refresh={() => core.refreshGithub?.()} configure={openSettings} />
-  {/if}
-{/snippet}
-{#snippet network()}
-  {#if snapshots.network?.data}
-    <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
-  {/if}
 {/snippet}
 
 <div class="panel">
@@ -235,7 +194,7 @@
               <span>{t.stations[station.key]}</span><span>{station.modules.map((m) => t.modules[m]).join(" / ")}</span>
             </div>
             {#each station.modules as module (module)}
-              {@render moduleSection(module, { ai, system, agents, trello, github, network }[module])}
+              {@render moduleSection(module)}
             {/each}
           </div>
         {/each}
@@ -450,6 +409,8 @@
     border-top: 5px solid var(--module-band);
     /* Keep the station label in view when the first row is revealed. */
     scroll-margin-top: 60px;
+    /* Module instruments arrive with their own slices (tickets 02–07). */
+    min-height: 260px;
   }
   .module.system { --module-band: var(--band-lavender); }
   .module.agents { --module-band: var(--band-violet); }
