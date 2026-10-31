@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Painel em estações com navegação e coleta por visibilidade.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Exibir dois instrumentos de 5 h com percentual/reinício e duas barras semanais, identificação e idade da leitura; não adicionar buckets, planos, calendário ou rolagem de detalhes.
 - [x] Atualizar/configurar e reconectar continuam funcionais; atualização manual respeita intervalo mínimo de 10 s. Reconexão ocorre somente por ação explícita.
@@ -23,3 +23,7 @@
 - **Privacidade:** aquisição inalterada. Os testes do núcleo pelo seam existente (`the_token_is_only_read_never_renewed_written_or_kept`, `restart_shows_the_cached_reading_and_never_the_token`) cobrem token só em memória, sem renovação e ausente de cache, log e snapshot publicado. O coletor de IA não tem porta de notificador, então o token não tem caminho até notificações.
 - **Decisões locais a validar:** nome do provedor passou de “ChatGPT / Codex” para “Codex”, como na spec e no protótipo H. Os anéis decorativos ficam parados até a Coreografia combinada (09), para respeitar redução manual e Painel oculto.
 - **Pendente (usuário):** conferência visual nativa nas três larguras e nos temas escuro/claro.
+
+## Comments
+
+**2026-10-31 — resolvido a pedido do usuário.** Instrumentos da janela de 5 h e barras semanais de IA entregues em `2392316`. A conferência visual nativa listada em “Pendente (usuário)” segue para o ticket 10, junto com a validação de composição e acessibilidade no GNOME/Wayland.

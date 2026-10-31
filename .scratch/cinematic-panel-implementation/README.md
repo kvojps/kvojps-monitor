@@ -9,11 +9,11 @@ Fonte de verdade: [especificação visual aprovada](../cinematic-panel/spec.md),
 | Ticket | Bloqueado por |
 | --- | --- |
 | [01 — Painel em estações com navegação e coleta por visibilidade](issues/01-panel-stations.md) ✅ resolvido | Nenhum |
-| [02 — IA com instrumentos de Limite de uso](issues/02-ai-instruments.md) | 01 |
-| [03 — Agentes com intervenção e sessão direcionada](issues/03-agent-sessions.md) | 01 |
-| [04 — GitHub com atividade e Repo em destaque](issues/04-github-activity.md) | 01 |
-| [05 — Trello em quadro interativo](issues/05-trello-board.md) | 01 |
-| [06 — Rede com instrumentos e tráfego real](issues/06-network-instruments.md) | 01 |
+| [02 — IA com instrumentos de Limite de uso](issues/02-ai-instruments.md) ✅ resolvido | 01 |
+| [03 — Agentes com intervenção e sessão direcionada](issues/03-agent-sessions.md) ✅ resolvido | 01 |
+| [04 — GitHub com atividade e Repo em destaque](issues/04-github-activity.md) ✅ resolvido | 01 |
+| [05 — Trello em quadro interativo](issues/05-trello-board.md) ✅ resolvido | 01 |
+| [06 — Rede com instrumentos e tráfego real](issues/06-network-instruments.md) ✅ resolvido | 01 |
 | [07 — Sistema com instrumentos e alertas](issues/07-system-instruments.md) | 01 |
 | [08 — Configurações completas, temas e primeira execução](issues/08-settings-and-onboarding.md) | 01 |
 | [09 — Coreografia combinada com pausa nativa](issues/09-combined-motion.md) | 02–08 |

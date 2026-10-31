@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Painel em estações com navegação e coleta por visibilidade.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Mostrar colunas e cards com título, etiquetas e vencimento conforme a composição aprovada; listas extensas têm rolagem, sem esconder cards para obter simetria.
 - [x] Selecionar card/lista de destino e mover com resultado otimista; falha reverte o movimento e informa o ocorrido. Duplo clique abre no navegador, com alternativa acessível por teclado.
@@ -22,3 +22,7 @@
 - **Atualizações:** seleção, foco e rolagem do Painel e de cada lista se mantêm quando chega um snapshot; a seleção cai só se o card sumir do quadro.
 - **Privacidade:** coleta e armazenamento inalterados. Cache e logs sem credenciais nem títulos já cobertos por `restart_restores_last_board_without_card_titles_or_credentials` e `failed_move_keeps_the_last_board_and_its_clock_and_logs_only_metadata`; o coletor do Trello não tem porta de notificação.
 - **Pendente (usuário):** conferência visual nativa de listas densas (sobreposição/corte não é verificável no jsdom), nas três larguras e nos temas escuro/claro.
+
+## Comments
+
+**2026-10-31 — resolvido a pedido do usuário.** Quadro do Trello em colunas, com mover/abrir por clique e teclado entregue em `671385e`. A conferência visual nativa listada em “Pendente (usuário)” segue para o ticket 10, junto com a validação de composição e acessibilidade no GNOME/Wayland.

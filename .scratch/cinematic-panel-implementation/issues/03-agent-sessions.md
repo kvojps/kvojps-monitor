@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Painel em estações com navegação e coleta por visibilidade.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Mostrar projeto/nome, provedor, Estado da sessão, motivo e duração; contadores e alerta da navegação derivam dos snapshots, sem rótulos ou códigos fixos da fixture.
 - [x] Preservar os cinco Estados da sessão, resumo de Encerradas sem lista adicional/expansor e retenção de até 2 h/máximo 5 conforme a v1.
@@ -25,3 +25,7 @@
 - **Decisões validadas pelo usuário (2026-10-31), divergências registradas:** (1) uma sessão direcionada que encerrou depois da notificação aparece sozinha na lista, destacada, para que a notificação ainda a alcance (as demais Encerradas seguem só no contador); (2) contadores para os cinco estados, em vez dos três da composição H, para que nenhum estado vivo fique sem contagem; Decisão local: durações acima de 1 h passam a “1 h 01 min”.
 - **Revisão:** o alerta da navegação voltou a usar `accentDot`; `lastSuccessAt` deixou de avançar com hooks; o aviso de falha e o destaque de intervenção deixaram de ser regiões vivas, para não repetir anúncios a cada snapshot. Pendências conhecidas: a lista permitida de ferramentas está duplicada entre `notifications.rs` e `AgentsModule.svelte`, e nenhum teste liga as duas; após uma falha, o cabeçalho mostra a hora do snapshot e o aviso mostra a hora da última leitura.
 - **Pendente (usuário):** conferência visual nativa nas três larguras e nos temas escuro/claro; abrir uma notificação real com o Painel fechado e aberto.
+
+## Comments
+
+**2026-10-31 — resolvido a pedido do usuário.** Destaque de intervenção, lista de Sessões de agente e sessão notificada entregues em `5f92a08`. A conferência visual nativa listada em “Pendente (usuário)” segue para o ticket 10, junto com a validação de composição e acessibilidade no GNOME/Wayland.

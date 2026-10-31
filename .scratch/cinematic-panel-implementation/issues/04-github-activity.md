@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Painel em estações com navegação e coleta por visibilidade.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Exibir total identificado como anual, mapa das últimas oito semanas e barras dos últimos 14 dias, sem calendário anual completo ou rolagem de detalhes.
 - [x] Mostrar Repo em destaque com commits em 7 dias e título do último commit, preservando o cálculo existente e contagem anônima de contribuições privadas.
@@ -26,3 +26,7 @@
 - **Decisões validadas pelo usuário (2026-10-31), divergências registradas:** (1) Repo em destaque como em H: commits em 7 dias e título, sem o total de commits e a idade do último commit da v1; (2) no começo do ano o mapa tem menos de oito semanas (e, no início de janeiro, menos de 14 barras), sem mudar a coleta do ano civil; (3) o mapa tem só resumo textual; valores por dia ficam nas barras dos 14 dias.
 - **Revisão:** o Repo em destaque some quando nada foi lido (antes dizia “Sem commits” numa falha sem cache); o total anual aparece mesmo sem dias até hoje no calendário; singular para 1 contribuição/commit; números formatados em pt-BR.
 - **Pendente (usuário):** conferência visual nativa nas três larguras e nos temas escuro/claro.
+
+## Comments
+
+**2026-10-31 — resolvido a pedido do usuário.** Total anual, oito semanas, 14 dias e Repo em destaque entregues em `46ca8a6`. A conferência visual nativa listada em “Pendente (usuário)” segue para o ticket 10, junto com a validação de composição e acessibilidade no GNOME/Wayland.

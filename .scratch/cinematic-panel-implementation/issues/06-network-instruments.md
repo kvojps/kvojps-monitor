@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Painel em estações com navegação e coleta por visibilidade.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Separar Qualidade e Segurança com nomes canônicos, conexão cabeada/sem fio, VPN, desconexão e motivos de Atenção/Risco; nunca afirmar “Rede segura”.
 - [x] Destacar latência de Internet e instrumento menor acionável de download/upload do último teste em Mbps. Mostrar jitter/perda de Internet e latência do gateway em indicadores menores; jitter/perda do gateway em faixa secundária, sem tabela ou cabeçalhos repetidos.
@@ -27,3 +27,7 @@
 - **Preservado:** a coleta, as regras de Qualidade/Segurança e a notificação de Risco não mudaram, e não há dado novo. O botão segue desabilitado sem internet ou em conexão limitada e durante o teste. Rede continua sem ↻.
 - **Limitação:** o “antigo” da UI considera só a idade. A regra “na rede atual” continua a cargo do núcleo, que é quem decide se o teste pesa na Qualidade, e a UI não conhece o id da rede atual.
 - **Pendente (usuário):** conferência visual nativa nas três larguras e nos temas escuro/claro, e conferência de contraste das cores das séries.
+
+## Comments
+
+**2026-10-31 — resolvido a pedido do usuário.** Qualidade/Segurança, latência, teste de velocidade, gráfico de tráfego e aplicativos entregues em `2bd7b79`. A conferência visual nativa listada em “Pendente (usuário)” segue para o ticket 10, junto com a validação de composição e acessibilidade no GNOME/Wayland.
