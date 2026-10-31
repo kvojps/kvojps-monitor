@@ -217,7 +217,6 @@
   .track { stroke: var(--surface-2); }
   .reading { stroke: var(--accent); }
   .reading.high { stroke: var(--warn); }
-  /* Decorative ticks stay still until the motion choreography (ticket 09). */
   .value { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
   strong { font-size: 38px; font-weight: 300; }
   small { font-size: 14px; color: var(--muted); }

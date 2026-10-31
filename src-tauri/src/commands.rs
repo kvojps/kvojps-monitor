@@ -14,6 +14,7 @@ use crate::state::AppState;
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InitialState {
+    panel_visible: bool,
     last_anchor: Module,
     /// First opening: Settings shows the welcome.
     welcome: bool,
@@ -26,12 +27,19 @@ pub struct InitialState {
 
 #[tauri::command]
 pub fn initial_state(
+    app: AppHandle,
     state: State<Mutex<AppState>>,
     snapshots: State<Snapshots>,
     theme: State<crate::desktop_theme::Current>,
 ) -> InitialState {
     let state = state.lock().unwrap();
     InitialState {
+        panel_visible: {
+            use tauri::Manager;
+            app.get_webview_window(panel::LABEL)
+                .and_then(|window| window.is_visible().ok())
+                .unwrap_or(false)
+        },
         welcome: state.welcome_pending(),
         appearance: state.appearance(),
         system_theme: theme.get(),

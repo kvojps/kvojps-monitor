@@ -605,3 +605,42 @@ describe("System module in the panel", () => {
     expect(within(system).getByRole("group", { name: "CPU" })).toHaveTextContent("38%");
   });
 });
+
+
+describe("Decorative choreography", () => {
+  it("waits for native visibility, stops while hidden, and preserves instrument readings", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
+    let visibility: ((visible: boolean) => void) | undefined;
+    const stop = vi.fn();
+    const view = render(Panel, { core: { ...core,
+      initialState: async () => ({ lastAnchor: "ai", snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }], panelVisible: false }),
+      listenPanelVisibility: async (cb: (visible: boolean) => void) => { visibility = cb; return stop; },
+    } });
+    const meter = await screen.findByRole("meter", { name: "Codex · janela de 5 h" });
+    const reading = meter.outerHTML;
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+    await act(() => visibility?.(true));
+    expect(document.documentElement.dataset.decoration).toBe("running");
+    await act(() => visibility?.(false));
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+    expect(meter.outerHTML).toBe(reading);
+    await act(() => visibility?.(true));
+    expect(document.documentElement.dataset.decoration).toBe("running");
+    view.unmount();
+    await Promise.resolve();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+  });
+});
+
+
+it("restores choreography only after a recreated webview receives native state", async () => {
+  const { core } = fakeCore();
+  const visibleCore = { ...core, initialState: async (): Promise<InitialState> => ({ lastAnchor: "ai", snapshots: [], panelVisible: true }) };
+  const first = render(Panel, { core: visibleCore });
+  await vi.waitFor(() => expect(document.documentElement.dataset.decoration).toBe("running"));
+  first.unmount();
+  expect(document.documentElement.dataset.decoration).toBe("paused");
+  render(Panel, { core: visibleCore });
+  await vi.waitFor(() => expect(document.documentElement.dataset.decoration).toBe("running"));
+});

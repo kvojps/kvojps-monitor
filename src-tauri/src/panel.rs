@@ -6,7 +6,9 @@
 
 use std::sync::Mutex;
 
-use tauri::{AppHandle, Manager, Monitor, PhysicalSize, WebviewWindow, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, Manager, Monitor, PhysicalSize, WebviewWindow, WebviewWindowBuilder,
+};
 
 use crate::collection;
 use crate::state::AppState;
@@ -19,6 +21,7 @@ pub fn open(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(LABEL) {
         fit(&window);
         let _ = window.show();
+        let _ = window.emit("panel-visibility", true);
         let _ = window.set_focus();
         return;
     }
@@ -75,6 +78,7 @@ pub fn close(app: &AppHandle) {
     app.state::<Mutex<AppState>>().lock().unwrap().close_panel();
     collection::visibility_changed(app);
     if let Some(window) = app.get_webview_window(LABEL) {
+        let _ = window.emit("panel-visibility", false);
         let _ = window.destroy();
     }
 }

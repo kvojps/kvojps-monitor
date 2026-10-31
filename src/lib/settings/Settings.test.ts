@@ -263,19 +263,25 @@ describe("appearance", () => {
   });
 
   it("reduces motion by choice and always when the system asks", async () => {
-    const { core } = fakeCore(appearance({}));
+    const { core } = fakeCore({ ...appearance({}), panelVisible: true });
     render(Panel, { core });
     await openSettings();
+    expect(document.documentElement.dataset.decoration).toBe("running");
     expect(document.documentElement.dataset.motion).toBe("full");
 
     const reduce = screen.getByRole("checkbox", { name: "Reduzir animações" });
     await userEvent.click(reduce);
     expect(document.documentElement.dataset.motion).toBe("reduced");
+    expect(document.documentElement.dataset.decoration).toBe("paused");
     expect(core.setAppearance).toHaveBeenLastCalledWith({ theme: "system", reduceMotion: true });
 
     await userEvent.click(reduce);
     await act(() => setMedia("(prefers-reduced-motion: reduce)", true));
     expect(document.documentElement.dataset.motion).toBe("reduced");
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+    await act(() => setMedia("(prefers-reduced-motion: reduce)", false));
+    expect(document.documentElement.dataset.decoration).toBe("running");
+    await act(() => setMedia("(prefers-reduced-motion: reduce)", true));
     expect(reduce).toHaveAccessibleDescription("O sistema já pede menos animações; essa preferência prevalece.");
   });
 });

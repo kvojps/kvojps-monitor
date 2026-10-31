@@ -61,6 +61,7 @@ export interface GeneralSettings {
 }
 
 export interface InitialState {
+  panelVisible?: boolean;
   /** First opening: Settings shows the welcome. */
   welcome?: boolean;
   appearance?: Appearance;
@@ -75,6 +76,7 @@ export interface InitialState {
 export interface AgentNotificationPreferences { waiting: boolean; done: boolean; failed: boolean }
 
 export interface Core {
+  listenPanelVisibility?(cb: (visible: boolean) => void): Promise<() => void>;
   listenAgentTarget?(cb: (session: string) => void): Promise<() => void>;
   setAgentHooks?(enabled: boolean): Promise<void>;
   setAgentNotifications?(preferences: AgentNotificationPreferences): void;
@@ -122,6 +124,7 @@ export const tauriCore: Core = {
   listenAgentTarget: (cb) => listen<string>("agent-target", (e) => cb(e.payload)),
   setAgentHooks: (enabled) => invoke<void>("set_agent_hooks", { enabled }),
   setAgentNotifications: (preferences) => void invoke("set_agent_notifications", { preferences }),
+  listenPanelVisibility: (cb) => listen<boolean>("panel-visibility", (e) => cb(e.payload)),
   initialState: () => invoke<InitialState>("initial_state"),
   async listenSnapshots(cb) {
     const stops = await Promise.all(MODULES.map((m) => listen<Snapshot>(`snapshot:${m}`, (e) => cb(e.payload))));

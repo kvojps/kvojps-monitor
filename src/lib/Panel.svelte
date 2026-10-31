@@ -29,6 +29,16 @@
   /** First opening: Settings shows the welcome until the user goes back to the panel. */
   let welcome = $state(false);
   const appearance = new AppearanceState();
+  let nativeVisible = $state(false);
+  let appearanceRestored = $state(false);
+  let pageVisible = $state(!document.hidden);
+  $effect(() => {
+    const state = appearanceRestored && nativeVisible && pageVisible && !appearance.reduced ? "running" : "paused";
+    document.documentElement.dataset.decoration = state;
+    // Bounded in-memory trace: no source data or per-frame callbacks.
+    performance.clearMarks?.("panel-decoration");
+    performance.mark?.("panel-decoration", { detail: { state } });
+  });
   $effect(() => {
     document.documentElement.dataset.theme = appearance.theme;
     document.documentElement.dataset.motion = appearance.reduced ? "reduced" : "full";
@@ -140,14 +150,23 @@
     }
 
     // Subscribe before requesting initial state to avoid losing snapshots in between.
+    let disposed = false;
+    let visibilityReceived = false;
+    const stopVisibility = core.listenPanelVisibility?.((visible) => {
+      visibilityReceived = true;
+      nativeVisible = visible;
+    });
     const stop = core.listenSnapshots(receive);
     const stopTarget = core.listenAgentTarget?.((session) => void target(session));
     const stopMedia = appearance.watch();
     const stopTheme = core.listenSystemTheme?.((theme) => (appearance.desktop = theme));
     core.initialState().then(async (initial) => {
+      if (disposed) return;
+      if (!visibilityReceived) nativeVisible = initial.panelVisible ?? false;
       initial.snapshots.forEach(receive);
       if (initial.appearance) appearance.preference = initial.appearance;
       appearance.desktop ??= initial.systemTheme ?? null;
+      appearanceRestored = true;
       agentTarget ??= initial.agentTarget ?? null;
       anchor ??= agentTarget ? "agents" : initial.lastAnchor;
       await tick();
@@ -160,6 +179,9 @@
       }
     });
     return () => {
+      disposed = true;
+      document.documentElement.dataset.decoration = "paused";
+      void stopVisibility?.then((stop) => stop());
       stopMedia();
       void stopTheme?.then((p) => p());
       observer?.disconnect();
@@ -174,6 +196,7 @@
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
+<svelte:document onvisibilitychange={() => (pageVisible = !document.hidden)} />
 
 {#snippet ai()}
   <!-- Before the first snapshot the instruments explain there is no reading and keep their actions. -->
