@@ -39,11 +39,16 @@ export interface SystemData {
 }
 
 export interface InitialState {
+  agentTarget?: string | null;
   lastModule: Module;
   snapshots: Snapshot[];
 }
 
+export interface AgentNotificationPreferences { waiting: boolean; done: boolean; failed: boolean }
+
 export interface Core {
+  listenAgentTarget?(cb: (session: string) => void): Promise<() => void>;
+  setAgentNotifications?(preferences: AgentNotificationPreferences): void;
   initialState(): Promise<InitialState>;
   listenSnapshots(cb: (s: Snapshot) => void): Promise<() => void>;
   /** null when the current view is Settings. */
@@ -72,6 +77,8 @@ export interface Core {
 }
 
 export const tauriCore: Core = {
+  listenAgentTarget: (cb) => listen<string>("agent-target", (e) => cb(e.payload)),
+  setAgentNotifications: (preferences) => void invoke("set_agent_notifications", { preferences }),
   initialState: () => invoke<InitialState>("initial_state"),
   async listenSnapshots(cb) {
     const stops = await Promise.all(MODULES.map((m) => listen<Snapshot>(`snapshot:${m}`, (e) => cb(e.payload))));
@@ -210,6 +217,7 @@ export interface AgentSession {
   lastState?: "working" | "waiting" | "done" | "failed" | null;
 }
 export interface AgentsData {
+  notificationPreferences?: AgentNotificationPreferences;
   codexWaitingUnavailable?: boolean;
   sessions: AgentSession[];
   closed: AgentSession[];

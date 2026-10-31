@@ -89,6 +89,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::initial_state,
+            commands::set_agent_notifications,
             commands::report_module_visible,
             commands::close_panel,
             commands::refresh_ai,

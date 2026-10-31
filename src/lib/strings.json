@@ -226,5 +226,17 @@
       "failed": "Com falha",
       "closed": "Encerrada"
     }
+  },
+  "agentNotifications": {
+    "waiting": "Aguardando sua resposta",
+    "approval": "Aguardando aprovação: {tool}",
+    "failed": "Turno terminou com erro",
+    "done": "Turno concluído em {time}",
+    "groupWaiting": "{count} sessões aguardando você",
+    "group": "{count} sessões com novos eventos",
+    "title": "Agentes",
+    "waitingSetting": "Aguardando",
+    "doneSetting": "Turno concluído",
+    "failedSetting": "Falha"
   }
 }

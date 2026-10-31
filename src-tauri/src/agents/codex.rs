@@ -103,6 +103,8 @@ impl<F: Files> Source for Adapter<F> {
                 continue;
             }
             let mut state = SessionState::Done;
+            let mut interrupted = false;
+            let mut turn_duration = None;
             {
                 let content = self.files.read(&rollout).map_err(|_| ())?;
                 for line in content.lines() {
@@ -111,6 +113,13 @@ impl<F: Files> Source for Adapter<F> {
                     };
                     if event["type"] != "event_msg" {
                         continue;
+                    }
+                    if matches!(
+                        event["payload"]["type"].as_str(),
+                        Some("task_started" | "task_complete" | "turn_aborted" | "error")
+                    ) {
+                        interrupted = event["payload"]["type"] == "turn_aborted";
+                        turn_duration = event["payload"]["duration_ms"].as_u64();
                     }
                     match event["payload"]["type"].as_str() {
                         Some("task_started") => state = SessionState::Working,
@@ -122,6 +131,8 @@ impl<F: Files> Source for Adapter<F> {
             }
             sessions.push((
                 Session {
+                    interrupted,
+                    turn_duration,
                     id: format!("codex:{id}"),
                     provider: Provider::Codex,
                     project: std::path::Path::new(&cwd)

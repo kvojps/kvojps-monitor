@@ -1,4 +1,4 @@
-use std::fs;
+use crate::persistence::{DiskStorage, Storage};
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ const PREFERENCES_FILE: &str = "preferencias.json";
 struct Preferences {
     #[serde(alias = "ultimoModulo")]
     last_module: Module,
+    agent_notifications: crate::agents::notifications::Preferences,
     /// First run has already enabled autostart.
     #[serde(alias = "inicializado")]
     initialized: bool,
@@ -20,9 +21,10 @@ struct Preferences {
 
 /// Core panel state: current visibility and preferences persisted between launches.
 pub struct AppState {
-    dir_config: PathBuf,
+    storage: Box<dyn Storage>,
     preferences: Preferences,
     panel_open: bool,
+    agent_target: Option<String>,
     /// Current UI view; None means Settings.
     view: Option<Module>,
 }
@@ -30,15 +32,21 @@ pub struct AppState {
 impl AppState {
     /// Load preferences; missing or unreadable files count as first run.
     pub fn load(dir_config: PathBuf) -> Self {
-        let preferences: Preferences = fs::read(dir_config.join(PREFERENCES_FILE))
+        Self::with_storage(DiskStorage(dir_config))
+    }
+
+    pub fn with_storage(storage: impl Storage + 'static) -> Self {
+        let preferences: Preferences = storage
+            .read(PREFERENCES_FILE)
             .ok()
-            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .and_then(|json| serde_json::from_str(&json).ok())
             .unwrap_or_default();
         let view = Some(preferences.last_module);
         AppState {
-            dir_config,
+            storage: Box::new(storage),
             preferences,
             panel_open: false,
+            agent_target: None,
             view,
         }
     }
@@ -49,6 +57,7 @@ impl AppState {
 
     /// The UI now shows module; None means Settings.
     pub fn show(&mut self, module: Option<Module>) {
+        self.agent_target = None;
         self.view = module;
         if let Some(m) = module {
             self.preferences.last_module = m;
@@ -68,11 +77,12 @@ impl AppState {
     /// Recreate the panel at the last visited module on each opening.
     pub fn open_panel(&mut self) {
         self.panel_open = true;
-        self.view = Some(self.preferences.last_module);
+        self.view = Some(self.opening_module());
     }
 
     pub fn close_panel(&mut self) {
         self.panel_open = false;
+        self.agent_target = None;
     }
 
     /// Currently visible module; some collectors depend on this.
@@ -80,19 +90,41 @@ impl AppState {
         self.view.filter(|_| self.panel_open)
     }
 
+    pub fn agent_notifications(&self) -> crate::agents::notifications::Preferences {
+        self.preferences.agent_notifications
+    }
+    pub fn set_agent_notifications(
+        &mut self,
+        preferences: crate::agents::notifications::Preferences,
+    ) {
+        self.preferences.agent_notifications = preferences;
+        self.save();
+    }
+    pub fn target_agent(&mut self, session: String) {
+        self.agent_target = Some(session);
+    }
+    pub fn agent_target(&self) -> Option<String> {
+        self.agent_target.clone()
+    }
+    pub fn opening_module(&self) -> Module {
+        if self.agent_target.is_some() {
+            Module::Agents
+        } else {
+            self.last_module()
+        }
+    }
     fn save(&self) {
-        // A write failure only loses the remembered module; the app keeps running.
-        let _ = fs::create_dir_all(&self.dir_config).and_then(|_| {
-            let json =
-                serde_json::to_vec_pretty(&self.preferences).map_err(std::io::Error::other)?;
-            fs::write(self.dir_config.join(PREFERENCES_FILE), json)
-        });
+        // A write failure loses preferences; the app keeps running.
+        if let Ok(json) = serde_json::to_string_pretty(&self.preferences) {
+            let _ = self.storage.write(PREFERENCES_FILE, &json);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     fn dir() -> tempfile::TempDir {
         tempfile::tempdir().unwrap()
@@ -214,10 +246,72 @@ mod tests {
             serde_json::from_slice(&fs::read(d.path().join(PREFERENCES_FILE)).unwrap()).unwrap();
         assert_eq!(
             saved,
-            serde_json::json!({"lastModule":"system","initialized":true})
+            serde_json::json!({"lastModule":"system","initialized":true,"agentNotifications":{"waiting":true,"done":true,"failed":true}})
         );
         let reloaded = AppState::load(d.path().into());
         assert_eq!(reloaded.last_module(), Module::System);
         assert!(!reloaded.first_execution());
+    }
+}
+
+#[cfg(test)]
+mod agent_notification_tests {
+    use super::*;
+    use std::{
+        io,
+        sync::{Arc, Mutex},
+    };
+    #[derive(Clone, Default)]
+    struct MemoryStorage(Arc<Mutex<Option<String>>>);
+    impl Storage for MemoryStorage {
+        fn read(&self, _: &str) -> io::Result<String> {
+            self.0
+                .lock()
+                .unwrap()
+                .clone()
+                .ok_or(io::ErrorKind::NotFound.into())
+        }
+        fn write(&self, _: &str, data: &str) -> io::Result<()> {
+            *self.0.lock().unwrap() = Some(data.into());
+            Ok(())
+        }
+        fn rename(&self, _: &str, _: &str) -> io::Result<()> {
+            Err(io::ErrorKind::Unsupported.into())
+        }
+        fn remove(&self, _: &str) -> io::Result<()> {
+            Err(io::ErrorKind::Unsupported.into())
+        }
+    }
+    #[test]
+    fn notification_target_overrides_opening_module_until_panel_closes() {
+        let storage = MemoryStorage::default();
+        let mut state = AppState::with_storage(storage.clone());
+        state.show(Some(Module::Network));
+        state.target_agent("session-1".into());
+        state.open_panel();
+        assert_eq!(state.module_visible(), Some(Module::Agents));
+        assert_eq!(state.agent_target().as_deref(), Some("session-1"));
+        assert_eq!(state.last_module(), Module::Network);
+        state.close_panel();
+        state.open_panel();
+        assert_eq!(state.module_visible(), Some(Module::Network));
+        assert!(state.agent_target().is_none());
+    }
+    #[test]
+    fn agent_switches_default_to_enabled_and_persist_without_session_content() {
+        let storage = MemoryStorage::default();
+        let mut state = AppState::with_storage(storage.clone());
+        let defaults = state.agent_notifications();
+        assert!(defaults.waiting && defaults.done && defaults.failed);
+        state.target_agent("PRIVATE_SESSION".into());
+        state.set_agent_notifications(crate::agents::notifications::Preferences {
+            waiting: false,
+            done: true,
+            failed: false,
+        });
+        let reloaded = AppState::with_storage(storage.clone());
+        let saved = reloaded.agent_notifications();
+        assert!(!saved.waiting && saved.done && !saved.failed);
+        assert!(!storage.read(PREFERENCES_FILE).unwrap().contains("PRIVATE_"));
     }
 }

@@ -15,13 +15,16 @@ use crate::state::AppState;
 #[serde(rename_all = "camelCase")]
 pub struct InitialState {
     last_module: Module,
+    agent_target: Option<String>,
     snapshots: Vec<Snapshot>,
 }
 
 #[tauri::command]
 pub fn initial_state(state: State<Mutex<AppState>>, snapshots: State<Snapshots>) -> InitialState {
+    let state = state.lock().unwrap();
     InitialState {
-        last_module: state.lock().unwrap().last_module(),
+        agent_target: state.agent_target(),
+        last_module: state.opening_module(),
         snapshots: snapshots.all(),
     }
 }
@@ -206,4 +209,12 @@ pub async fn open_trello_card(url: String) {
 #[tauri::command]
 pub async fn open_trello_admin() {
     crate::trello::open_admin(&crate::ports::SystemProcesses);
+}
+
+#[tauri::command]
+pub fn set_agent_notifications(
+    preferences: crate::agents::notifications::Preferences,
+    state: State<Mutex<AppState>>,
+) {
+    state.lock().unwrap().set_agent_notifications(preferences);
 }

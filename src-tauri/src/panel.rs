@@ -40,3 +40,14 @@ pub fn close(app: &AppHandle) {
         let _ = window.destroy();
     }
 }
+
+/// Notification clicks override the remembered module, also in an already open panel.
+pub fn open_agent(app: &AppHandle, session: String) {
+    use tauri::Emitter;
+    app.state::<Mutex<AppState>>()
+        .lock()
+        .unwrap()
+        .target_agent(session.clone());
+    open(app);
+    let _ = app.emit_to(LABEL, "agent-target", session);
+}

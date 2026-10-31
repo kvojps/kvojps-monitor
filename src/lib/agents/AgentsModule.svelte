@@ -1,7 +1,16 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import type { AgentsData, AgentSession } from "../core";
   import { t } from "../strings";
-  let { data }: { data: AgentsData } = $props();
+  let { data, target = null }: { data: AgentsData; target?: string | null } = $props();
+  let root: HTMLElement;
+  $effect(() => {
+    const session = target;
+    if (session && data) void tick().then(() => {
+      Array.from(root?.querySelectorAll<HTMLElement>("article") ?? [])
+        .find((row) => row.dataset.sessionId === session)?.scrollIntoView?.({ block: "nearest" });
+    });
+  });
   function elapsed(session: AgentSession) {
     const seconds = Math.max(0, Math.floor(((session.closedAt ?? data.observedAt) - session.startedAt) / 1000));
     return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
@@ -17,19 +26,19 @@
 </script>
 
 {#snippet row(session: AgentSession)}
-  <article class:waiting={session.state === "waiting"} data-state={session.state}>
+  <article data-session-id={session.id} class:waiting={session.state === "waiting"} class:highlighted={target === session.id} data-state={session.state}>
     <div class="heading"><strong>{session.project}</strong><span class="state">{t.agents.states[session.state]}</span></div>
     <p>{session.name ?? t.agents.unnamed}</p>
     <div class="meta"><span>{detail(session)}</span><span class="num">{elapsed(session)}</span></div>
   </article>
 {/snippet}
-<section aria-label={t.modules.agents}>
+<section bind:this={root} aria-label={t.modules.agents}>
   {#if data.codexWaitingUnavailable}<p class="muted">{t.agents.codexWaitingUnavailable}</p>{/if}
   {#if data.failed}<p role="status" class="muted">{t.agents.failure}</p>{/if}
   {#if data.sessions.length === 0}<p class="muted">{t.agents.empty}</p>{/if}
   {#each data.sessions as session (session.id)}{@render row(session)}{/each}
   {#if data.closed.length}
-    <details><summary>{t.agents.closed} ({data.closed.length})</summary>
+    <details open={data.closed.some((s) => s.id === target)}><summary>{t.agents.closed} ({data.closed.length})</summary>
       {#each data.closed as session (session.id)}{@render row(session)}{/each}
     </details>
   {/if}
@@ -37,6 +46,7 @@
 <style>
   section { padding: 6px 16px 16px; }
   article { padding: 12px; margin: 8px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  article.highlighted { outline: 2px solid var(--accent); outline-offset: 2px; }
   article.waiting { border-color: var(--accent); background: var(--accent-dim); }
   .heading, .meta { display: flex; justify-content: space-between; gap: 8px; }
   strong, p { overflow-wrap: anywhere; }

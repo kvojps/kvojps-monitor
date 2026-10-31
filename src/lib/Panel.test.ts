@@ -2,14 +2,14 @@ import { render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Panel from "./Panel.svelte";
-import type { Module, Core, Snapshot } from "./core";
+import type { Module, Core, Snapshot, InitialState } from "./core";
 import networkSpeed from "./network/fixtures/speed.json";
 import notebook from "./system/fixtures/notebook.json";
 
 function fakeCore(initial: { lastModule?: Module; snapshots?: Snapshot[] } = {}) {
   let listener: ((s: Snapshot) => void) | undefined;
   const core = {
-    initialState: vi.fn(async () => ({
+    initialState: vi.fn(async (): Promise<InitialState> => ({
       lastModule: initial.lastModule ?? "ai",
       snapshots: initial.snapshots ?? [],
     })),
@@ -179,4 +179,35 @@ it("mirrors and clears the waiting accent on the Agents rail icon", async () => 
   expect(await within(rail).findByLabelText("Aguardando você")).toBeInTheDocument();
   await act(() => publish({ module: "agents", updatedAt: 2, data: empty }));
   expect(within(rail).queryByLabelText("Aguardando você")).not.toBeInTheDocument();
+});
+
+import waitingAgents from "./agents/fixtures/waiting.json";
+it("opens Agents and highlights the notification target instead of the remembered module", async () => {
+  const { core } = fakeCore();
+  core.initialState.mockResolvedValue({ lastModule: "agents", agentTarget: waitingAgents.sessions[0].id,
+    snapshots: [{module: "agents", updatedAt: 1000, data: waitingAgents}] });
+  const { container } = render(Panel, { core });
+  await screen.findByRole("heading", { name: "Agentes" });
+  expect(container.querySelector("article.highlighted")).toHaveTextContent("Minha sessão");
+});
+
+it("shows three enabled Agent notification switches and sends the changed preferences", async () => {
+  const { core } = fakeCore({snapshots: [{module: "agents", updatedAt: 1000, data: waitingAgents}]});
+  const setAgentNotifications = vi.fn();
+  render(Panel, {core: {...core, setAgentNotifications}});
+  await screen.findByRole("heading", {name: "IA"});
+  await userEvent.click(screen.getByRole("button", {name: "Configurações"}));
+  for (const name of ["Aguardando", "Turno concluído", "Falha"]) expect(screen.getByRole("checkbox", {name})).toBeChecked();
+  await userEvent.click(screen.getByRole("checkbox", {name: "Aguardando"}));
+  expect(setAgentNotifications).toHaveBeenCalledWith({waiting: false, done: true, failed: true});
+});
+
+it("switches an already open panel to the session targeted by a notification", async () => {
+  const { core } = fakeCore({lastModule: "network", snapshots: [{module: "agents", updatedAt: 1000, data: waitingAgents}]});
+  let target: ((session: string) => void) | undefined;
+  const {container} = render(Panel, {core: {...core, listenAgentTarget: async (cb: (session: string) => void) => { target = cb; return () => {}; }}});
+  await screen.findByRole("heading", {name: "Rede"});
+  target?.(waitingAgents.sessions[0].id);
+  await screen.findByRole("heading", {name: "Agentes"});
+  expect(container.querySelector("article.highlighted")).toHaveTextContent("Minha sessão");
 });

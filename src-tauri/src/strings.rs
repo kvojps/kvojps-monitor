@@ -5,7 +5,9 @@ use std::sync::LazyLock;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Strings {
+    pub agent_notifications: AgentNotifications,
     pub indicator: Indicator,
 }
 
@@ -26,4 +28,16 @@ mod tests {
     fn shared_strings_include_indicator_text() {
         assert_eq!(super::STRINGS.indicator.open_panel, "Abrir painel");
     }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentNotifications {
+    pub waiting: String,
+    pub approval: String,
+    pub failed: String,
+    pub done: String,
+    pub group_waiting: String,
+    pub group: String,
+    pub title: String,
 }

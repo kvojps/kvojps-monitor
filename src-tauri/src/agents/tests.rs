@@ -300,3 +300,258 @@ fn injected_sqlite_and_proc_failures_never_close_a_live_codex_session() {
         assert!(data.closed.is_empty());
     }
 }
+
+#[derive(Clone, Debug)]
+struct NotificationCall {
+    replaces: u32,
+    title: String,
+    body: String,
+    session: String,
+}
+#[derive(Clone, Default)]
+struct Notifications(Arc<Mutex<Vec<NotificationCall>>>, Arc<Mutex<Vec<u32>>>);
+impl notifications::Sink for Notifications {
+    fn show(&mut self, replaces: u32, title: &str, body: &str, session: &str) -> u32 {
+        let mut calls = self.0.lock().unwrap();
+        calls.push(NotificationCall {
+            replaces,
+            title: title.into(),
+            body: body.into(),
+            session: session.into(),
+        });
+        calls.len() as u32
+    }
+    fn close(&mut self, id: u32) {
+        self.1.lock().unwrap().push(id);
+    }
+}
+#[test]
+fn waiting_notification_uses_only_session_metadata_and_replaces_previous() {
+    let process = Process(Arc::new(Mutex::new(Ok(include_str!(
+        "../../fixtures/agents/recorded.json"
+    )
+    .into()))));
+    let clock = FakeClock::at(1800000000000);
+    let notifications = Notifications::default();
+    let mut monitor =
+        Monitor::new(process.clone(), clock.clone()).with_notifications(notifications.clone());
+    monitor.step();
+    let calls = notifications.0.lock().unwrap().clone();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(calls[0].session, "11111111-1111-4111-8111-111111111111");
+    assert_eq!(
+        calls[0].title,
+        "Claude Code · example-project · example-session"
+    );
+    assert_eq!(calls[0].body, "Aguardando sua resposta");
+    let mut rows: serde_json::Value =
+        serde_json::from_str(include_str!("../../fixtures/agents/recorded.json")).unwrap();
+    rows[0]["state"] = "working".into();
+    *process.0.lock().unwrap() = Ok(rows.to_string());
+    clock.advance(2000);
+    monitor.step();
+    rows[0]["state"] = "blocked".into();
+    rows[0]["prompt"] = "PRIVATE_PROMPT".into();
+    rows[0]["response"] = "PRIVATE_RESPONSE".into();
+    rows[0]["waitingFor"] = "PRIVATE_PROMPT".into();
+    *process.0.lock().unwrap() = Ok(rows.to_string());
+    clock.advance(2000);
+    monitor.step();
+    let calls = notifications.0.lock().unwrap();
+    assert_eq!(calls.len(), 2);
+    assert_eq!(calls[1].replaces, 1);
+    assert!(!format!("{calls:?}").contains("PRIVATE_"));
+}
+
+#[test]
+fn only_long_completed_turns_and_failures_notify_never_interruptions_or_closed() {
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let notifications = Notifications::default();
+    let mut monitor =
+        Monitor::new(process.clone(), clock.clone()).with_notifications(notifications.clone());
+    let mut row = serde_json::json!({"pid":123,"sessionId":"test","cwd":"/tmp/project","startedAt":1,"status":"busy", "prompt":"PRIVATE_PROMPT","response":"PRIVATE_RESPONSE"});
+    for (duration, outcome, count) in [
+        (29_999, "idle", 0),
+        (30_000, "idle", 1),
+        (252_000, "idle", 2),
+        (40_000, "stopped", 2),
+        (2000, "failed", 3),
+    ] {
+        row["status"] = "busy".into();
+        *process.0.lock().unwrap() = Ok(serde_json::json!([row.clone()]).to_string());
+        clock.advance(2000);
+        monitor.step();
+        clock.advance(duration);
+        row["status"] = outcome.into();
+        *process.0.lock().unwrap() = Ok(serde_json::json!([row.clone()]).to_string());
+        monitor.step();
+        assert_eq!(notifications.0.lock().unwrap().len(), count);
+    }
+    *process.0.lock().unwrap() = Ok("[]".into());
+    clock.advance(2000);
+    monitor.step();
+    let calls = notifications.0.lock().unwrap();
+    assert_eq!(calls.len(), 3);
+    assert_eq!(calls[0].body, "Turno concluído em 30 s");
+    assert_eq!(calls[1].body, "Turno concluído em 4 min 12 s");
+    assert_eq!(calls[2].body, "Turno terminou com erro");
+    assert!(!format!("{calls:?}").contains("PRIVATE_"));
+}
+
+#[test]
+fn three_distinct_sessions_within_ten_seconds_collapse_into_one_group() {
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let notifications = Notifications::default();
+    let mut monitor =
+        Monitor::new(process.clone(), clock.clone()).with_notifications(notifications.clone());
+    let mut rows = Vec::new();
+    for id in 0..4 {
+        rows.push(serde_json::json!({"id":id.to_string(), "pid":123+id, "cwd":"/tmp/project","startedAt":1,"status":"waiting"}));
+        *process.0.lock().unwrap() = Ok(serde_json::to_string(&rows).unwrap());
+        monitor.step();
+        clock.advance(2000);
+    }
+    let calls = notifications.0.lock().unwrap();
+    let mut closed = notifications.1.lock().unwrap().clone();
+    closed.sort_unstable();
+    assert_eq!(closed, vec![1, 2]);
+    assert_eq!(calls[2].title, "Agentes");
+    assert_eq!(calls[2].body, "3 sessões aguardando você");
+    assert_eq!(calls[3].replaces, 3);
+    assert_eq!(calls[3].body, "4 sessões aguardando você");
+    drop(calls);
+    clock.advance(10_001);
+    rows.push(serde_json::json!({"id":"late", "pid":999,"cwd":"/tmp/late","startedAt":1,"status":"waiting"}));
+    *process.0.lock().unwrap() = Ok(serde_json::to_string(&rows).unwrap());
+    monitor.step();
+    assert_eq!(
+        notifications.0.lock().unwrap().last().unwrap().title,
+        "Claude Code · late"
+    );
+}
+
+#[test]
+fn notification_switches_apply_to_both_providers_and_codex_interruptions_stay_silent() {
+    let source = codex::tests::source();
+    let files = source.test_files();
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let notifications = Notifications::default();
+    let mut monitor = Monitor::new(process, clock.clone())
+        .with_codex(source)
+        .with_notifications(notifications.clone());
+    monitor.step();
+    files.write(
+        "/rollout.jsonl",
+        include_str!("../../fixtures/agents/codex/task_complete.jsonl"),
+    );
+    clock.advance(2000);
+    monitor.step();
+    assert_eq!(
+        notifications.0.lock().unwrap()[0].body,
+        "Turno concluído em 40 s"
+    );
+    files.write(
+        "/rollout.jsonl",
+        include_str!("../../fixtures/agents/codex/rollout.jsonl"),
+    );
+    clock.advance(2000);
+    monitor.step();
+    clock.advance(40_000);
+    files.write(
+        "/rollout.jsonl",
+        include_str!("../../fixtures/agents/codex/turn_aborted.jsonl"),
+    );
+    monitor.step();
+    assert_eq!(notifications.0.lock().unwrap().len(), 1);
+    monitor.set_notification_preferences(notifications::Preferences {
+        waiting: false,
+        done: false,
+        failed: false,
+    });
+    files.write(
+        "/rollout.jsonl",
+        r#"{"type":"event_msg","payload":{"type":"error","message":"PRIVATE_RESPONSE"}}"#,
+    );
+    clock.advance(2000);
+    monitor.step();
+    assert_eq!(notifications.0.lock().unwrap().len(), 1);
+}
+
+#[test]
+fn approval_wait_preserves_the_start_of_the_current_turn() {
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let notifications = Notifications::default();
+    let mut monitor =
+        Monitor::new(process.clone(), clock.clone()).with_notifications(notifications.clone());
+    let mut row = serde_json::json!({"pid":123,"id":"approval","cwd":"/tmp/project","startedAt":1,"status":"busy"});
+    for (advance, status) in [
+        (0, "busy"),
+        (40_000, "waiting"),
+        (2000, "busy"),
+        (5000, "idle"),
+    ] {
+        row["status"] = status.into();
+        *process.0.lock().unwrap() = Ok(serde_json::json!([row.clone()]).to_string());
+        clock.advance(advance);
+        monitor.step();
+    }
+    assert_eq!(
+        notifications.0.lock().unwrap().last().unwrap().body,
+        "Turno concluído em 47 s"
+    );
+}
+
+#[test]
+fn startup_does_not_announce_a_codex_turn_that_already_finished() {
+    let source = codex::tests::source();
+    source.test_files().write(
+        "/rollout.jsonl",
+        include_str!("../../fixtures/agents/codex/task_complete.jsonl"),
+    );
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let notifications = Notifications::default();
+    let mut monitor = Monitor::new(process, FakeClock::at(1800000000000))
+        .with_codex(source)
+        .with_notifications(notifications.clone());
+    monitor.step();
+    assert!(notifications.0.lock().unwrap().is_empty());
+}
+
+#[test]
+fn claude_switches_suppress_each_event_without_replaying_it_when_reenabled() {
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let notifications = Notifications::default();
+    let mut monitor =
+        Monitor::new(process.clone(), clock.clone()).with_notifications(notifications.clone());
+    monitor.set_notification_preferences(notifications::Preferences {
+        waiting: false,
+        done: false,
+        failed: false,
+    });
+    let mut row = serde_json::json!({"pid":123,"id":"test","cwd":"/tmp/project","startedAt":1,"status":"busy"});
+    for status in ["busy", "waiting", "busy", "idle", "failed"] {
+        row["status"] = status.into();
+        *process.0.lock().unwrap() = Ok(serde_json::json!([row.clone()]).to_string());
+        clock.advance(40_000);
+        monitor.step();
+    }
+    assert!(notifications.0.lock().unwrap().is_empty());
+    monitor.set_notification_preferences(notifications::Preferences::default());
+    clock.advance(2000);
+    monitor.step();
+    assert!(notifications.0.lock().unwrap().is_empty());
+    row["status"] = "waiting".into();
+    row["waitingFor"] = "Bash".into();
+    *process.0.lock().unwrap() = Ok(serde_json::json!([row]).to_string());
+    clock.advance(2000);
+    monitor.step();
+    assert_eq!(
+        notifications.0.lock().unwrap()[0].body,
+        "Aguardando aprovação: Bash"
+    );
+}

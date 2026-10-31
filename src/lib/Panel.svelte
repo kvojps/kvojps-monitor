@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Icon from "./Icon.svelte";
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import AgentSettings from "./agents/AgentSettings.svelte";
   import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
   import AiSettings from "./ai/AiSettings.svelte";
@@ -21,6 +22,7 @@
     { view: "settings", name: t.settings.title },
   ];
 
+  let agentTarget = $state<string | null>(null);
   let view = $state<View | null>(null);
   const current = $derived(items.find((i) => i.view === view));
 
@@ -37,14 +39,23 @@
   onMount(() => {
     // Subscribe before requesting initial state to avoid losing snapshots in between.
     const stop = core.listenSnapshots(receive);
+    const stopTarget = core.listenAgentTarget?.((session) => {
+      agentTarget = session;
+      view = "agents";
+    });
     core.initialState().then((initial) => {
       initial.snapshots.forEach(receive);
-      view = initial.lastModule;
+      agentTarget ??= initial.agentTarget ?? null;
+      view = agentTarget ? "agents" : initial.lastModule;
     });
-    return () => void stop.then((p) => p());
+    return () => {
+      void stop.then((p) => p());
+      void stopTarget?.then((p) => p());
+    };
   });
 
   function selecionar(next: View) {
+    agentTarget = null;
     view = next;
     core.reportModuleVisible(next === "settings" ? null : next);
   }
@@ -85,7 +96,7 @@
         {/if}
       </header>
       {#if view === "agents" && snapshots.agents}
-        <AgentsModule data={snapshots.agents.data as AgentsData} />
+        <AgentsModule data={snapshots.agents.data as AgentsData} target={agentTarget} />
       {/if}
       {#if view === "ai" && snapshots.ai?.data}
         <AiModule data={snapshots.ai.data as AiData} refresh={() => core.refreshAi?.()}
@@ -103,6 +114,7 @@
         <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
       {/if}
       {#if view === "settings"}
+        <AgentSettings data={snapshots.agents?.data as AgentsData | undefined} save={(preferences) => core.setAgentNotifications?.(preferences)} />
         <AiSettings data={snapshots.ai?.data as AiData | undefined}
           connect={() => core.connectClaude ? core.connectClaude() : Promise.reject("unwritable")}
           disconnect={() => core.disconnectClaude ? core.disconnectClaude() : Promise.reject("unwritable")}

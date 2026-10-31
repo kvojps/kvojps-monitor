@@ -1,5 +1,7 @@
 //! Local Claude and Codex session polling. Session metadata stays in memory only.
 mod codex;
+mod desktop;
+pub mod notifications;
 use crate::ports::{Clock, Processes};
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +24,10 @@ enum Provider {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Session {
+    #[serde(skip)]
+    interrupted: bool,
+    #[serde(skip)]
+    turn_duration: Option<u64>,
     id: String,
     provider: Provider,
     branch: Option<String>,
@@ -39,6 +45,7 @@ pub struct Session {
 pub struct Data {
     sessions: Vec<Session>,
     closed: Vec<Session>,
+    notification_preferences: notifications::Preferences,
     accent_dot: bool,
     failed: bool,
     observed_at: u64,
@@ -75,6 +82,11 @@ impl Record {
             .ok_or(())?;
         Ok((
             Session {
+                interrupted: matches!(
+                    self.status.as_deref().or(self.state.as_deref()),
+                    Some("stopped" | "interrupted")
+                ),
+                turn_duration: None,
                 id,
                 provider: Provider::Claude,
                 branch: None,
@@ -95,6 +107,7 @@ impl Record {
     }
 }
 pub struct Monitor<P, C> {
+    notifications: notifications::Policy,
     codex: Option<Box<dyn codex::Source>>,
     process: P,
     clock: C,
@@ -105,6 +118,7 @@ pub struct Monitor<P, C> {
 impl<P: Processes, C: Clock> Monitor<P, C> {
     pub fn new(process: P, clock: C) -> Self {
         Self {
+            notifications: Default::default(),
             codex: None,
             process,
             clock,
@@ -113,9 +127,16 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             closed: vec![],
         }
     }
+    pub fn with_notifications(mut self, sink: impl notifications::Sink + 'static) -> Self {
+        self.notifications = notifications::Policy::new(sink);
+        self
+    }
     fn with_codex(mut self, source: impl codex::Source + 'static) -> Self {
         self.codex = Some(Box::new(source));
         self
+    }
+    pub fn set_notification_preferences(&mut self, preferences: notifications::Preferences) {
+        self.notifications.preferences = preferences;
     }
     pub fn step(&mut self) -> Option<Data> {
         let now = self.clock.now();
@@ -193,6 +214,7 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             }
             self.closed
                 .retain(|s| !live.iter().any(|active| active.id == s.id));
+            self.notifications.observe(&self.sessions, &live, now);
             self.sessions = live;
         }
         self.closed
@@ -202,6 +224,7 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
         self.sessions
             .sort_by_key(|s| (s.state != SessionState::Waiting, s.started_at, s.id.clone()));
         Some(Data {
+            notification_preferences: self.notifications.preferences,
             accent_dot: self
                 .sessions
                 .iter()
@@ -220,8 +243,15 @@ pub fn start(app: tauri::AppHandle) {
             .with_codex(codex::Adapter::new(
                 dirs::home_dir().unwrap_or_default().join(".codex"),
                 crate::ports::RootFilesystem::system(),
-            ));
+            ))
+            .with_notifications(desktop::Desktop::new(app.clone()));
         loop {
+            let preferences =
+                tauri::Manager::state::<std::sync::Mutex<crate::state::AppState>>(&app)
+                    .lock()
+                    .unwrap()
+                    .agent_notifications();
+            monitor.set_notification_preferences(preferences);
             if let Some(data) = monitor.step() {
                 if let Some(handle) =
                     tauri::Manager::try_state::<ksni::Handle<crate::indicator::Indicator>>(&app)
