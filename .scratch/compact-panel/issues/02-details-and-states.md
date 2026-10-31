@@ -24,3 +24,9 @@ Movimentação somente em memória, com atualização otimista, contagens no res
 [Captura do quadro](../assets/trello-board-prototype.png) e [evidência de movimentação/reversão/foco](../assets/trello-prototype-results.json). Em área de navegador 1100 × 700, o detalhe mede 1040 × 610, sem rolagem externa do diálogo; listas e quadro possuem seus próprios espaços de rolagem. `npm run check` sem erros ou avisos.
 
 Aguardando avaliação visual e de interação do usuário. Este ticket permanece aberto: demais detalhes, estados do anel, recuperação, escalas e casos densos ainda precisam de validação.
+
+### 2026-10-31 — Quadro completo do Trello aprovado
+
+O usuário aprovou a revisão apresentada com “Perfeito”. A referência aprovada é o quadro em colunas da composição B, com movimentação por seleção de card/lista de destino e atalho por arraste, atualização do resumo e reversão em falha, conforme o [protótipo](../composition-prototype.md#segunda-rodada--quadro-completo-do-trello).
+
+A aprovação é visual e do fluxo apresentado; não constitui validação do gesto de arraste real nem da integração Trello de produção. O ticket permanece aberto para os demais detalhes e estados descritos na pergunta; esta aprovação não os resolve implicitamente.

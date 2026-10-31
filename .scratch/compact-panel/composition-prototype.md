@@ -1,6 +1,6 @@
 # Protótipo de distribuição do Painel compacto
 
-Status: composição B — Núcleo lateral escolhida pelo usuário. Detalhes e movimentação do Trello em revisão.
+Status: composição B — Núcleo lateral e quadro completo do Trello aprovados pelo usuário. Demais detalhes e estados pendentes.
 Origem: [Validar a distribuição compacta do Painel](issues/01-compact-composition.md).
 Branch local: `prototype/compact-panel-composition`, sem push.
 
@@ -60,4 +60,4 @@ A movimentação atualiza imediatamente o quadro e as contagens do resumo; a cai
 
 Verificados no navegador: movimentação de Card 1.1 da Lista 1 para Lista 2 (contagens 4/0 passam a 3/1), tentativa de retorno com falha e reversão (mantém 3/1), atualização do resumo e foco após Escape. O atalho de arraste foi implementado, mas não foi validado por gesto real nesta rodada. Ver [captura](assets/trello-board-prototype.png) e [resultados](assets/trello-prototype-results.json). `npm run check` passou sem erros ou avisos.
 
-Essa interação do quadro ainda aguarda avaliação do usuário. Os demais detalhes ilustrativos e os estados pendentes não se tornam aprovados pela escolha da composição B.
+O usuário aprovou essa revisão com “Perfeito” em 2026-10-31. A referência visual e o fluxo de movimentação ficam aprovados; o gesto real de arraste e a integração de produção ainda precisam ser verificados na execução. Os demais detalhes ilustrativos e os estados pendentes continuam sem validação.
