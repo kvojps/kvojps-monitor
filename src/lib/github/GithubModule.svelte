@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import type { GithubData } from "../core";
   import { t, interpolate } from "../strings";
-  let { data, refresh }: { data: GithubData; refresh: () => void } = $props();
+  let { data, refresh, configure: openSettings }: { data: GithubData; refresh: () => void; configure?: () => void } = $props();
   let configure = $state(false);
   let now = $state(Date.now());
   let allowedAt = $state(0);
@@ -50,6 +50,7 @@
   {/if}
   {#if configure && (data.state === "missingGh" || data.state === "invalidCredential")}
     <p>{t.github.login}</p><p>{t.github.instruction}</p>
+    <button onclick={() => openSettings?.()}>{t.github.pasteToken}</button>
   {/if}
 </section>
 <style>

@@ -2074,6 +2074,10 @@
     },
     "restrictedContributionsCount": 1247
   },
+  "credential": {
+    "login": "exemplo",
+    "source": "gh"
+  },
   "featured": null,
   "login": "exemplo",
   "refreshing": false,

@@ -84,6 +84,7 @@ pub fn run() {
             commands::report_module_visible,
             commands::close_panel,
             commands::refresh_github,
+            commands::save_github_token,
             commands::run_speed_test,
             commands::set_automatic_speed,
         ])

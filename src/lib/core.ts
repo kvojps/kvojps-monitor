@@ -51,6 +51,7 @@ export interface Core {
   runSpeedTest?(): void;
   setAutomaticSpeed?(enabled: boolean): void;
   refreshGithub?(): void;
+  saveGithubToken?(token: string): Promise<string>;
   closePanel(): void;
 }
 
@@ -63,6 +64,7 @@ export const tauriCore: Core = {
   reportModuleVisible: (module) => void invoke("report_module_visible", { module }),
   runSpeedTest: () => void invoke("run_speed_test"),
   setAutomaticSpeed: (enabled) => void invoke("set_automatic_speed", { enabled }),
+  saveGithubToken: (token) => invoke<string>("save_github_token", { token }),
   refreshGithub: () => void invoke("refresh_github"),
   closePanel: () => void invoke("close_panel"),
 };
@@ -89,6 +91,8 @@ export interface NetworkData {
 }
 
 export interface GithubData {
+  /** Credential metadata only; source is gh or token. */
+  credential?: { source: string; login: string };
   paused?: boolean;
   lastSuccessAt?: number | null;
   failureSince?: number | null;

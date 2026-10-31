@@ -6,6 +6,7 @@ use chrono::{DateTime, Datelike, Utc};
 use serde_json::{json, Value};
 
 pub struct Github<P, H, R> {
+    keyring: Box<dyn crate::ports::Keyring>,
     processes: P,
     http: H,
     clock: R,
@@ -32,6 +33,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             rejected: None,
             persistence: Box::new(Volatile),
             failure_since: None,
+            keyring: Box::new(crate::ports::UnavailableKeyring),
             processes,
             http,
             clock,
@@ -41,6 +43,58 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             attempt_at: None,
             data: json!({"state":"missingGh", "calendar":null, "featured":null, "refreshing":false}),
         }
+    }
+    pub fn with_keyring(mut self, keyring: impl crate::ports::Keyring + 'static) -> Self {
+        self.keyring = Box::new(keyring);
+        self
+    }
+    fn credential(&self) -> Option<(String, &'static str)> {
+        if let Ok(token) = self.processes.execute("gh", &["auth", "token"]) {
+            if !token.trim().is_empty() {
+                return Some((token, "gh"));
+            }
+        }
+        self.keyring
+            .read("github")
+            .ok()
+            .flatten()
+            .filter(|token| !token.trim().is_empty())
+            .map(|token| (token, "token"))
+    }
+    pub fn save_token(&mut self, token: &str) -> Result<String, CredentialError> {
+        let token = token.trim();
+        if token.is_empty() {
+            return Err(CredentialError::InvalidToken);
+        }
+        if self.lifecycle.is_some_and(|status| !status.online) {
+            return Err(CredentialError::Offline);
+        }
+        let identity = self.http.validate_github(token).map_err(|error| {
+            if matches!(error.status, Some(401 | 403)) {
+                CredentialError::InvalidToken
+            } else {
+                CredentialError::Offline
+            }
+        })?;
+        if !identity.repo_scope {
+            return Err(CredentialError::MissingRepo);
+        }
+        self.keyring
+            .save("github", token)
+            .map_err(|_| CredentialError::KeyringUnavailable)?;
+        self.rejected = None;
+        self.retry_at = 0;
+        self.failures = 0;
+        self.failure_since = None;
+        self.refresh_pending = true;
+        // gh remains the preferred source when authenticated.
+        if self
+            .credential()
+            .is_some_and(|(_, source)| source == "token")
+        {
+            self.data["credential"] = json!({"source":"token", "login":identity.login});
+        }
+        Ok(identity.login)
     }
     pub fn with_persistence(
         processes: P,
@@ -121,10 +175,8 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         let now = self.clock.now();
         if let Some(rejected) = self.rejected {
             return self
-                .processes
-                .execute("gh", &["auth", "token"])
-                .ok()
-                .is_some_and(|token| credential_id(token.trim()) != rejected);
+                .credential()
+                .is_some_and(|(token, _)| credential_id(token.trim()) != rejected);
         }
         let manual_allowed = manual
             && self
@@ -164,7 +216,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
                 .calendar_at
                 .is_none_or(|t| now.saturating_sub(t) >= 3_600_000 || year(t) != year(now));
         // Never store the token in the struct or snapshot.
-        let Ok(token) = self.processes.execute("gh", &["auth", "token"]) else {
+        let Some((token, source)) = self.credential() else {
             self.data["state"] = json!("missingGh");
             self.persistence.log(LogRecord {
                 source: Module::Github,
@@ -182,7 +234,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             self.failures = 0;
             self.failure_since = None;
         }
-        let result = self.query(token.trim(), now, calendar);
+        let result = self.query(token.trim(), source, now, calendar);
         let status = result.as_ref().err().and_then(|error| error.status);
         match result {
             Ok(()) => {
@@ -229,7 +281,13 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         });
         Some(snapshot)
     }
-    fn query(&mut self, token: &str, now: u64, calendar: bool) -> Result<(), HttpError> {
+    fn query(
+        &mut self,
+        token: &str,
+        source: &str,
+        now: u64,
+        calendar: bool,
+    ) -> Result<(), HttpError> {
         let year = year(now);
         let field = if calendar {
             "contributionsCollection(from:$from,to:$to) { restrictedContributionsCount contributionCalendar { totalContributions weeks { contributionDays { date contributionCount color } } } }"
@@ -248,6 +306,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         }
         let viewer = &response["data"]["viewer"];
         let id = viewer["id"].as_str().ok_or(())?;
+        self.data["credential"] = json!({"source":source,"login":viewer["login"]});
         let mut featured: Option<Value> = None;
         let since = timestamp(now.saturating_sub(7 * 24 * 3_600_000));
         let until = timestamp(now);
@@ -313,7 +372,23 @@ fn timestamp(ms: u64) -> String {
         .to_rfc3339()
 }
 
-pub struct Collector(pub std::sync::mpsc::Sender<bool>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CredentialError {
+    InvalidToken,
+    MissingRepo,
+    Offline,
+    KeyringUnavailable,
+}
+
+pub enum Command {
+    Refresh,
+    SaveToken(
+        String,
+        tokio::sync::oneshot::Sender<Result<String, CredentialError>>,
+    ),
+}
+pub struct Collector(pub std::sync::mpsc::Sender<Command>);
 pub fn start(app: tauri::AppHandle) {
     use tauri::Manager;
     let (tx, rx) = std::sync::mpsc::channel();
@@ -338,15 +413,20 @@ pub fn start(app: tauri::AppHandle) {
                 crate::ports::GithubHttp,
                 crate::ports::SystemClock,
             ),
-        };
+        }
+        .with_keyring(crate::ports::SecretService);
         crate::snapshot::publish(&app, github.snapshot(false));
         let mut previous_status = (false, 0, 0);
         loop {
-            let manual = rx
-                .recv_timeout(std::time::Duration::from_secs(1))
-                .unwrap_or(false);
+            let command = rx.recv_timeout(std::time::Duration::from_secs(1)).ok();
+            let manual = matches!(command, Some(Command::Refresh));
             let status = *app.state::<crate::lifecycle::Shared>().lock().unwrap();
             github.lifecycle(status);
+            if let Some(Command::SaveToken(token, reply)) = command {
+                let result = github.save_token(&token);
+                crate::snapshot::publish(&app, github.snapshot(false));
+                let _ = reply.send(result);
+            }
             let current_status = (status.online, status.generation, status.ready_at);
             if current_status != previous_status {
                 previous_status = current_status;
@@ -907,3 +987,6 @@ mod lifecycle_tests {
         assert_ne!(snapshot.data["state"], "error");
     }
 }
+
+#[cfg(test)]
+mod credentials_tests;

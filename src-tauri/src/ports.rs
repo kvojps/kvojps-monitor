@@ -277,7 +277,14 @@ impl From<()> for HttpError {
     }
 }
 /// GitHub GraphQL endpoint only; borrow credentials for one refresh.
+pub struct GithubIdentity {
+    pub login: String,
+    pub repo_scope: bool,
+}
 pub trait Http: Send {
+    fn validate_github(&self, _credential: &str) -> Result<GithubIdentity, HttpError> {
+        Err(HttpError::default())
+    }
     fn graphql(
         &self,
         credential: &str,
@@ -286,34 +293,97 @@ pub trait Http: Send {
 }
 pub struct GithubHttp;
 impl Http for GithubHttp {
+    fn validate_github(&self, credential: &str) -> Result<GithubIdentity, HttpError> {
+        let response = github_request(
+            credential,
+            &serde_json::json!({"query":"query { viewer { login } }"}),
+        )?;
+        let repo_scope = response
+            .headers()
+            .get("x-oauth-scopes")
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|scopes| scopes.split(',').any(|scope| scope.trim() == "repo"));
+        let body: serde_json::Value = response.json().map_err(|_| HttpError::default())?;
+        if body.get("errors").is_some() {
+            return Err(HttpError::default());
+        }
+        let login = body["data"]["viewer"]["login"]
+            .as_str()
+            .filter(|login| !login.is_empty())
+            .ok_or_else(HttpError::default)?
+            .to_owned();
+        Ok(GithubIdentity { login, repo_scope })
+    }
+
     fn graphql(
         &self,
         credential: &str,
         body: &serde_json::Value,
     ) -> Result<serde_json::Value, HttpError> {
-        let response = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|_| HttpError::default())?
-            .post("https://api.github.com/graphql")
-            .header("User-Agent", "kvojps-monitor")
-            .bearer_auth(credential)
-            .json(body)
-            .send()
-            .map_err(|_| HttpError::default())?;
+        let response = github_request(credential, body)?;
         let status = response.status().as_u16();
-        if !response.status().is_success() {
-            return Err(HttpError::response(
-                status,
-                response
-                    .headers()
-                    .get("retry-after")
-                    .and_then(|value| value.to_str().ok()),
-            ));
-        }
         response.json().map_err(|_| HttpError {
             status: Some(status),
             ..HttpError::default()
         })
+    }
+}
+
+fn github_request(
+    credential: &str,
+    body: &serde_json::Value,
+) -> Result<reqwest::blocking::Response, HttpError> {
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|_| HttpError::default())?
+        .post("https://api.github.com/graphql")
+        .header("User-Agent", "kvojps-monitor")
+        .bearer_auth(credential)
+        .json(body)
+        .send()
+        .map_err(|_| HttpError::default())?;
+    let status = response.status().as_u16();
+    if !response.status().is_success() {
+        return Err(HttpError::response(
+            status,
+            response
+                .headers()
+                .get("retry-after")
+                .and_then(|value| value.to_str().ok()),
+        ));
+    }
+    Ok(response)
+}
+
+/// Secrets are only read into memory. No filesystem fallback is permitted.
+pub trait Keyring: Send {
+    fn read(&self, account: &str) -> Result<Option<String>, ()>;
+    fn save(&self, account: &str, secret: &str) -> Result<(), ()>;
+}
+pub struct UnavailableKeyring;
+impl Keyring for UnavailableKeyring {
+    fn read(&self, _: &str) -> Result<Option<String>, ()> {
+        Err(())
+    }
+    fn save(&self, _: &str, _: &str) -> Result<(), ()> {
+        Err(())
+    }
+}
+pub struct SecretService;
+impl Keyring for SecretService {
+    fn read(&self, account: &str) -> Result<Option<String>, ()> {
+        let entry = keyring::Entry::new("kvojps-monitor", account).map_err(|_| ())?;
+        match entry.get_password() {
+            Ok(secret) => Ok(Some(secret)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(_) => Err(()),
+        }
+    }
+    fn save(&self, account: &str, secret: &str) -> Result<(), ()> {
+        keyring::Entry::new("kvojps-monitor", account)
+            .map_err(|_| ())?
+            .set_password(secret)
+            .map_err(|_| ())
     }
 }

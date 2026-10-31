@@ -2074,6 +2074,10 @@
     },
     "restrictedContributionsCount": 1247
   },
+  "credential": {
+    "login": "exemplo",
+    "source": "gh"
+  },
   "failureSince": 1793448300000,
   "featured": {
     "commits": 27,
@@ -2084,7 +2088,7 @@
   },
   "lastSuccessAt": 1793448000000,
   "login": "exemplo",
+  "paused": true,
   "refreshing": false,
-  "state": "error",
-  "paused": true
+  "state": "error"
 }

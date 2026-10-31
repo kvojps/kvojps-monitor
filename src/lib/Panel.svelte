@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Icon from "./Icon.svelte";
   import { MODULES, type GithubData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import GithubSettings from "./github/GithubSettings.svelte";
   import GithubModule from "./github/GithubModule.svelte";
   import NetworkModule from "./network/NetworkModule.svelte";
   import SystemModule from "./system/SystemModule.svelte";
@@ -76,10 +77,14 @@
         {/if}
       </header>
       {#if view === "github" && snapshots.github}
-        <GithubModule data={snapshots.github.data as GithubData} refresh={() => core.refreshGithub?.()} />
+        <GithubModule data={snapshots.github.data as GithubData} refresh={() => core.refreshGithub?.()} configure={() => selecionar("settings")} />
       {/if}
       {#if view === "network" && snapshots.network?.data}
         <NetworkModule data={snapshots.network.data as NetworkData} runSpeed={() => core.runSpeedTest?.()} />
+      {/if}
+      {#if view === "settings"}
+        <GithubSettings data={snapshots.github?.data as GithubData | undefined}
+          save={(token) => core.saveGithubToken ? core.saveGithubToken(token) : Promise.reject("offline")} />
       {/if}
       {#if view === "settings" && snapshots.network}
         <section class="network-settings" aria-label={t.modules.network}>
@@ -152,6 +157,7 @@
   .detail {
     flex: 1;
     min-width: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
   }

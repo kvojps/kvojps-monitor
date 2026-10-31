@@ -44,7 +44,7 @@ pub fn close_panel(app: AppHandle) {
 
 #[tauri::command]
 pub fn refresh_github(collector: State<crate::github::Collector>) {
-    let _ = collector.0.send(true);
+    let _ = collector.0.send(crate::github::Command::Refresh);
 }
 
 #[tauri::command]
@@ -56,4 +56,18 @@ pub fn set_automatic_speed(enabled: bool, collector: State<crate::network::Colle
     let _ = collector
         .0
         .send(crate::network::Command::AutomaticSpeed(enabled));
+}
+
+#[tauri::command]
+pub async fn save_github_token(
+    token: String,
+    collector: State<'_, crate::github::Collector>,
+) -> Result<String, crate::github::CredentialError> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    collector
+        .0
+        .send(crate::github::Command::SaveToken(token, tx))
+        .map_err(|_| crate::github::CredentialError::KeyringUnavailable)?;
+    rx.await
+        .map_err(|_| crate::github::CredentialError::KeyringUnavailable)?
 }

@@ -117,3 +117,17 @@ it("sends the network automatic speed preference from Settings", async () => {
   await userEvent.click(toggle);
   expect(setAutomaticSpeed).toHaveBeenCalledWith(false);
 });
+
+it("opens GitHub settings from setup and sends the pasted token to the core", async () => {
+  const { default: missing } = await import("./github/fixtures/missing-gh.json");
+  const { core } = fakeCore({ lastModule: "github", snapshots: [{ module: "github", updatedAt: null, data: missing }] });
+  const saveGithubToken = vi.fn().mockResolvedValue("exemplo");
+  render(Panel, { core: { ...core, saveGithubToken } });
+  await userEvent.click(await screen.findByRole("button", { name: "Configurar" }));
+  await userEvent.click(screen.getByRole("button", { name: "Colar token clássico" }));
+  expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText("Token clássico (escopo repo)"), "private-token");
+  await userEvent.click(screen.getByRole("button", { name: "Validar e salvar" }));
+  expect(saveGithubToken).toHaveBeenCalledWith("private-token");
+  expect(await screen.findByText("Conectado como exemplo")).toBeInTheDocument();
+});
