@@ -58,11 +58,16 @@
   {#if data?.account}
     <p>{t.trello.boardStep}</p>
     {#if data.boards.length}
-      <label for="trello-board">{t.trello.boardLabel}</label>
-      <select id="trello-board" value={data.board?.id ?? ""} onchange={(event) => run(() => selectBoard(event.currentTarget.value))}>
-        {#if !data.board}<option value="" disabled></option>{/if}
-        {#each data.boards as board (board.id)}<option value={board.id}>{board.name}</option>{/each}
-      </select>
+      <!-- Radios, not <select>: its GTK popup takes focus and the panel closes under it. -->
+      <fieldset role="radiogroup" aria-label={t.trello.boardLabel}>
+        {#each data.boards as board (board.id)}
+          <label class="board">
+            <input type="radio" name="trello-board" value={board.id} checked={board.id === data.board?.id}
+              onchange={() => run(() => selectBoard(board.id))} />
+            {board.name}
+          </label>
+        {/each}
+      </fieldset>
     {:else}<p class="secondary">{t.trello.noBoards}</p>{/if}
     <button type="button" onclick={() => run(disconnect, t.trello.disconnectFailed)}>{t.trello.disconnect}</button>
   {/if}
@@ -73,7 +78,10 @@
   p { margin: 8px 0; }
   .secondary { color: var(--muted); }
   label { display: block; margin: 12px 0 6px; }
-  input, select { width: 100%; box-sizing: border-box; color: var(--text); background: var(--surface); padding: 8px; border: 1px solid var(--line); border-radius: 5px; }
+  fieldset { border: 0; display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
+  .board { display: flex; align-items: center; gap: 8px; margin: 0; }
+  .board input { width: auto; }
+  input { width: 100%; box-sizing: border-box; color: var(--text); background: var(--surface); padding: 8px; border: 1px solid var(--line); border-radius: 5px; }
   button { display: block; margin-top: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; }
   button:disabled { opacity: .5; }
 </style>

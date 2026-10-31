@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/svelte";
+import { fireEvent, render, screen, within } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
 import TrelloSettings from "./TrelloSettings.svelte";
 import type { TrelloData } from "../core";
@@ -59,11 +59,14 @@ it.each([
   expect(screen.queryByText(/Conectado como/)).not.toBeInTheDocument();
 });
 
-it("chooses among the open boards", async () => {
+it("chooses among the open boards without a native popup", async () => {
+  // A <select> opens a GTK popup that takes focus and closes the panel under it.
   const p = props(chooseJson);
-  render(TrelloSettings, p);
+  const { container } = render(TrelloSettings, p);
+  expect(container.querySelector("select")).toBeNull();
   const board = (chooseJson as TrelloData).boards[1];
-  await fireEvent.change(screen.getByLabelText("Quadro"), { target: { value: board.id } });
+  const group = screen.getByRole("radiogroup", { name: "Quadro" });
+  await fireEvent.click(within(group).getByRole("radio", { name: board.name }));
   expect(p.selectBoard).toHaveBeenCalledWith(board.id);
 });
 
@@ -71,7 +74,8 @@ it("shows the chosen board and disconnects", async () => {
   const p = props(fullJson);
   render(TrelloSettings, p);
   expect(screen.getByText("Conectado como exemplo")).toBeInTheDocument();
-  expect(screen.getByLabelText("Quadro")).toHaveValue((fullJson as TrelloData).board!.id);
+  const chosen = (fullJson as TrelloData).board!;
+  expect(screen.getByRole("radio", { name: chosen.name })).toBeChecked();
   await fireEvent.click(screen.getByRole("button", { name: "Desconectar" }));
   expect(p.disconnect).toHaveBeenCalledOnce();
 });
@@ -79,7 +83,7 @@ it("shows the chosen board and disconnects", async () => {
 it("hides disconnect and the board selector without an account", () => {
   render(TrelloSettings, props(emptyJson));
   expect(screen.queryByRole("button", { name: "Desconectar" })).not.toBeInTheDocument();
-  expect(screen.queryByLabelText("Quadro")).not.toBeInTheDocument();
+  expect(screen.queryByRole("radiogroup", { name: "Quadro" })).not.toBeInTheDocument();
 });
 
 it("explains when the keyring refuses to disconnect", async () => {
