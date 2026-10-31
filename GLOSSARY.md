@@ -9,7 +9,7 @@ O ícone do app na barra superior do sistema; ponto de entrada sempre visível.
 _Avoid_: Doca, dock, ícone de bandeja
 
 **Painel**:
-A janela compacta que abre a partir do Indicador e exibe os Módulos.
+A janela que abre a partir do Indicador e exibe os Módulos.
 _Avoid_: Doca, popup, dashboard
 
 **Módulo**:

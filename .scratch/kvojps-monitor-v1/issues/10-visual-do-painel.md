@@ -29,3 +29,7 @@ Protótipo: branch local `prototype/painel-visual` (commit `8ca6cad`), arquivo `
 O usuário autorizou planejar uma nova direção para todo o Painel: visual futurista cinematográfico de intensidade máxima, inspirado em interfaces de filmes de super-heróis. Confirmou especificação validada por protótipo como destino, possibilidade de ampliar e reorganizar o Painel, preto profundo com ciano e azul elétrico, geometria técnica, anéis de telemetria e movimento contínuo com opção de redução. Condição explícita: preservar todas as funções e a utilidade atual como ferramenta de trabalho, com dados reais, ações acessíveis, legibilidade e fluidez.
 
 O [mapa Painel cinematográfico para trabalho](../../cinematic-panel/map.md) conduz as decisões de substituição. Este registro autoriza explorar divergências visuais; a spec da v1 continua sendo a referência funcional e não foi alterada nesta abertura.
+
+### 2026-10-31 — Complemento visual aprovado
+
+O usuário aprovou integralmente a [Especificação visual — Painel cinematográfico](../../cinematic-panel/spec.md), concluindo [Consolidar a especificação visual validada do Painel](../../cinematic-panel/issues/03-visual-specification.md). O complemento passa a reger as substituições visuais delimitadas em sua matriz, incluindo composição, dimensões, navegação e seleção de dados; a spec da v1 permanece referência funcional. A implementação não foi executada neste esforço.
