@@ -161,3 +161,22 @@ o ticket. Nesta entrega há protocolo e coletor, sem aceite de desempenho.
 - `cargo test --manifest-path src-tauri/Cargo.toml`: 271 testes unitários
   aprovados. Dois testes de sockets bloqueados pelo sandbox; reexecução dos
   três testes de `hook_mode` fora do sandbox aprovada. Total: 274 testes Rust.
+- Smoke adicional com processo descartável ocupado: 99,5% de uma CPU lógica
+  durante 2 s, confirmando a escala do instrumento; não é evidência do app.
+
+## Standards
+
+Revisão independente do diff desde o baseline: zero violações documentadas.
+Uma sugestão heurística de baixo impacto: a tupla posicional retornada por
+`read_process` poderia usar campos nomeados. Mantida nesta ferramenta curta;
+não afeta cálculo ou resultados. A regra de portas do núcleo não se aplica ao
+instrumento externo. Idiomas e convenções do tracker respeitados.
+
+## Spec
+
+Revisão independente: zero divergências no escopo autorizado pelo usuário.
+Índices de `/proc/stat` do processo, cálculo de CPU e PSS conferidos. Protocolo
+cobre os critérios do ticket; execução nativa continua explicitamente pendente.
+
+Resultado: Padrões — zero violações e uma sugestão de nomes, sem bloqueio;
+Spec — zero achados, com medições reais ainda necessárias para resolver o ticket.
