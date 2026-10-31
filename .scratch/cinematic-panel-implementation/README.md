@@ -15,7 +15,7 @@ Fonte de verdade: [especificação visual aprovada](../cinematic-panel/spec.md),
 | [05 — Trello em quadro interativo](issues/05-trello-board.md) ✅ resolvido | 01 |
 | [06 — Rede com instrumentos e tráfego real](issues/06-network-instruments.md) ✅ resolvido | 01 |
 | [07 — Sistema com instrumentos e alertas](issues/07-system-instruments.md) ✅ resolvido | 01 |
-| [08 — Configurações completas, temas e primeira execução](issues/08-settings-and-onboarding.md) | 01 |
+| [08 — Configurações completas, temas e primeira execução](issues/08-settings-and-onboarding.md) ✅ resolvido | 01 |
 | [09 — Coreografia combinada com pausa nativa](issues/09-combined-motion.md) | 02–08 |
 | [10 — Validar composição, acessibilidade e integração GNOME/Wayland](issues/10-native-and-accessibility-validation.md) | 09 |
 | [11 — Medir e ajustar desempenho e memória](issues/11-performance-and-memory.md) | 10 |
@@ -31,3 +31,7 @@ Fronteira inicial: 01. Após sua conclusão, 02–08 podem começar independente
 - Credenciais apenas no GNOME Keyring; sem keyring, recusar salvar. Logs/cache/notificações contêm somente metadados permitidos. Hooks e status line exigem clique explícito, alterações aditivas e reversíveis. Token Claude somente em memória, sem renovação. Cada guardrail deve ter teste explícito.
 - Preservar cache com idade, independência das fontes e estados explicativos; falhas não apagam dados válidos de outras fontes. Atualizações preservam foco, seleção e rolagem.
 - Qualquer divergência adicional das specs exige validação do usuário antes da execução e registro no ticket de origem.
+
+## Decisões registradas
+
+- **2026-10-31 — ticket 08 resolvido:** usuário confirmou a validação de Configurações, temas e primeira execução. Implementação e revisão em `d86fbd9`, `418065c` e `39d76d5`; [registro de aceitação](issues/08-settings-and-onboarding.md#comments). Ticket 09 desbloqueado. Capturas e medições da validação integrada permanecem no ticket 10.

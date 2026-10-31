@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Painel em estações com navegação e coleta por visibilidade.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Aplicar a linguagem visual às Configurações, mantendo “Voltar ao Painel”, contexto anterior e Escape para ocultar. Primeira execução usa essa mesma superfície, com status por Módulo e atalhos de configuração.
 - [x] Preservar Claude (status line, consentimento oauth/usage e diagnóstico), hooks com passos de confiança, notificações, fonte/token GitHub, Trello (key/token/autorização/quadro/desconexão) e velocidade automática.
@@ -32,7 +32,7 @@ Implementação inicial commitada em `d86fbd9`, sobre `e71e841`. Complemento e r
 - **Revisão — spec:** removida a porta paralela `ReleaseFeed`; checagem usa `Http` existente. `general-settings` publica mudanças para atualizar a linha de release sem remontar Configurações; a UI assina antes de buscar o estado inicial, ignora respostas antigas e remove a assinatura ao sair.
 - **Falhas recuperáveis:** erro ao carregar Geral oferece “Tentar novamente”; falha ao salvar checagem de versão aparece junto do interruptor. Aparência informa falha e restaura a escolha confirmada. Comandos de preferências propagam falhas de gravação; o núcleo também restaura os valores anteriores.
 - **Cobertura adicional:** testes da UI pelos comandos/fixtures existentes; núcleo pelas portas de persistência, arquivos, processos e portal. Nenhuma alteração em credenciais ou conteúdo sensível.
-- **Evidência ainda incompleta:** `appearance/portal.json` contém leitura real inicial, mas sequência de mudanças construída; `releases/newer.json` deriva de resposta real de outro repositório. Os READMEs deixam essa origem explícita. Falta capturar sinais reais ao alternar o tema e uma release positiva deste app quando existir; testes controlados não comprovam essas integrações. Ver ticket 10. O ticket permanece `ready-for-human` até validar a evidência nativa, sem declarar a validação concluída.
+- **Evidência ainda incompleta:** `appearance/portal.json` contém leitura real inicial, mas sequência de mudanças construída; `releases/newer.json` deriva de resposta real de outro repositório. Os READMEs deixam essa origem explícita. Falta capturar sinais reais ao alternar o tema e uma release positiva deste app quando existir; testes controlados não comprovam essas integrações. Ver ticket 10. Na ocasião, o ticket ficou `ready-for-human` aguardando validação nativa.
 
 ## Revisão final e validação (2026-10-31)
 
@@ -43,3 +43,7 @@ Complemento commitado em `418065c` (`fix: complete settings error recovery and l
 - **Validação automatizada:** `npm run check` sem erros/avisos; `npm test` com 207 testes; `npm run build` aprovado; `cargo test --manifest-path src-tauri/Cargo.toml` com 271 testes de núcleo e 3 de integração. A suíte de integração foi executada fora do sandbox, que bloqueia criação de sockets Unix.
 
 Total da revisão final: 0 achados de padrões e 0 defeitos novos de spec. Nenhuma medição nativa ou captura real pendente foi declarada concluída.
+
+## Comments
+
+**2026-10-31 — resolvido após validação do usuário.** O usuário confirmou “Validei resolva a 8”. Configurações, temas e primeira execução aceitos, incluindo o complemento em `418065c` e sua revisão registrada em `39d76d5`. A validação informada não acrescenta arquivos de captura nem medições ao repositório; a coleta dessas evidências e a conferência integrada seguem registradas no ticket 10. Ticket 09 desbloqueado com a conclusão de 02–08.
