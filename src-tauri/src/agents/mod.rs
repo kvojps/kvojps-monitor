@@ -108,8 +108,15 @@ impl Record {
         ))
     }
 }
+struct Observation {
+    started_at: u64,
+    claude: Result<Vec<(Session, bool)>, ()>,
+    codex: Option<Result<Vec<(Session, bool)>, ()>>,
+}
+
 pub struct Monitor<P, C> {
     hooks_enabled: bool,
+    hooked_at: std::collections::HashMap<String, u64>,
     notifications: notifications::Policy,
     codex: Option<Box<dyn codex::Source>>,
     process: P,
@@ -122,6 +129,7 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
     pub fn new(process: P, clock: C) -> Self {
         Self {
             hooks_enabled: false,
+            hooked_at: Default::default(),
             notifications: Default::default(),
             codex: None,
             process,
@@ -149,6 +157,7 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
         } else {
             event.id
         };
+        self.hooked_at.insert(id.clone(), now);
         let previous = self.sessions.clone();
         let index = self
             .sessions
@@ -202,12 +211,21 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
         self.notifications.observe(&previous, &self.sessions, now);
         self.data(false)
     }
+    #[cfg(test)]
     pub fn step(&mut self) -> Option<Data> {
+        let observation = self.poll()?;
+        Some(self.observe(observation))
+    }
+    fn poll(&mut self) -> Option<Observation> {
         let now = self.clock.now();
         if self.next.is_some_and(|next| now < next) {
             return None;
         }
         self.next = Some(now.saturating_add(2000));
+        Some(self.collect())
+    }
+    fn collect(&self) -> Observation {
+        let started_at = self.clock.now();
         let result = self
             .process
             .execute("claude", &["agents", "--json", "--all"])
@@ -218,6 +236,25 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
                     .map(Record::session)
                     .collect::<Result<Vec<_>, _>>()
             });
+        let codex = self.codex.as_ref().map(|source| {
+            source.sessions(
+                &self
+                    .sessions
+                    .iter()
+                    .filter(|s| s.provider == Provider::Codex)
+                    .map(|s| s.id.clone())
+                    .collect::<Vec<_>>(),
+            )
+        });
+        Observation {
+            started_at,
+            claude: result,
+            codex,
+        }
+    }
+    fn observe(&mut self, observation: Observation) -> Data {
+        let now = self.clock.now();
+        let result = observation.claude;
         let mut failed = result.is_err();
         let mut sessions = result.unwrap_or_else(|_| {
             self.sessions
@@ -227,15 +264,8 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
                 .map(|s| (s, true))
                 .collect()
         });
-        if let Some(source) = &self.codex {
-            match source.sessions(
-                &self
-                    .sessions
-                    .iter()
-                    .filter(|s| s.provider == Provider::Codex)
-                    .map(|s| s.id.clone())
-                    .collect::<Vec<_>>(),
-            ) {
+        if let Some(result) = observation.codex {
+            match result {
                 Ok(records) => sessions.extend(records),
                 Err(()) => {
                     failed = true;
@@ -249,6 +279,16 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
                 }
             }
         }
+        // A hook received while I/O was in flight is newer than this sample.
+        self.hooked_at.retain(|_, at| *at >= observation.started_at);
+        sessions.retain(|(session, _)| !self.hooked_at.contains_key(&session.id));
+        sessions.extend(
+            self.sessions
+                .iter()
+                .filter(|s| self.hooked_at.contains_key(&s.id))
+                .cloned()
+                .map(|s| (s, true)),
+        );
         // Codex polling has no waiting state: retain a hook's approval state while
         // the rollout still reports an active turn. Terminal outcomes win.
         if self.hooks_enabled {
@@ -300,7 +340,7 @@ impl<P: Processes, C: Clock> Monitor<P, C> {
             self.notifications.observe(&self.sessions, &live, now);
             self.sessions = live;
         }
-        Some(self.data(failed))
+        self.data(failed)
     }
     fn data(&mut self, failed: bool) -> Data {
         let now = self.clock.now();
@@ -347,11 +387,8 @@ pub fn start(app: tauri::AppHandle) {
             hooks::Configuration::new(crate::persistence::DiskStorage(home.clone()), executable);
         let mut socket =
             hooks::socket_path().and_then(|path| crate::ports::UnixHookSocket::bind(&path).ok());
+        let (observations, tracked) = polling(home.join(".codex"));
         let mut monitor = Monitor::new(crate::ports::SystemProcesses, crate::ports::SystemClock)
-            .with_codex(codex::Adapter::new(
-                home.join(".codex"),
-                crate::ports::RootFilesystem::system(),
-            ))
             .with_notifications(desktop::Desktop::new(app.clone()));
         monitor.hooks_enabled = configuration.enabled();
         loop {
@@ -364,7 +401,7 @@ pub fn start(app: tauri::AppHandle) {
                         .map_err(|_| "configurationFailed".to_string())
                 };
                 monitor.hooks_enabled = configuration.enabled();
-                monitor.next = None;
+                publish(&app, monitor.data(false));
                 let _ = reply.send(result);
             }
             let preferences = app
@@ -373,8 +410,8 @@ pub fn start(app: tauri::AppHandle) {
                 .unwrap()
                 .agent_notifications();
             monitor.set_notification_preferences(preferences);
-            if let Some(data) = monitor.step() {
-                publish(&app, data);
+            for observation in observations.try_iter() {
+                publish(&app, monitor.observe(observation));
             }
             if let Some(socket) = &mut socket {
                 for _ in 0..64 {
@@ -388,9 +425,37 @@ pub fn start(app: tauri::AppHandle) {
                     }
                 }
             }
+            *tracked.lock().unwrap() = monitor.sessions.clone();
             std::thread::sleep(std::time::Duration::from_millis(25));
         }
     });
+}
+/// Slow subprocess/SQLite reads never hold the event loop that handles hooks.
+fn polling(
+    root: std::path::PathBuf,
+) -> (
+    std::sync::mpsc::Receiver<Observation>,
+    std::sync::Arc<std::sync::Mutex<Vec<Session>>>,
+) {
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    let tracked = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let worker_tracked = tracked.clone();
+    std::thread::spawn(move || {
+        let mut poller =
+            Monitor::new(crate::ports::SystemProcesses, crate::ports::SystemClock).with_codex(
+                codex::Adapter::new(root, crate::ports::RootFilesystem::system()),
+            );
+        loop {
+            poller.sessions = worker_tracked.lock().unwrap().clone();
+            if let Some(observation) = poller.poll() {
+                if sender.send(observation).is_err() {
+                    return;
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_secs(2));
+        }
+    });
+    (receiver, tracked)
 }
 fn publish(app: &tauri::AppHandle, data: Data) {
     if let Some(handle) =

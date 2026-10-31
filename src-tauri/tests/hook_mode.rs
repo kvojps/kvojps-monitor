@@ -57,12 +57,37 @@ fn hook_subprocess_delivers_only_metadata_over_the_runtime_socket() {
         .stdin(Stdio::piped())
         .spawn()
         .unwrap();
-    child.stdin.take().unwrap().write_all(br#"{"session_id":"abc","cwd":"/tmp/project","tool_name":"Bash","tool_input":{"command":"PRIVATE"},"prompt":"PRIVATE","token":"PRIVATE"}"#).unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(include_bytes!(
+            "../fixtures/agents/hooks/claude-permission.json"
+        ))
+        .unwrap();
     assert!(child.wait().unwrap().success());
     let mut bytes = [0; 8192];
     let length = socket.recv(&mut bytes).unwrap();
     let metadata: serde_json::Value = serde_json::from_slice(&bytes[..length]).unwrap();
-    assert_eq!(metadata["id"], "abc");
+    assert_eq!(metadata["id"], "hook-claude");
     assert_eq!(metadata["state"], "waiting");
     assert!(!String::from_utf8_lossy(&bytes[..length]).contains("PRIVATE"));
+}
+
+#[test]
+fn active_socket_still_bounds_stalled_stdin() {
+    let root = tempfile::tempdir().unwrap();
+    let _socket =
+        std::os::unix::net::UnixDatagram::bind(root.path().join("kvojps-monitor.sock")).unwrap();
+    let start = Instant::now();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_kvojps-monitor"))
+        .args(["hook", "codex", "UserPromptSubmit"])
+        .env("XDG_RUNTIME_DIR", root.path())
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let pipe = child.stdin.take();
+    assert!(child.wait().unwrap().success());
+    assert!(start.elapsed() < Duration::from_millis(200));
+    drop(pipe);
 }

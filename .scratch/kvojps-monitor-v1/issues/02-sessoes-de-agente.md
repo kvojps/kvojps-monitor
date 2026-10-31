@@ -18,3 +18,10 @@ Como listar as Sessões de agente locais do Claude Code e do Codex e classificar
 **Restrições**: já existem hooks de outro app (Orca) em `~/.claude/settings.json` e `~/.codex/hooks.json` — instalar hooks de forma aditiva, sem sobrescrever; nunca registrar conteúdo de mensagens. Cada leitor atrás de um adapter (formatos do Codex e `~/.claude/sessions/*.json` não são interfaces estáveis).
 
 Achados completos: branch local `research/sessoes-de-agente` (commit `24d392e`), arquivo `research/sessoes-de-agente.md`.
+
+## Comments
+
+- 31/10/2026 — Na implementação do ticket 20, o usuário aprovou acrescentar
+  `PostToolUse` aos hooks do Codex e atualizar a spec: depois de `PermissionRequest`,
+  os seis eventos originais não sinalizavam a retomada após a aprovação.
+  `PostToolUse` retorna a sessão a Em andamento quando a ferramenta termina.

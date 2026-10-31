@@ -26,6 +26,7 @@ const PROVIDERS: &[(&str, &str, &[&str])] = &[
             "SessionEnd",
             "UserPromptSubmit",
             "PermissionRequest",
+            "PostToolUse",
             "Stop",
             "Interrupt",
         ],
@@ -261,18 +262,40 @@ mod transport_tests {
         }
     }
     #[test]
+    fn bounded_input_failures_are_silent_and_post_tool_resumes_codex() {
+        struct Input(bool);
+        impl crate::ports::HookInput for Input {
+            fn read(&mut self, budget_ms: u64, limit: usize) -> io::Result<String> {
+                assert_eq!((budget_ms, limit), (100, 65536));
+                if self.0 {
+                    Ok(include_str!("../../fixtures/agents/hooks/codex-post-tool.json").into())
+                } else {
+                    Err(io::ErrorKind::TimedOut.into())
+                }
+            }
+        }
+        let mut socket = Socket::default();
+        deliver("codex", "PostToolUse", &mut Input(false), &mut socket);
+        assert!(socket.receive().is_none());
+        deliver("codex", "PostToolUse", &mut Input(true), &mut socket);
+        let bytes = socket.receive().unwrap();
+        let event: Metadata = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(event.state, super::super::SessionState::Working);
+        assert!(!String::from_utf8(bytes).unwrap().contains("PRIVATE"));
+    }
+    #[test]
     fn forwarding_strips_content_and_ignores_unrelated_notifications() {
         let mut socket = Socket::default();
         forward(
             "codex",
             "PermissionRequest",
-            r#"{"session_id":"abc","cwd":"/tmp/project","tool_name":"Bash","prompt":"PRIVATE","tool_input":{"command":"PRIVATE"},"token":"PRIVATE"}"#,
+            include_str!("../../fixtures/agents/hooks/codex-permission.json"),
             &mut socket,
         );
         let sent = String::from_utf8(socket.receive().unwrap()).unwrap();
         assert!(!sent.contains("PRIVATE"));
         let event: Metadata = serde_json::from_str(&sent).unwrap();
-        assert_eq!(event.id, "abc");
+        assert_eq!(event.id, "hook-codex");
         assert_eq!(event.state, super::super::SessionState::Waiting);
         forward(
             "claude",
@@ -317,7 +340,9 @@ pub fn forward(
     };
     use super::SessionState::*;
     let state = match (provider, event) {
-        (_, "UserPromptSubmit") | (super::Provider::Codex, "SessionStart") => Working,
+        (_, "UserPromptSubmit") | (super::Provider::Codex, "SessionStart" | "PostToolUse") => {
+            Working
+        }
         (_, "PermissionRequest") => Waiting,
         (super::Provider::Claude, "Notification")
             if matches!(
@@ -352,41 +377,22 @@ pub fn socket_path() -> Option<std::path::PathBuf> {
         .map(|dir| std::path::PathBuf::from(dir).join("kvojps-monitor.sock"))
 }
 
-/// Bounded stdin read: a stalled producer cannot hold up the agent. No logs/output.
-pub fn run(provider: &str, event: &str) {
-    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(100);
-    let mut input = Vec::new();
-    loop {
-        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-        if remaining.is_zero() {
-            return;
-        }
-        let mut descriptor = libc::pollfd {
-            fd: 0,
-            events: libc::POLLIN,
-            revents: 0,
-        };
-        // poll and read operate on stdin only, with a fixed deadline and size cap.
-        if unsafe { libc::poll(&mut descriptor, 1, remaining.as_millis() as i32) } <= 0 {
-            return;
-        }
-        let mut buffer = [0u8; 8192];
-        let length = unsafe { libc::read(0, buffer.as_mut_ptr().cast(), buffer.len()) };
-        if length < 0 {
-            return;
-        }
-        if length == 0 {
-            break;
-        }
-        input.extend_from_slice(&buffer[..length as usize]);
-        if input.len() > 65536 {
-            return;
-        }
+/// The core requests bounded input through a port; adapters own OS time and stdin.
+pub fn deliver(
+    provider: &str,
+    event: &str,
+    input: &mut impl crate::ports::HookInput,
+    socket: &mut impl crate::ports::HookSocket,
+) {
+    if let Ok(payload) = input.read(100, 65536) {
+        forward(provider, event, &payload, socket);
     }
-    let (Some(path), Ok(input)) = (socket_path(), String::from_utf8(input)) else {
+}
+pub fn run(provider: &str, event: &str) {
+    let Some(path) = socket_path() else {
         return;
     };
     if let Ok(mut socket) = crate::ports::UnixHookSocket::sender(&path) {
-        forward(provider, event, &input, &mut socket);
+        deliver(provider, event, &mut crate::ports::TimedStdin, &mut socket);
     }
 }

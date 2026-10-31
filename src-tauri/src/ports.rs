@@ -559,3 +559,42 @@ impl HookSocket for UnixHookSocket {
         Some(bytes)
     }
 }
+
+/// Reads at most limit bytes, or fails by budget_ms even if stdin never closes.
+pub trait HookInput {
+    fn read(&mut self, budget_ms: u64, limit: usize) -> io::Result<String>;
+}
+pub struct TimedStdin;
+impl HookInput for TimedStdin {
+    fn read(&mut self, budget_ms: u64, limit: usize) -> io::Result<String> {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(budget_ms);
+        let mut input = Vec::new();
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                return Err(io::ErrorKind::TimedOut.into());
+            }
+            let mut descriptor = libc::pollfd {
+                fd: 0,
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            // The fixed deadline bounds poll; read consumes only ready stdin bytes.
+            if unsafe { libc::poll(&mut descriptor, 1, remaining.as_millis() as i32) } <= 0 {
+                return Err(io::ErrorKind::TimedOut.into());
+            }
+            let mut buffer = [0u8; 8192];
+            let length = unsafe { libc::read(0, buffer.as_mut_ptr().cast(), buffer.len()) };
+            if length < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            if length == 0 {
+                return String::from_utf8(input).map_err(io::Error::other);
+            }
+            input.extend_from_slice(&buffer[..length as usize]);
+            if input.len() > limit {
+                return Err(io::ErrorKind::InvalidData.into());
+            }
+        }
+    }
+}

@@ -627,3 +627,23 @@ fn codex_waiting_survives_polling_until_a_hook_or_rollout_finishes_the_turn() {
         SessionState::Done
     );
 }
+
+#[test]
+fn a_slow_poll_cannot_overwrite_a_newer_hook_event() {
+    let process = Process(Arc::new(Mutex::new(Ok("[]".into()))));
+    let clock = FakeClock::at(1800000000000);
+    let mut monitor = Monitor::new(process, clock.clone());
+    let old_poll = monitor.collect();
+    clock.advance(100);
+    monitor.hook(hooks::Metadata {
+        provider: Provider::Claude,
+        id: "abc".into(),
+        state: SessionState::Waiting,
+        tool: Some("Bash".into()),
+        cwd: "/tmp/project".into(),
+        interrupted: false,
+    });
+    let data = monitor.observe(old_poll);
+    assert_eq!(data.sessions.len(), 1);
+    assert_eq!(data.sessions[0].state, SessionState::Waiting);
+}
