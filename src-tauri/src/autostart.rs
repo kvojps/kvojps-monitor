@@ -28,6 +28,22 @@ pub fn synchronize(
     std::fs::write(file, entry(target))
 }
 
+/// Whether the app starts with the login.
+pub fn enabled(dir_autostart: &Path) -> bool {
+    dir_autostart.join(FILE).exists()
+}
+
+/// The user's switch in Settings: write the entry for this execution or remove it.
+pub fn set(dir_autostart: &Path, execution: &Execution, on: bool) -> io::Result<()> {
+    if on {
+        return synchronize(dir_autostart, execution, true);
+    }
+    match std::fs::remove_file(dir_autostart.join(FILE)) {
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        result => result,
+    }
+}
+
 fn entry(target: &Path) -> String {
     format!(
         "[Desktop Entry]\n\
@@ -167,5 +183,41 @@ mod tests {
             line_exec(d.path()),
             "Exec=\"/home/example/Meus Apps/\\\\$x 100%%.AppImage\""
         );
+    }
+
+    #[test]
+    fn turning_autostart_off_removes_the_entry_and_it_stays_off() {
+        let d = tempfile::tempdir().unwrap();
+        synchronize(d.path(), &deb(), true).unwrap();
+        assert!(enabled(d.path()));
+
+        set(d.path(), &deb(), false).unwrap();
+        synchronize(d.path(), &deb(), false).unwrap();
+
+        assert!(!enabled(d.path()));
+    }
+
+    #[test]
+    fn turning_autostart_on_writes_the_current_appimage_path() {
+        let d = tempfile::tempdir().unwrap();
+        set(d.path(), &appimage("/home/example/Apps/k.AppImage"), true).unwrap();
+        assert!(enabled(d.path()));
+        assert_eq!(line_exec(d.path()), "Exec=\"/home/example/Apps/k.AppImage\"");
+
+        // Turning it off twice is not an error.
+        set(d.path(), &deb(), false).unwrap();
+        set(d.path(), &deb(), false).unwrap();
+        assert!(!enabled(d.path()));
+    }
+
+    #[test]
+    fn turning_autostart_off_keeps_other_entries() {
+        let d = tempfile::tempdir().unwrap();
+        fs::write(d.path().join("other.desktop"), "x").unwrap();
+        set(d.path(), &deb(), true).unwrap();
+
+        set(d.path(), &deb(), false).unwrap();
+
+        assert!(d.path().join("other.desktop").exists());
     }
 }

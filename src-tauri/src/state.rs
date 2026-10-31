@@ -9,6 +9,43 @@ use crate::module::Module;
 // Keep the existing filename so upgrades retain user preferences.
 const PREFERENCES_FILE: &str = "preferencias.json";
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Theme {
+    Dark,
+    Light,
+    /// Follows the desktop color scheme, including later changes.
+    #[default]
+    System,
+}
+
+/// Visual preferences; the system reduced-motion preference prevails in the UI.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Appearance {
+    pub theme: Theme,
+    pub reduce_motion: bool,
+}
+
+/// Daily check of the GitHub releases API; public metadata only.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+struct VersionCheck {
+    enabled: bool,
+    /// Last successful check, epoch milliseconds.
+    checked_at: Option<u64>,
+    available: Option<crate::releases::Release>,
+}
+impl Default for VersionCheck {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            checked_at: None,
+            available: None,
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 struct Preferences {
@@ -19,6 +56,10 @@ struct Preferences {
     /// First run has already enabled autostart.
     #[serde(alias = "inicializado")]
     initialized: bool,
+    /// The first-run welcome was shown.
+    welcomed: bool,
+    appearance: Appearance,
+    version_check: VersionCheck,
 }
 
 /// Core panel state: current visibility and preferences persisted between launches.
@@ -113,6 +154,57 @@ impl AppState {
     #[cfg(test)]
     pub fn visible_modules(&self) -> Vec<Module> {
         self.visible.iter().copied().collect()
+    }
+
+    pub fn welcome_pending(&self) -> bool {
+        !self.preferences.welcomed
+    }
+    pub fn complete_welcome(&mut self) {
+        if !self.preferences.welcomed {
+            self.preferences.welcomed = true;
+            self.save();
+        }
+    }
+
+    pub fn appearance(&self) -> Appearance {
+        self.preferences.appearance
+    }
+    pub fn set_appearance(&mut self, appearance: Appearance) {
+        self.preferences.appearance = appearance;
+        self.save();
+    }
+
+    pub fn version_check(&self) -> bool {
+        self.preferences.version_check.enabled
+    }
+    pub fn set_version_check(&mut self, enabled: bool) {
+        self.preferences.version_check.enabled = enabled;
+        if !enabled {
+            self.preferences.version_check.available = None;
+        }
+        self.save();
+    }
+
+    /// A newer release found by the daily check, while the check is enabled.
+    pub fn available_release(&self) -> Option<crate::releases::Release> {
+        let check = &self.preferences.version_check;
+        check.enabled.then(|| check.available.clone()).flatten()
+    }
+    pub fn version_checked_at(&self) -> Option<u64> {
+        self.preferences.version_check.checked_at
+    }
+    pub fn record_version_check(&mut self, at: u64, available: Option<crate::releases::Release>) {
+        self.preferences.version_check.checked_at = Some(at);
+        self.preferences.version_check.available = available;
+        self.save();
+    }
+    /// Forget a known release once it stops being newer, e.g. after upgrading.
+    pub fn keep_release_if(&mut self, newer: impl Fn(&crate::releases::Release) -> bool) {
+        let check = &mut self.preferences.version_check;
+        if check.available.as_ref().is_some_and(|r| !newer(r)) {
+            check.available = None;
+            self.save();
+        }
     }
 
     pub fn agent_notifications(&self) -> crate::agents::notifications::Preferences {
@@ -336,7 +428,14 @@ mod tests {
             serde_json::from_slice(&fs::read(d.path().join(PREFERENCES_FILE)).unwrap()).unwrap();
         assert_eq!(
             saved,
-            serde_json::json!({"lastAnchor":"system","initialized":true,"agentNotifications":{"waiting":true,"done":true,"failed":true}})
+            serde_json::json!({
+                "lastAnchor": "system",
+                "initialized": true,
+                "agentNotifications": {"waiting": true, "done": true, "failed": true},
+                "welcomed": false,
+                "appearance": {"theme": "system", "reduceMotion": false},
+                "versionCheck": {"enabled": true, "checkedAt": null, "available": null}
+            })
         );
         let reloaded = AppState::load(d.path().into());
         assert_eq!(reloaded.last_anchor(), Module::System);
@@ -403,5 +502,96 @@ mod agent_notification_tests {
         let saved = reloaded.agent_notifications();
         assert!(!saved.waiting && saved.done && !saved.failed);
         assert!(!storage.read(PREFERENCES_FILE).unwrap().contains("PRIVATE_"));
+    }
+}
+
+#[cfg(test)]
+mod settings_tests {
+    use super::*;
+
+    fn dir() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    #[test]
+    fn appearance_defaults_to_the_system_theme_with_motion_and_persists() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        assert_eq!(
+            state.appearance(),
+            Appearance {
+                theme: Theme::System,
+                reduce_motion: false
+            }
+        );
+
+        state.set_appearance(Appearance {
+            theme: Theme::Light,
+            reduce_motion: true,
+        });
+
+        assert_eq!(
+            AppState::load(d.path().into()).appearance(),
+            Appearance {
+                theme: Theme::Light,
+                reduce_motion: true
+            }
+        );
+    }
+
+    #[test]
+    fn welcome_is_pending_only_until_completed() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        // Autostart completes the first execution before the panel ever opens.
+        state.complete_first_execution();
+        assert!(state.welcome_pending());
+
+        state.complete_welcome();
+
+        assert!(!state.welcome_pending());
+        assert!(!AppState::load(d.path().into()).welcome_pending());
+    }
+
+    #[test]
+    fn version_check_starts_enabled_and_can_be_disabled() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        assert!(state.version_check());
+
+        state.set_version_check(false);
+
+        assert!(!AppState::load(d.path().into()).version_check());
+    }
+
+    #[test]
+    fn preferences_keep_only_choices_never_credentials_or_content() {
+        let d = dir();
+        let mut state = AppState::load(d.path().into());
+        state.set_appearance(Appearance {
+            theme: Theme::Dark,
+            reduce_motion: false,
+        });
+        state.target_agent("PRIVATE_SESSION".into());
+        state.complete_welcome();
+        state.complete_first_execution();
+
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(d.path().join(PREFERENCES_FILE)).unwrap())
+                .unwrap();
+        let mut keys: Vec<_> = saved.as_object().unwrap().keys().cloned().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            [
+                "agentNotifications",
+                "appearance",
+                "initialized",
+                "lastAnchor",
+                "versionCheck",
+                "welcomed"
+            ]
+        );
+        assert!(!saved.to_string().contains("PRIVATE_"));
     }
 }

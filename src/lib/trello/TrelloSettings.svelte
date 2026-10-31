@@ -40,7 +40,7 @@
   }
 </script>
 <section aria-label={t.modules.trello}>
-  <h2>{t.modules.trello}</h2>
+  <h3>{t.modules.trello}</h3>
   {#if data?.account && !message}<p>{interpolate(t.trello.connected, { login: data.account.login })}</p>{/if}
   <p>{t.trello.keyStep}</p>
   <button type="button" onclick={openAdmin}>{t.trello.openAdmin}</button>
@@ -73,15 +73,6 @@
   {/if}
 </section>
 <style>
-  section { padding: 16px; font-size: 12px; }
-  h2 { font-size: 14px; margin-bottom: 12px; }
-  p { margin: 8px 0; }
   .secondary { color: var(--muted); }
-  label { display: block; margin: 12px 0 6px; }
-  fieldset { border: 0; display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
-  .board { display: flex; align-items: center; gap: 8px; margin: 0; }
-  .board input { width: auto; }
-  input { width: 100%; box-sizing: border-box; color: var(--text); background: var(--surface); padding: 8px; border: 1px solid var(--line); border-radius: 5px; }
-  button { display: block; margin-top: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; }
-  button:disabled { opacity: .5; }
+  fieldset { border: 0; display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
 </style>

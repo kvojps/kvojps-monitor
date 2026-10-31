@@ -36,7 +36,7 @@
   }
 </script>
 <section aria-label={t.modules.agents}>
-  <h2>{t.modules.agents}</h2>
+  <h3>{t.modules.agents}</h3>
   <label><input type="checkbox" checked={hooksEnabled} disabled={pending} onchange={changeHooks} />{t.agentHooks.setting}</label>
   {#if hooksEnabled}<p>{t.agentHooks.trust}</p>{/if}
   {#if error}<p role="alert">{t.agentHooks.error}</p>{/if}
@@ -45,8 +45,3 @@
       onchange={(event) => change(item.key, event.currentTarget.checked)} />{item.label}</label>
   {/each}
 </section>
-<style>
-  section { padding: 16px; font-size: 13px; }
-  h2 { font-size: 14px; margin-bottom: 12px; }
-  label { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
-</style>

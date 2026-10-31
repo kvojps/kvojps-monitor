@@ -15,14 +15,26 @@ use crate::state::AppState;
 #[serde(rename_all = "camelCase")]
 pub struct InitialState {
     last_anchor: Module,
+    /// First opening: Settings shows the welcome.
+    welcome: bool,
+    appearance: crate::state::Appearance,
+    /// Desktop color scheme; None when the portal has not answered.
+    system_theme: Option<crate::desktop_theme::SystemTheme>,
     agent_target: Option<String>,
     snapshots: Vec<Snapshot>,
 }
 
 #[tauri::command]
-pub fn initial_state(state: State<Mutex<AppState>>, snapshots: State<Snapshots>) -> InitialState {
+pub fn initial_state(
+    state: State<Mutex<AppState>>,
+    snapshots: State<Snapshots>,
+    theme: State<crate::desktop_theme::Current>,
+) -> InitialState {
     let state = state.lock().unwrap();
     InitialState {
+        welcome: state.welcome_pending(),
+        appearance: state.appearance(),
+        system_theme: theme.get(),
         agent_target: state.agent_target(),
         last_anchor: state.opening_anchor(),
         snapshots: snapshots.all(),
@@ -235,4 +247,82 @@ pub async fn set_agent_hooks(
         .send((enabled, tx))
         .map_err(|_| "collectorUnavailable".to_string())?;
     rx.await.map_err(|_| "collectorUnavailable".to_string())?
+}
+
+/// Where the autostart entry lives and what it launches.
+pub struct Startup {
+    pub dir: std::path::PathBuf,
+    pub execution: crate::autostart::Execution,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct General {
+    version: &'static str,
+    autostart: bool,
+    version_check: bool,
+    release: Option<crate::releases::Release>,
+}
+
+fn general(state: &AppState, startup: &Startup) -> General {
+    General {
+        version: env!("CARGO_PKG_VERSION"),
+        autostart: crate::autostart::enabled(&startup.dir),
+        version_check: state.version_check(),
+        release: state.available_release(),
+    }
+}
+
+#[tauri::command]
+pub fn general_settings(state: State<Mutex<AppState>>, startup: State<Startup>) -> General {
+    general(&state.lock().unwrap(), &startup)
+}
+
+/// Rejects with "unwritable" when the autostart entry cannot change.
+#[tauri::command]
+pub fn set_autostart(
+    enabled: bool,
+    state: State<Mutex<AppState>>,
+    startup: State<Startup>,
+) -> Result<General, String> {
+    crate::autostart::set(&startup.dir, &startup.execution, enabled)
+        .map_err(|_| "unwritable".to_string())?;
+    Ok(general(&state.lock().unwrap(), &startup))
+}
+
+#[tauri::command]
+pub fn set_version_check(
+    enabled: bool,
+    state: State<Mutex<AppState>>,
+    startup: State<Startup>,
+) -> General {
+    let mut state = state.lock().unwrap();
+    state.set_version_check(enabled);
+    general(&state, &startup)
+}
+
+#[tauri::command]
+pub async fn open_release(state: State<'_, Mutex<AppState>>) -> Result<(), ()> {
+    let release = state.lock().unwrap().available_release();
+    crate::general::open_release(&crate::ports::SystemProcesses, release.as_ref())
+        .then_some(())
+        .ok_or(())
+}
+
+#[tauri::command]
+pub async fn open_logs() -> Result<(), ()> {
+    let dir = dirs::state_dir().ok_or(())?.join("kvojps-monitor");
+    crate::general::open_logs(&crate::ports::SystemProcesses, &dir)
+        .then_some(())
+        .ok_or(())
+}
+
+#[tauri::command]
+pub fn set_appearance(appearance: crate::state::Appearance, state: State<Mutex<AppState>>) {
+    state.lock().unwrap().set_appearance(appearance);
+}
+
+#[tauri::command]
+pub fn complete_welcome(state: State<Mutex<AppState>>) {
+    state.lock().unwrap().complete_welcome();
 }

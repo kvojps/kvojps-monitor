@@ -47,7 +47,25 @@ export interface SystemData {
   } | null;
 }
 
+export type Theme = "dark" | "light" | "system";
+export type SystemTheme = "dark" | "light";
+/** Persisted visual preferences; the system reduced-motion preference prevails. */
+export interface Appearance { theme: Theme; reduceMotion: boolean }
+
+export interface GeneralSettings {
+  version: string;
+  autostart: boolean;
+  versionCheck: boolean;
+  /** Newer release found by the daily check; never installed by the app. */
+  release: { version: string; url: string } | null;
+}
+
 export interface InitialState {
+  /** First opening: Settings shows the welcome. */
+  welcome?: boolean;
+  appearance?: Appearance;
+  /** Desktop color scheme from the core; null when unknown. */
+  systemTheme?: SystemTheme | null;
   agentTarget?: string | null;
   /** Last module chosen in the navigation, or Agents for a notification target. */
   lastAnchor: Module;
@@ -87,6 +105,16 @@ export interface Core {
   /** Rejects when Trello refuses or cannot be reached. */
   moveTrelloCard?(card: string, list: string): Promise<void>;
   closePanel(): void;
+  listenSystemTheme?(cb: (theme: SystemTheme) => void): Promise<() => void>;
+  /** The welcome was shown; it never opens again. */
+  completeWelcome?(): void;
+  generalSettings?(): Promise<GeneralSettings>;
+  /** Rejects with "unwritable" when the autostart entry cannot change. */
+  setAutostart?(enabled: boolean): Promise<GeneralSettings>;
+  setVersionCheck?(enabled: boolean): Promise<GeneralSettings>;
+  openRelease?(): void;
+  openLogs?(): Promise<void>;
+  setAppearance?(appearance: Appearance): void;
 }
 
 export const tauriCore: Core = {
@@ -117,6 +145,14 @@ export const tauriCore: Core = {
   openTrelloCard: (url) => void invoke("open_trello_card", { url }),
   moveTrelloCard: (card, list) => invoke<void>("move_trello_card", { card, list }),
   closePanel: () => void invoke("close_panel"),
+  listenSystemTheme: (cb) => listen<SystemTheme>("system-theme", (e) => cb(e.payload)),
+  completeWelcome: () => void invoke("complete_welcome"),
+  generalSettings: () => invoke<GeneralSettings>("general_settings"),
+  setAutostart: (enabled) => invoke<GeneralSettings>("set_autostart", { enabled }),
+  setVersionCheck: (enabled) => invoke<GeneralSettings>("set_version_check", { enabled }),
+  openRelease: () => void invoke("open_release"),
+  openLogs: () => invoke<void>("open_logs"),
+  setAppearance: (appearance) => void invoke("set_appearance", { appearance }),
 };
 
 export interface NetworkMeasurements { latency: number | null; jitter: number | null; loss: number | null }

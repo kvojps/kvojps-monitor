@@ -3,6 +3,8 @@ mod ai;
 mod autostart;
 mod collection;
 mod commands;
+mod desktop_theme;
+mod general;
 mod github;
 mod icon;
 mod indicator;
@@ -12,6 +14,7 @@ mod network;
 mod panel;
 mod persistence;
 mod ports;
+mod releases;
 mod snapshot;
 mod state;
 mod strings;
@@ -49,14 +52,20 @@ pub fn run() {
                 appimage: std::env::var_os("APPIMAGE").map(Into::into),
             };
             let first = state.first_execution();
-            if let Err(e) = autostart::synchronize(&dir_config.join("autostart"), &execution, first)
-            {
+            let dir_autostart = dir_config.join("autostart");
+            if let Err(e) = autostart::synchronize(&dir_autostart, &execution, first) {
                 eprintln!("autostart: failed to write entry: {e}");
             } else if first {
                 state.complete_first_execution();
             }
             app.manage(Mutex::new(state));
+            app.manage(commands::Startup {
+                dir: dir_autostart,
+                execution,
+            });
+            desktop_theme::start(app.handle());
             collection::start(app.handle());
+            releases::start(app.handle());
 
             let indicator = Indicator {
                 app: app.handle().clone(),
@@ -110,6 +119,13 @@ pub fn run() {
             commands::open_trello_admin,
             commands::run_speed_test,
             commands::set_automatic_speed,
+            commands::general_settings,
+            commands::set_autostart,
+            commands::set_version_check,
+            commands::open_release,
+            commands::open_logs,
+            commands::set_appearance,
+            commands::complete_welcome,
         ])
         .build(tauri::generate_context!())
         .expect("failed to start kvojps-monitor")

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AiData } from "../core";
-  import { t } from "../strings";
+  import { interpolate, t } from "../strings";
   let { data, connect, disconnect, setUsage }: {
     data?: AiData; connect: () => Promise<void>; disconnect: () => Promise<void>;
     setUsage: (enabled: boolean) => Promise<void>;
@@ -22,8 +22,13 @@
   }
 </script>
 <section aria-label={t.modules.ai}>
-  <h2>{t.modules.ai}</h2>
-  <h3>{t.ai.claude}</h3>
+  <h3>{t.modules.ai}</h3>
+  {#if data}
+    <h4>{t.ai.codex}</h4>
+    <p>{data.codex.state === "missing" ? t.ai.missingCodex
+      : data.codex.plan ? interpolate(t.settings.codexPlan, { plan: data.codex.plan }) : t.settings.codexDetected}</p>
+  {/if}
+  <h4>{t.ai.claude}</h4>
   {#if claude?.state === "missing"}<p>{t.ai.missingClaude}</p>{/if}
   {#if claude?.statusLine === "connected"}
     <p>{t.ai.settings.connected}</p>
@@ -36,7 +41,7 @@
     <p>{t.ai.settings.explanation}</p>
     <button disabled={busy} onclick={() => run(connect)}>{t.ai.settings.connect}</button>
   {/if}
-  <h3>{t.ai.settings.usage.title}</h3>
+  <h4>{t.ai.settings.usage.title}</h4>
   {#if claude?.usage === "on" || claude?.usage === "expired"}
     <p>{claude.usage === "expired" ? t.ai.expired : t.ai.settings.usage.on}</p>
     <button disabled={busy} onclick={() => run(() => setUsage(false))}>{t.ai.settings.usage.disable}</button>
@@ -53,14 +58,3 @@
   {/if}
   {#if error}<p role="alert">{error}</p>{/if}
 </section>
-<style>
-  section { padding: 16px; font-size: 12px; }
-  h2 { font-size: 14px; margin-bottom: 12px; }
-  h3 { font-size: 13px; margin: 16px 0 8px; }
-  h3:first-of-type { margin-top: 0; }
-  .warning { padding: 8px; border: 1px solid var(--warn); border-radius: 5px; }
-  .warning b { color: var(--warn); }
-  p { margin: 8px 0; }
-  button { margin-top: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; }
-  button:disabled { opacity: .5; }
-</style>

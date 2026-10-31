@@ -1,16 +1,14 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from "svelte";
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
-  import AgentSettings from "./agents/AgentSettings.svelte";
   import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
-  import AiSettings from "./ai/AiSettings.svelte";
   import GithubModule from "./github/GithubModule.svelte";
-  import GithubSettings from "./github/GithubSettings.svelte";
   import NetworkModule from "./network/NetworkModule.svelte";
   import SystemModule from "./system/SystemModule.svelte";
   import TrelloModule from "./trello/TrelloModule.svelte";
-  import TrelloSettings from "./trello/TrelloSettings.svelte";
+  import { AppearanceState } from "./settings/appearance.svelte";
+  import Settings from "./settings/Settings.svelte";
   import { interpolate, t } from "./strings";
 
   let { core }: { core: Core } = $props();
@@ -28,8 +26,16 @@
   let agentTarget = $state<string | null>(null);
   let snapshots = $state<Partial<Record<Module, Snapshot>>>({});
 
+  /** First opening: Settings shows the welcome until the user goes back to the panel. */
+  let welcome = $state(false);
+  const appearance = new AppearanceState();
+  $effect(() => {
+    document.documentElement.dataset.theme = appearance.theme;
+    document.documentElement.dataset.motion = appearance.reduced ? "reduced" : "full";
+  });
+
   let scroller: HTMLElement;
-  let settingsArea = $state<HTMLElement>();
+  let settings = $state<ReturnType<typeof Settings>>();
   const sections: Partial<Record<Module, HTMLElement>> = {};
   /** Element focused before opening Settings, focused again on return. */
   let returnFocus: HTMLElement | null = null;
@@ -52,14 +58,10 @@
     core.reportVisibleModules(modules);
   }
 
-  function reducedMotion() {
-    return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? true;
-  }
-
   function reveal(module: Module, focus: boolean) {
     const section = sections[module];
     if (!section) return;
-    section.scrollIntoView({ block: "start", behavior: focus && !reducedMotion() ? "smooth" : "auto" });
+    section.scrollIntoView({ block: "start", behavior: focus && !appearance.reduced ? "smooth" : "auto" });
     if (focus) section.focus({ preventScroll: true });
   }
 
@@ -78,17 +80,20 @@
     reveal(module, true);
   }
 
-  async function openSettings() {
-    if (area === "settings") return;
-    returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    area = "settings";
-    syncVisibility();
-    await tick();
-    settingsArea?.focus({ preventScroll: true });
+  /** Open Settings, at the section of module when given. */
+  async function openSettings(module?: Module) {
+    if (area !== "settings") {
+      returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      area = "settings";
+      syncVisibility();
+      await tick();
+    }
+    await settings?.focus(module);
   }
 
   /** The panel stays mounted under Settings, so scroll and module state survive. */
   async function backToPanel() {
+    welcome = false;
     await showPanel();
     if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
     returnFocus = null;
@@ -137,15 +142,26 @@
     // Subscribe before requesting initial state to avoid losing snapshots in between.
     const stop = core.listenSnapshots(receive);
     const stopTarget = core.listenAgentTarget?.((session) => void target(session));
+    const stopMedia = appearance.watch();
+    const stopTheme = core.listenSystemTheme?.((theme) => (appearance.desktop = theme));
     core.initialState().then(async (initial) => {
       initial.snapshots.forEach(receive);
+      if (initial.appearance) appearance.preference = initial.appearance;
+      appearance.desktop ??= initial.systemTheme ?? null;
       agentTarget ??= initial.agentTarget ?? null;
       anchor ??= agentTarget ? "agents" : initial.lastAnchor;
       await tick();
       if (area === "panel") reveal(anchor, false);
       if (!observer) syncVisibility();
+      if (initial.welcome && !agentTarget) {
+        welcome = true;
+        core.completeWelcome?.();
+        await openSettings();
+      }
     });
     return () => {
+      stopMedia();
+      void stopTheme?.then((p) => p());
       observer?.disconnect();
       void stop.then((p) => p());
       void stopTarget?.then((p) => p());
@@ -161,8 +177,8 @@
 
 {#snippet ai()}
   <!-- Before the first snapshot the instruments explain there is no reading and keep their actions. -->
-  <AiModule data={(snapshots.ai?.data as AiData | null) ?? NO_AI_READING} refresh={() => core.refreshAi?.()} configure={openSettings}
-    reconnect={() => void (core.connectClaude?.() ?? Promise.reject()).catch(openSettings)} />
+  <AiModule data={(snapshots.ai?.data as AiData | null) ?? NO_AI_READING} refresh={() => core.refreshAi?.()} configure={() => openSettings("ai")}
+    reconnect={() => void (core.connectClaude?.() ?? Promise.reject()).catch(() => openSettings("ai"))} />
 {/snippet}
 
 {#snippet agents()}
@@ -170,12 +186,12 @@
 {/snippet}
 
 {#snippet github()}
-  <GithubModule data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={openSettings} />
+  <GithubModule data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={() => openSettings("github")} />
 {/snippet}
 
 {#snippet trello()}
   <TrelloModule data={(snapshots.trello?.data as TrelloData | undefined) ?? null} refresh={() => core.refreshTrello?.()}
-    configure={openSettings} openCard={(url) => core.openTrelloCard?.(url)}
+    configure={() => openSettings("trello")} openCard={(url) => core.openTrelloCard?.(url)}
     moveCard={(card, list) => core.moveTrelloCard?.(card, list) ?? Promise.reject(new Error("unavailable"))} />
 {/snippet}
 
@@ -219,7 +235,7 @@
         {/if}
       </button>
     {/each}
-    <button class="settings-item" aria-current={area === "settings" ? "page" : undefined} onclick={openSettings}>
+    <button class="settings-item" aria-current={area === "settings" ? "page" : undefined} onclick={() => openSettings()}>
       <span class="index num" aria-hidden="true">07</span>
       <span>{t.settings.title}</span>
     </button>
@@ -243,34 +259,7 @@
     </main>
 
     {#if area === "settings"}
-      <div class="settings" bind:this={settingsArea} tabindex="-1">
-        <header class="settings-head">
-          <h2>{t.settings.title}</h2>
-          <button class="back" onclick={backToPanel}><span aria-hidden="true">← </span>{t.panel.back}</button>
-        </header>
-        <AgentSettings setHooks={core.setAgentHooks} data={snapshots.agents?.data as AgentsData | undefined} save={(preferences) => core.setAgentNotifications?.(preferences)} />
-        <AiSettings data={snapshots.ai?.data as AiData | undefined}
-          connect={() => core.connectClaude ? core.connectClaude() : Promise.reject("unwritable")}
-          disconnect={() => core.disconnectClaude ? core.disconnectClaude() : Promise.reject("unwritable")}
-          setUsage={(enabled) => core.setClaudeUsage ? core.setClaudeUsage(enabled) : Promise.reject("unwritable")} />
-        <GithubSettings data={snapshots.github?.data as GithubData | undefined}
-          save={(token) => core.saveGithubToken ? core.saveGithubToken(token) : Promise.reject("offline")} />
-        <TrelloSettings data={snapshots.trello?.data as TrelloData | undefined}
-          connect={(key, token) => core.connectTrello ? core.connectTrello(key, token) : Promise.reject("offline")}
-          selectBoard={(board) => core.selectTrelloBoard ? core.selectTrelloBoard(board) : Promise.reject("offline")}
-          disconnect={() => core.disconnectTrello ? core.disconnectTrello() : Promise.reject("offline")}
-          openAdmin={() => core.openTrelloAdmin?.()} authorize={(key) => core.openTrelloAuthorization?.(key)} />
-        {#if snapshots.network}
-          <section class="network-settings" aria-label={t.modules.network}>
-            <h2>{t.modules.network}</h2>
-            <label>
-              <input type="checkbox" checked={(snapshots.network.data as NetworkData).automaticSpeed}
-                onchange={(event) => core.setAutomaticSpeed?.(event.currentTarget.checked)} />
-              {t.network.automaticSpeed}
-            </label>
-          </section>
-        {/if}
-      </div>
+      <Settings bind:this={settings} {core} {snapshots} {welcome} {appearance} back={backToPanel} />
     {/if}
   </div>
 </div>
@@ -528,38 +517,4 @@
     h1 { font-size: 23px; }
   }
 
-  .settings {
-    position: absolute;
-    inset: 0;
-    overflow-y: auto;
-    padding: 6px 12px 24px 30px;
-    background: var(--bg);
-  }
-  .settings:focus { outline: none; }
-  .settings-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 8px 16px 16px;
-    border-bottom: 5px solid var(--band-lavender);
-  }
-  .settings-head h2 {
-    font-size: 22px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--band-amber-text);
-  }
-  .back {
-    min-height: 36px;
-    padding: 8px 16px;
-    border-radius: 18px;
-    border: 1px solid var(--line);
-    background: var(--surface-2);
-  }
-  .back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .network-settings { padding: 16px; font-size: 13px; }
-  .network-settings h2 { font-size: 14px; margin-bottom: 12px; }
 </style>

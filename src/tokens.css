@@ -1,5 +1,6 @@
-/* Panel design tokens: LCARS cinematic language. Dark by default; light when
-   requested by the system. Text tokens meet WCAG AA (4.5:1) on every surface. */
+/* Panel design tokens: LCARS cinematic language. Dark by default; the panel sets
+   data-theme from the saved choice or the desktop color scheme. Text tokens meet
+   WCAG AA (4.5:1) on every surface in both themes. */
 :root {
   --bg: #02070d;
   --surface: #06111d;
@@ -34,28 +35,36 @@
   color-scheme: dark;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f3f7fb;
-    --surface: #e4edf5;
-    --surface-2: #d5e3ef;
-    --line: #9ab2c6;
-    --text: #132c40;
-    --muted: #38566b;
-    --faint: #4a6579;
-    --accent: #00687f;
-    --accent-dim: #00687f1f;
-    --ok: #17663f;
-    --warn: #7a4f00;
-    --bad: #b42318;
-    --band-lavender-text: #5a4790;
-    --band-amber-text: #7a4f00;
-    --module-bg: #e4edf5;
-    /* Band colors lack contrast as text on light surfaces. */
-    --module-title: var(--text);
+:root[data-theme="light"] {
+  --bg: #f3f7fb;
+  --surface: #e4edf5;
+  --surface-2: #d5e3ef;
+  --line: #9ab2c6;
+  --text: #132c40;
+  --muted: #38566b;
+  --faint: #4a6579;
+  --accent: #00687f;
+  --accent-dim: #00687f1f;
+  --ok: #17663f;
+  --warn: #7a4f00;
+  --bad: #b42318;
+  --band-lavender-text: #5a4790;
+  --band-amber-text: #7a4f00;
+  --module-bg: #e4edf5;
+  /* Band colors lack contrast as text on light surfaces. */
+  --module-title: var(--text);
 
-    color-scheme: light;
-  }
+  color-scheme: light;
+}
+
+/* Manual or system reduced motion: no decorative animation, transition or
+   animated scrolling. The system preference always prevails (see AppearanceState). */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
 }
 
 *,

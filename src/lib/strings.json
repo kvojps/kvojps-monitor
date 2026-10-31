@@ -34,7 +34,38 @@
     "system": "Kernel e UPower"
   },
   "settings": {
-    "title": "Configurações"
+    "title": "Configurações",
+    "welcome": {
+      "title": "Boas-vindas",
+      "intro": "Veja o que já foi detectado e configure o que faltar. Tudo pode ser alterado depois nestas Configurações.",
+      "label": "Status dos Módulos",
+      "detected": "Detectado",
+      "needsSetup": "Precisa configurar",
+      "notNeeded": "Não precisa configurar",
+      "checking": "Verificando…",
+      "configure": "Configurar {module}"
+    },
+    "general": {
+      "title": "Geral",
+      "autostart": "Iniciar com o login",
+      "autostartFailed": "Não foi possível alterar a inicialização com o login",
+      "versionCheck": "Verificar nova versão diariamente",
+      "release": "Versão {version} disponível · ver release",
+      "version": "kvojps-monitor {version}",
+      "openLogs": "Abrir pasta de logs",
+      "openLogsFailed": "Não foi possível abrir a pasta de logs"
+    },
+    "appearance": {
+      "title": "Aparência",
+      "theme": "Tema",
+      "dark": "Escuro",
+      "light": "Claro",
+      "system": "Sistema",
+      "reduceMotion": "Reduzir animações",
+      "systemReduced": "O sistema já pede menos animações; essa preferência prevalece."
+    },
+    "codexDetected": "Codex detectado",
+    "codexPlan": "Codex detectado · plano {plan}"
   },
   "header": {
     "updated": "atualizado {time}",

@@ -24,7 +24,7 @@
   }
 </script>
 <section aria-label={t.modules.github}>
-  <h2>{t.modules.github}</h2>
+  <h3>{t.modules.github}</h3>
   {#if data?.credential}
     <p>{data.credential.source === "gh" ? interpolate(t.github.viaGh, { login: data.credential.login }) : t.github.ownToken}</p>
     {#if data.credential.source === "token"}<p>{interpolate(t.github.connected, { login: data.credential.login })}</p>{/if}
@@ -39,12 +39,3 @@
     {#if message}<p id="github-token-message" role={failed ? "alert" : "status"}>{message}</p>{/if}
   </form>
 </section>
-<style>
-  section { padding: 16px; font-size: 12px; }
-  h2 { font-size: 14px; margin-bottom: 12px; }
-  p { margin: 8px 0; }
-  label { display: block; margin: 12px 0 6px; }
-  input { width: 100%; box-sizing: border-box; color: var(--text); background: var(--surface); padding: 8px; border: 1px solid var(--line); border-radius: 5px; }
-  button { margin-top: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; }
-  button:disabled { opacity: .5; }
-</style>
