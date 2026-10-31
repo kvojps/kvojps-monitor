@@ -9,7 +9,7 @@ pub use network_manager::{NetworkManager, NetworkManagerDbus};
 use serde::{Deserialize, Serialize};
 pub use sonda::{PingSocket, Sonda};
 use std::collections::{HashMap, VecDeque};
-use std::net::IpAddr;
+use std::net::{IpAddr, SocketAddr, SocketAddrV6};
 
 #[derive(Debug, Clone, Default, Deserialize, PartialEq)]
 pub struct Conexao {
@@ -93,7 +93,10 @@ impl<A: Arquivos, N: NetworkManager, S: Sonda, R: Relogio> Rede<A, N, S, R> {
         self.proximo = agora + 1000;
         // O NM é consultado mesmo com o Painel fechado. Erro de D-Bus não reutiliza um link antigo.
         let conexao = self.nm.conexao().unwrap_or_default();
-        if self.conexao != conexao {
+        if self.conexao.id != conexao.id
+            || self.conexao.interface != conexao.interface
+            || self.conexao.gateway != conexao.gateway
+        {
             self.amostras.clear();
             self.anterior = None;
             self.historico.clear();
@@ -101,12 +104,32 @@ impl<A: Arquivos, N: NetworkManager, S: Sonda, R: Relogio> Rede<A, N, S, R> {
         }
         self.conexao = conexao;
         let conectada = self.conexao.conectada();
+        let trafego = self.trafego(self.relogio.agora());
         if conectada && agora >= self.proximo_ping {
             self.proximo_ping = agora + 5000;
+            let gateway = self.conexao.gateway.map(|ip| match ip {
+                IpAddr::V6(ip) if ip.is_unicast_link_local() => {
+                    let indice = self
+                        .arquivos
+                        .ler(&format!(
+                            "/sys/class/net/{}/ifindex",
+                            self.conexao.interface
+                        ))
+                        .ok()
+                        .and_then(|s| s.trim().parse().ok())
+                        .unwrap_or(0);
+                    SocketAddr::V6(SocketAddrV6::new(ip, 0, 0, indice))
+                }
+                _ => SocketAddr::new(ip, 0),
+            });
+            let internet: SocketAddr = if gateway.is_some_and(|g| g.is_ipv6()) {
+                "[2606:4700:4700::1111]:0".parse().unwrap()
+            } else {
+                "1.1.1.1:0".parse().unwrap()
+            };
             let (gateway, internet) = std::thread::scope(|scope| {
-                let gateway =
-                    scope.spawn(|| self.conexao.gateway.and_then(|ip| self.sonda.medir(ip)));
-                let internet = self.sonda.medir("1.1.1.1".parse().unwrap());
+                let gateway = scope.spawn(|| gateway.and_then(|ip| self.sonda.medir(ip)));
+                let internet = self.sonda.medir(internet);
                 (gateway.join().unwrap_or(None), internet)
             });
             self.amostras.push_back((agora, gateway, internet));
@@ -126,7 +149,6 @@ impl<A: Arquivos, N: NetworkManager, S: Sonda, R: Relogio> Rede<A, N, S, R> {
         let internet = medidas(self.amostras.iter().map(|a| a.2));
         let qualidade =
             conectada.then(|| classificar(&gateway, &internet, self.conexao.conectividade));
-        let trafego = self.trafego(agora);
         if let Some(t) = &trafego {
             self.historico.push_back(t.clone());
             while self.historico.len() > 60 {
@@ -219,7 +241,7 @@ fn classificar(g: &Medidas, i: &Medidas, conectividade: u32) -> Qualidade {
     if acima(g.perda, 5.0)
         || acima(i.perda, 5.0)
         || acima(i.latencia, 300.0)
-        || (g.latencia.is_some() && (i.latencia.is_none() || conectividade == 1))
+        || (g.latencia.is_some() && (i.latencia.is_none() || matches!(conectividade, 1 | 3)))
     {
         Qualidade::Ruim
     } else if acima(g.perda, 1.0)
@@ -238,7 +260,7 @@ pub fn iniciar(app: tauri::AppHandle) {
     std::thread::spawn(move || {
         let mut rede = Rede::new(
             crate::portas::Raiz::sistema(),
-            NetworkManagerDbus,
+            NetworkManagerDbus::conectar(),
             PingSocket,
             crate::portas::RelogioDoSistema,
         );

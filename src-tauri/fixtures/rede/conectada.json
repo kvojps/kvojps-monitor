@@ -1,8 +1,0 @@
-{
-  "id": "/org/freedesktop/NetworkManager/ActiveConnection/2",
-  "tipo": "802-11-wireless",
-  "conectividade": 4,
-  "vpn": false,
-  "gateway": "192.0.2.101",
-  "interface": "wlo1"
-}

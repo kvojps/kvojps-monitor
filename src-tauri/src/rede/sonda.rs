@@ -1,13 +1,13 @@
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
-use std::net::{IpAddr, SocketAddr, TcpStream, UdpSocket};
+use std::net::{SocketAddr, TcpStream, UdpSocket};
 use std::time::{Duration, Instant};
 
 pub trait Sonda: Send + Sync {
-    fn medir(&self, destino: IpAddr) -> Option<f64>;
+    fn medir(&self, destino: SocketAddr) -> Option<f64>;
 }
 pub struct PingSocket;
 impl Sonda for PingSocket {
-    fn medir(&self, destino: IpAddr) -> Option<f64> {
+    fn medir(&self, destino: SocketAddr) -> Option<f64> {
         let ipv4 = destino.is_ipv4();
         let socket = Socket::new(
             if ipv4 { Domain::IPV4 } else { Domain::IPV6 },
@@ -22,12 +22,11 @@ impl Sonda for PingSocket {
             Ok(s) => s,
             Err(_) => {
                 let inicio = Instant::now();
-                return TcpStream::connect_timeout(
-                    &SocketAddr::new(destino, 443),
-                    Duration::from_millis(700),
-                )
-                .ok()
-                .map(|_| inicio.elapsed().as_secs_f64() * 1000.0);
+                let mut tcp = destino;
+                tcp.set_port(443);
+                return TcpStream::connect_timeout(&tcp, Duration::from_millis(700))
+                    .ok()
+                    .map(|_| inicio.elapsed().as_secs_f64() * 1000.0);
             }
         };
         socket
@@ -36,9 +35,7 @@ impl Sonda for PingSocket {
         socket
             .set_write_timeout(Some(Duration::from_millis(700)))
             .ok()?;
-        socket
-            .connect(&SockAddr::from(SocketAddr::new(destino, 0)))
-            .ok()?;
+        socket.connect(&SockAddr::from(destino)).ok()?;
         let mut pacote = [0u8; 16];
         pacote[0] = if ipv4 { 8 } else { 128 };
         pacote[6..8].copy_from_slice(&1u16.to_be_bytes());

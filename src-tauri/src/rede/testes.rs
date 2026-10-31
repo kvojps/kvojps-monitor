@@ -1,15 +1,25 @@
 use super::*;
 use crate::portas::falsos::{RaizFalsa, RelogioFalso};
 
+use super::network_manager::{LeituraNetworkManager, PropriedadesNetworkManager};
+struct DbusFalso(LeituraNetworkManager);
+impl PropriedadesNetworkManager for DbusFalso {
+    fn ler(&self) -> std::io::Result<LeituraNetworkManager> {
+        Ok(self.0.clone())
+    }
+}
+fn leitura_nm() -> LeituraNetworkManager {
+    serde_json::from_str(include_str!("../../fixtures/rede/networkmanager.json")).unwrap()
+}
 struct Nm;
 impl NetworkManager for Nm {
     fn conexao(&self) -> std::io::Result<Conexao> {
-        Ok(serde_json::from_str(include_str!("../../fixtures/rede/conectada.json")).unwrap())
+        NetworkManagerDbus(DbusFalso(leitura_nm())).conexao()
     }
 }
 struct Ping(f64);
 impl Sonda for Ping {
-    fn medir(&self, _: std::net::IpAddr) -> Option<f64> {
+    fn medir(&self, _: std::net::SocketAddr) -> Option<f64> {
         Some(self.0)
     }
 }
@@ -38,7 +48,7 @@ fn sem_resposta_em_ambos_destinos_publica_ruim() {
     }
     struct SemResposta;
     impl Sonda for SemResposta {
-        fn medir(&self, _: std::net::IpAddr) -> Option<f64> {
+        fn medir(&self, _: std::net::SocketAddr) -> Option<f64> {
             None
         }
     }
@@ -81,9 +91,9 @@ impl NetworkManager for NmFalso {
 #[derive(Clone)]
 struct SondaFalsa(std::sync::Arc<std::sync::Mutex<(Option<f64>, Option<f64>)>>);
 impl Sonda for SondaFalsa {
-    fn medir(&self, ip: std::net::IpAddr) -> Option<f64> {
+    fn medir(&self, ip: std::net::SocketAddr) -> Option<f64> {
         let v = *self.0.lock().unwrap();
-        if ip == "1.1.1.1".parse::<std::net::IpAddr>().unwrap() {
+        if ip.ip() == "1.1.1.1".parse::<std::net::IpAddr>().unwrap() {
             v.1
         } else {
             v.0
@@ -288,4 +298,133 @@ fn fixtures_da_ui_sao_snapshots_publicados_pelo_nucleo() {
             assert_eq!(std::fs::read_to_string(arquivo).unwrap(), json);
         }
     }
+}
+
+#[test]
+fn mudanca_de_conectividade_preserva_janela_na_mesma_rede() {
+    let mut c = cenario();
+    medir(&mut c, None, None);
+    c.nm.0.lock().unwrap().conectividade = 3;
+    let dados = medir(&mut c, Some(2.0), Some(20.0));
+    assert_eq!(dados.internet.perda, Some(50.0));
+    assert_eq!(dados.qualidade, Some(Qualidade::Ruim));
+}
+#[test]
+fn sonda_lenta_nao_distorce_taxa_de_trafego() {
+    use crate::portas::{Arquivos, Espaco, Relogio};
+    struct ArquivosComTrafego(RelogioFalso);
+    impl Arquivos for ArquivosComTrafego {
+        fn ler(&self, _: &str) -> std::io::Result<String> {
+            Ok(format!(
+                "wlo1: {} 0 0 0 0 0 0 0 {}\n",
+                self.0.agora(),
+                self.0.agora() / 2
+            ))
+        }
+        fn listar(&self, _: &str) -> std::io::Result<Vec<String>> {
+            unreachable!()
+        }
+        fn espaco(&self, _: &str) -> std::io::Result<Espaco> {
+            unreachable!()
+        }
+    }
+    struct SondaLenta(RelogioFalso);
+    impl Sonda for SondaLenta {
+        fn medir(&self, ip: std::net::SocketAddr) -> Option<f64> {
+            if ip.ip() == "1.1.1.1".parse::<std::net::IpAddr>().unwrap() {
+                self.0.avancar(700);
+            }
+            Some(20.0)
+        }
+    }
+    let relogio = RelogioFalso::em(1000);
+    let mut rede = Rede::new(
+        ArquivosComTrafego(relogio.clone()),
+        Nm,
+        SondaLenta(relogio.clone()),
+        relogio.clone(),
+    );
+    rede.passo();
+    relogio.avancar(300);
+    assert_eq!(
+        rede.passo().unwrap().1.trafego,
+        Some(Trafego {
+            descida: 1000.0,
+            subida: 500.0
+        })
+    );
+}
+
+#[test]
+fn gateway_ipv6_link_local_preserva_interface_e_mede_internet_ipv6() {
+    struct SondaIpv6;
+    impl Sonda for SondaIpv6 {
+        fn medir(&self, destino: std::net::SocketAddr) -> Option<f64> {
+            match destino {
+                std::net::SocketAddr::V6(v6) if v6.ip().is_unicast_link_local() => {
+                    (v6.scope_id() == 7).then_some(2.0)
+                }
+                std::net::SocketAddr::V6(_) => Some(20.0),
+                _ => None,
+            }
+        }
+    }
+    let c = cenario();
+    c.raiz.escrever("/sys/class/net/wlo1/ifindex", "7\n");
+    c.nm.0.lock().unwrap().gateway = Some("fe80::1".parse().unwrap());
+    let mut rede = Rede::new(c.raiz, c.nm, SondaIpv6, c.relogio);
+    let dados = rede.passo().unwrap().1;
+    assert_eq!(dados.gateway.latencia, Some(2.0));
+    assert_eq!(dados.internet.latencia, Some(20.0));
+    assert_eq!(dados.qualidade, Some(Qualidade::Boa));
+}
+
+#[test]
+fn dbus_seleciona_link_fisico_com_vpn_primaria_e_ignora_loopback() {
+    let mut leitura = leitura_nm();
+    let mut vpn = leitura.ativas[0].clone();
+    vpn.caminho = "/org/freedesktop/NetworkManager/ActiveConnection/3".into();
+    vpn.tipo = "vpn".into();
+    vpn.vpn = true;
+    vpn.interface = "tun0".into();
+    leitura.primaria = vpn.caminho.clone();
+    leitura.ativas.insert(0, vpn);
+    let relogio = RelogioFalso::em(1000);
+    let mut rede = Rede::new(
+        RaizFalsa::de("rede"),
+        NetworkManagerDbus(DbusFalso(leitura)),
+        Ping(20.0),
+        relogio,
+    );
+    let dados = rede.passo().unwrap().1;
+    assert!(dados.vpn);
+    assert!(dados.conectada);
+    assert_eq!(dados.gateway.latencia, Some(20.0));
+    assert_eq!(dados.qualidade, Some(Qualidade::Boa));
+}
+#[test]
+fn apenas_loopback_nao_e_conexao_externa() {
+    let mut leitura = leitura_nm();
+    leitura.ativas.remove(0);
+    leitura.primaria = "/".into();
+    let mut rede = Rede::new(
+        RaizFalsa::de("rede"),
+        NetworkManagerDbus(DbusFalso(leitura)),
+        Ping(20.0),
+        RelogioFalso::em(1000),
+    );
+    let dados = rede.passo().unwrap().1;
+    assert!(!dados.conectada);
+    assert_eq!(dados.qualidade, None);
+}
+#[test]
+fn conectividade_limitada_com_gateway_vivo_e_ruim_mesmo_com_mediana_antiga_boa() {
+    let mut c = cenario();
+    for _ in 0..23 {
+        medir(&mut c, Some(2.0), Some(20.0));
+    }
+    c.nm.0.lock().unwrap().conectividade = 3;
+    let dados = medir(&mut c, Some(2.0), None);
+    assert_eq!(dados.internet.latencia, Some(20.0));
+    assert_eq!(dados.qualidade, Some(Qualidade::Ruim));
 }
