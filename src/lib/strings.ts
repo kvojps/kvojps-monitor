@@ -1,8 +1,8 @@
-// Único arquivo de textos da UI (pt-BR). O núcleo Rust lê o mesmo JSON para o menu do Indicador.
+// Shared pt-BR UI text. Rust reads the same JSON for the indicator menu.
 import strings from "./strings.json";
 
 export const t = strings;
 
-export function preencher(modelo: string, valores: Record<string, string>): string {
-  return modelo.replace(/\{(\w+)\}/g, (_, chave: string) => valores[chave] ?? "");
+export function interpolate(template: string, values: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 }

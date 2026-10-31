@@ -1,4 +1,4 @@
-//! Textos do núcleo, lidos do mesmo arquivo de strings da UI.
+//! Core text loaded from the same strings file as the UI.
 
 use std::sync::LazyLock;
 
@@ -6,24 +6,24 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Strings {
-    pub indicador: Indicador,
+    pub indicator: Indicator,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Indicador {
-    pub titulo: String,
-    pub abrir_painel: String,
+pub struct Indicator {
+    pub title: String,
+    pub open_panel: String,
 }
 
 pub static STRINGS: LazyLock<Strings> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../../src/lib/strings.json")).expect("strings.json inválido")
+    serde_json::from_str(include_str!("../../src/lib/strings.json")).expect("invalid strings.json")
 });
 
 #[cfg(test)]
-mod testes {
+mod tests {
     #[test]
-    fn arquivo_de_strings_tem_os_textos_do_indicador() {
-        assert_eq!(super::STRINGS.indicador.abrir_painel, "Abrir painel");
+    fn shared_strings_include_indicator_text() {
+        assert_eq!(super::STRINGS.indicator.open_panel, "Abrir painel");
     }
 }

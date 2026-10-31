@@ -1,4 +1,4 @@
-/* Tokens de design do Painel. Escuro por padrão; claro quando o sistema pede. */
+/* Panel design tokens. Dark by default; light when requested by the system. */
 :root {
   --bg: #0d0f12;
   --surface: #14171c;
@@ -9,14 +9,14 @@
   --faint: #5b626d;
   --accent: #5eead4;
   --accent-dim: #5eead422;
-  /* Cores semânticas: só para estados (ok / atenção / falha). */
+  /* Semantic colors for states only: success, warning and failure. */
   --ok: #4ade80;
   --warn: #fbbf24;
   --bad: #f87171;
 
   --mono: "JetBrains Mono", "Ubuntu Sans Mono", "Ubuntu Mono", ui-monospace, monospace;
   --sans: "Inter", "Ubuntu Sans", "Ubuntu", system-ui, sans-serif;
-  --raio: 12px;
+  --radius: 12px;
 
   color-scheme: dark;
 }
@@ -51,7 +51,7 @@ body,
   height: 100%;
 }
 
-/* A janela é transparente; os cantos arredondados vêm do .painel. */
+/* The window is transparent; .panel provides rounded corners. */
 html,
 body {
   background: transparent;

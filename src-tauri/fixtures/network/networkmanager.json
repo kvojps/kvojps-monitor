@@ -1,0 +1,31 @@
+{
+  "primary": "/org/freedesktop/NetworkManager/ActiveConnection/2",
+  "connectivity": 4,
+  "active": [
+    {
+      "path": "/org/freedesktop/NetworkManager/ActiveConnection/2",
+      "state": 2,
+      "kind": "802-11-wireless",
+      "vpn": false,
+      "interface": "wlo1",
+      "gateway4": "192.0.2.101",
+      "gateway6": "fe80::2",
+      "wifi": {
+        "flags": 1,
+        "wpa": 0,
+        "rsn": 392,
+        "key_mgmt": "wpa-psk",
+        "pairwise": []
+      }
+    },
+    {
+      "path": "/org/freedesktop/NetworkManager/ActiveConnection/1",
+      "state": 2,
+      "kind": "loopback",
+      "vpn": false,
+      "interface": "",
+      "gateway4": "",
+      "gateway6": ""
+    }
+  ]
+}

@@ -1,96 +1,95 @@
 mod autostart;
-mod coleta;
-mod comandos;
-mod estado;
+mod collection;
+mod commands;
 mod github;
-mod icone;
-mod indicador;
-mod modulo;
-mod painel;
-mod portas;
-mod rede;
-mod sistema;
+mod icon;
+mod indicator;
+mod module;
+mod network;
+mod panel;
+mod ports;
 mod snapshot;
+mod state;
 mod strings;
+mod system;
 
 use std::sync::Mutex;
 
 use ksni::TrayMethods;
 use tauri::{Manager, RunEvent, WindowEvent};
 
-use autostart::Execucao;
-use estado::Estado;
-use indicador::Indicador;
+use autostart::Execution;
+use indicator::Indicator;
 use snapshot::Snapshots;
+use state::AppState;
 
 pub fn run() {
     tauri::Builder::default()
-        // Registrado primeiro: um segundo lançamento só abre o Painel da instância viva e sai.
+        // Register first: a second launch opens the live instance panel and exits.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            painel::abrir(app)
+            panel::open(app)
         }))
         .manage(Snapshots::default())
         .setup(|app| {
-            let dir_config = dirs::config_dir().ok_or("sem diretório de configuração")?;
-            let mut estado = Estado::carregar(dir_config.join("kvojps-monitor"));
+            let dir_config = dirs::config_dir().ok_or("configuration directory unavailable")?;
+            let mut state = AppState::load(dir_config.join("kvojps-monitor"));
 
-            let execucao = Execucao {
-                executavel: std::env::current_exe()?,
+            let execution = Execution {
+                executable: std::env::current_exe()?,
                 appimage: std::env::var_os("APPIMAGE").map(Into::into),
             };
-            let primeira = estado.primeira_execucao();
-            if let Err(e) =
-                autostart::sincronizar(&dir_config.join("autostart"), &execucao, primeira)
+            let first = state.first_execution();
+            if let Err(e) = autostart::synchronize(&dir_config.join("autostart"), &execution, first)
             {
-                eprintln!("autostart: falha ao gravar a entrada: {e}");
-            } else if primeira {
-                estado.concluir_primeira_execucao();
+                eprintln!("autostart: failed to write entry: {e}");
+            } else if first {
+                state.complete_first_execution();
             }
-            app.manage(Mutex::new(estado));
-            coleta::iniciar(app.handle());
+            app.manage(Mutex::new(state));
+            collection::start(app.handle());
 
-            let indicador = Indicador {
+            let indicator = Indicator {
                 app: app.handle().clone(),
-                estado: Default::default(),
+                state: Default::default(),
             };
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                match indicador.spawn().await {
+                match indicator.spawn().await {
                     Ok(handle) => {
                         app_handle.manage(handle);
                     }
-                    Err(e) => eprintln!("indicador: falha ao registrar o Indicador: {e}"),
+                    Err(e) => eprintln!("indicator: failed to register tray: {e}"),
                 }
             });
             Ok(())
         })
-        .on_window_event(|janela, evento| {
-            if janela.label() != painel::ROTULO {
+        .on_window_event(|window, event| {
+            if window.label() != panel::LABEL {
                 return;
             }
-            match evento {
-                // Perder o foco fecha o Painel, como num menu da barra superior.
-                WindowEvent::Focused(false) => painel::fechar(janela.app_handle()),
+            match event {
+                // Close the panel on focus loss, like a top bars menu.
+                WindowEvent::Focused(false) => panel::close(window.app_handle()),
                 WindowEvent::CloseRequested { api, .. } => {
                     api.prevent_close();
-                    painel::fechar(janela.app_handle());
+                    panel::close(window.app_handle());
                 }
                 _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
-            comandos::estado_inicial,
-            comandos::informar_modulo_visivel,
-            comandos::fechar_painel,
-            comandos::atualizar_github,
+            commands::initial_state,
+            commands::report_module_visible,
+            commands::close_panel,
+            commands::refresh_github,
         ])
         .build(tauri::generate_context!())
-        .expect("falha ao iniciar o kvojps-monitor")
-        .run(|_, evento| {
-            // Fechar o Painel destrói a única janela; o app segue vivo no Indicador.
+        .expect("failed to start kvojps-monitor")
+        .run(|_, event| {
+            // Closing destroys the only window; the app stays alive in the indicator.
             if let RunEvent::ExitRequested {
                 code: None, api, ..
-            } = evento
+            } = event
             {
                 api.prevent_exit();
             }

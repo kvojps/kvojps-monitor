@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Dependências de sistema do Tauri
+      - name: Tauri system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -54,11 +54,11 @@ jobs:
       - name: svelte-check
         run: npm run check
 
-      - name: Testes da UI
+      - name: UI tests
         run: npm test
 
-      # generate_context! lê ../dist em tempo de compilação
-      - name: Build da UI
+      # generate_context! reads ../dist at compile time
+      - name: UI build
         run: npm run build
 
       - name: clippy
@@ -69,5 +69,5 @@ jobs:
         working-directory: src-tauri
         run: cargo test --locked
 
-      - name: Build do Tauri sem empacotar
+      - name: Tauri build without bundling
         run: npm run tauri -- build --no-bundle

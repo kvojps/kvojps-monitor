@@ -9,7 +9,7 @@ App pessoal de bandeja para Ubuntu/GNOME/Wayland (Tauri v2: núcleo Rust + UI Sv
 
 ## Idioma
 
-UI, README, `docs/` e `GLOSSARY.md` em pt-BR. Mensagens de commit em inglês, no formato Conventional Commits (`feat:`, `fix:`, `docs:`).
+Código em inglês: arquivos, identificadores, comentários, nomes de testes, chaves de dados e comandos internos. Textos exibidos na interface em pt-BR. README, `docs/` e `GLOSSARY.md` em pt-BR. Mensagens de commit em inglês, no formato Conventional Commits (`feat:`, `fix:`, `docs:`).
 
 ## Privacidade (guardrails)
 

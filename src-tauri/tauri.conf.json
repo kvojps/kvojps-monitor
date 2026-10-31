@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "label": "painel",
+        "label": "panel",
         "title": "kvojps-monitor",
         "width": 440,
         "height": 600,

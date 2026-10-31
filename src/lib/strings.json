@@ -1,84 +1,84 @@
 {
-  "indicador": {
-    "titulo": "kvojps-monitor",
-    "abrirPainel": "Abrir painel"
+  "indicator": {
+    "title": "kvojps-monitor",
+    "openPanel": "Abrir painel"
   },
-  "trilho": {
-    "rotulo": "Módulos"
+  "rail": {
+    "label": "Módulos"
   },
-  "modulos": {
-    "ia": "IA",
-    "agentes": "Agentes",
+  "modules": {
+    "ai": "IA",
+    "agents": "Agentes",
     "github": "GitHub",
     "trello": "Trello",
-    "rede": "Rede",
-    "sistema": "Sistema"
+    "network": "Rede",
+    "system": "Sistema"
   },
-  "configuracoes": {
-    "titulo": "Configurações"
+  "settings": {
+    "title": "Configurações"
   },
-  "cabecalho": {
-    "atualizado": "atualizado {hora}",
-    "semDados": "sem dados ainda"
+  "header": {
+    "updated": "atualizado {time}",
+    "noData": "sem dados ainda"
   },
-  "sistema": {
+  "system": {
     "cpu": "CPU",
-    "graficoCpu": "Uso de CPU nos últimos 60 s",
-    "temperatura": "Temperatura",
+    "chartCpu": "Uso de CPU nos últimos 60 s",
+    "temperature": "Temperatura",
     "ram": "RAM",
     "swap": "Swap",
-    "discos": "Discos",
-    "livres": "{valor} livres",
-    "bateria": "Bateria",
-    "estadosBateria": {
-      "carregando": "carregando",
-      "descarregando": "na bateria",
-      "cheia": "carregada",
-      "vazia": "vazia",
-      "naTomada": "na tomada",
-      "desconhecido": "estado desconhecido"
+    "disks": "Discos",
+    "freeSpace": "{value} livres",
+    "battery": "Bateria",
+    "statesBattery": {
+      "charging": "carregando",
+      "discharging": "na bateria",
+      "full": "carregada",
+      "empty": "vazia",
+      "pluggedIn": "na tomada",
+      "unknown": "estado desconhecido"
     },
-    "paraCarregar": "{tempo} p/ carregar",
-    "restantes": "{tempo} restantes",
-    "semValor": "—"
+    "toCharge": "{time} p/ carregar",
+    "remaining": "{time} restantes",
+    "noValue": "—"
   },
-  "rede": {
-    "qualidade": "Qualidade da rede",
-    "boa": "Boa",
+  "network": {
+    "quality": "Qualidade da rede",
+    "good": "Boa",
     "regular": "Regular",
-    "ruim": "Ruim",
-    "semConexao": "Sem conexão",
-    "semMedicao": "Aguardando medição",
-    "cabeada": "Cabeada",
+    "poor": "Ruim",
+    "disconnected": "Sem conexão",
+    "unmeasured": "Aguardando medição",
+    "wired": "Cabeada",
     "vpn": "VPN ativa",
     "gateway": "Gateway",
     "internet": "Internet",
-    "latencia": "Latência",
+    "latency": "Latência",
     "jitter": "Jitter",
-    "perda": "Perda",
-    "trafego": "Tráfego total",
-    "grafico": "Tráfego total nos últimos 60 s",
-    "descida": "Descida",
-    "subida": "Subida",
-    "semValor": "—",
-    "seguranca": "Segurança da rede",
-    "semAlertas": "Sem alertas",
-    "atencao": "Atenção",
-    "risco": "Risco"
+    "loss": "Perda",
+    "traffic": "Tráfego total",
+    "chart": "Tráfego total nos últimos 60 s",
+    "download": "Descida",
+    "upload": "Subida",
+    "noValue": "—",
+    "security": "Segurança da rede",
+    "noAlerts": "Sem alertas",
+    "warning": "Atenção",
+    "risk": "Risco"
   },
   "github": {
-    "atualizar": "Atualizar GitHub",
-    "atualizando": "Atualizando…",
-    "configurar": "Configurar",
+    "refresh": "Atualizar GitHub",
+    "refreshing": "Atualizando…",
+    "configure": "Configurar",
     "login": "Rodar `gh auth login`",
-    "instrucao": "No terminal, execute gh auth login e depois atualize este Módulo.",
-    "semGh": "GitHub não conectado",
-    "vazio": "Sem commits nos últimos 7 dias",
-    "calendario": "Calendário de contribuições",
-    "contribuicoes": "{total} contribuições no ano",
-    "privadas": "{total} contribuições privadas (anônimas)",
-    "contagem": "{commits} commits em 7 dias · {total} no total",
-    "erro": "Não foi possível atualizar o GitHub",
-    "destaque": "Repo em destaque"
+    "instruction": "No terminal, execute gh auth login e depois atualize este Módulo.",
+    "missingGh": "GitHub não conectado",
+    "empty": "Sem commits nos últimos 7 dias",
+    "calendar": "Calendário de contribuições",
+    "contributions": "{total} contribuições no ano",
+    "private": "{total} contribuições privadas (anônimas)",
+    "count": "{commits} commits em 7 dias · {total} no total",
+    "error": "Não foi possível atualizar o GitHub",
+    "featured": "Repo em destaque"
   }
 }

@@ -1,0 +1,13 @@
+# Fixtures de Rede
+
+`networkmanager.json` contém os campos usados da leitura real do NetworkManager via D-Bus de sistema nesta máquina em 30/10/2026: `PrimaryConnection`, `Connectivity`, `Type`, gateways IPv4/IPv6 e `Interface`. A segunda conexão ativa era `loopback`, sem VPN. Não são coletados SSID, nome do perfil nem credenciais.
+
+`proc/net/dev` foi gravado na mesma máquina. Os testes derivam incrementos, resets e interfaces virtuais dessa amostra para exercitar os deltas sem esperar tempo real. Os tempos de sonda e suas perdas são controlados nos testes; não são benchmarks da conexão desta máquina.
+
+Os snapshots em `src/lib/network/fixtures/` são gerados pelo núcleo com essas portas injetadas. VPN, cabo e desconexão são variações controladas da leitura real. Para regravá-los: `UPDATE_FIXTURES=1 cargo test --manifest-path src-tauri/Cargo.toml network::tests`.
+
+A interpretação dos valores de conectividade segue a [API oficial do NetworkManager](https://networkmanager.dev/docs/api/latest/nm-dbus-types.html#NMConnectivityState). As propriedades consultadas estão na [interface D-Bus do NetworkManager](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.html).
+
+Para o ticket 05, em 30/10/2026 foram capturados via D-Bus `Flags=1`, `WpaFlags=0`, `RsnFlags=392` do AP ativo e `key-mgmt=wpa-psk` do `GetSettings` (sem `pairwise` explícito). Apenas esses campos públicos foram adicionados a `networkmanager.json`; nenhum SSID, nome de perfil ou segredo é persistido. `neighbors.json` contém a saída de `ip -j neigh show dev wlo1`. `dns.json` registra o resultado de `ResolveHostname` para um nome aleatório sob `.com`: nesta conexão, o resolvedor devolveu `org.freedesktop.resolve1.NoSuchRR`, tratado como inconclusivo, sem inventar NXDOMAIN. Sucesso, NXDOMAIN, timeout, outras criptografias e mudança de MAC nos testes são variações controladas dessas respostas. Não houve captura de uma rede hostil real.
+
+As flags seguem os contratos oficiais de [segurança do AP](https://networkmanager.dev/docs/api/latest/nm-dbus-types.html#NM80211ApSecurityFlags) e [perfil Wi-Fi](https://networkmanager.dev/docs/api/latest/settings-802-11-wireless-security.html). O adaptador acompanha os sinais do NetworkManager e só refaz a leitura do MAC na leitura inicial ou após eventos. DNS e `CheckConnectivity` rodam ao conectar e a cada dez minutos; erros de DNS não são considerados resposta positiva.

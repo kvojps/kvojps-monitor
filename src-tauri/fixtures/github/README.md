@@ -6,6 +6,6 @@ Capturadas em 31/10/2026 nesta máquina com `gh api graphql`, usando a autentica
 - `history.json`: `history(author:, since:, until:)` da branch padrão e total do autor sem janela.
 - Os testes derivam janela vazia e empate modificando somente contagem e data. A virada do ano valida os limites enviados à porta HTTP com relógio falso.
 
-As fixtures de UI em `src/lib/github/fixtures/` são publicadas pelo núcleo e conferidas nos testes. Para regravá-las: `ATUALIZAR_FIXTURES=1 cargo test --manifest-path src-tauri/Cargo.toml github`.
+As fixtures de UI em `src/lib/github/fixtures/` são publicadas pelo núcleo e conferidas nos testes. Para regravá-las: `UPDATE_FIXTURES=1 cargo test --manifest-path src-tauri/Cargo.toml github`.
 
 Snapshots ficam somente em memória nesta fatia. A política de cache/backoff pertence ao ticket 09; nenhum título de commit deve ser persistido no cache em disco.

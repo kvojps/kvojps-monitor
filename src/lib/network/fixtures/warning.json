@@ -1,0 +1,38 @@
+{
+  "module": "network",
+  "updatedAt": 1793457126000,
+  "data": {
+    "connected": true,
+    "gateway": {
+      "jitter": 0.0,
+      "latency": 2.0,
+      "loss": 0.0
+    },
+    "history": [
+      {
+        "download": 2048.0,
+        "upload": 1024.0
+      },
+      {
+        "download": 1024.0,
+        "upload": 512.0
+      }
+    ],
+    "internet": {
+      "jitter": 0.0,
+      "latency": 20.0,
+      "loss": 0.0
+    },
+    "quality": "good",
+    "reasons": [
+      "Portal cativo detectado"
+    ],
+    "security": "warning",
+    "traffic": {
+      "download": 1024.0,
+      "upload": 512.0
+    },
+    "vpn": false,
+    "wired": false
+  }
+}

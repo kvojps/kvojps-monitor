@@ -1,6 +1,6 @@
 import { mount } from "svelte";
 import "./tokens.css";
-import Painel from "./lib/Painel.svelte";
-import { nucleoTauri } from "./lib/nucleo";
+import Panel from "./lib/Panel.svelte";
+import { tauriCore } from "./lib/core";
 
-mount(Painel, { target: document.getElementById("app")!, props: { nucleo: nucleoTauri } });
+mount(Panel, { target: document.getElementById("app")!, props: { core: tauriCore } });

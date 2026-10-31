@@ -1,34 +1,34 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-/// Como este processo foi lançado.
-pub struct Execucao {
-    /// Binário em execução (`/usr/bin/kvojps-monitor` no `.deb`).
-    pub executavel: PathBuf,
-    /// Caminho do arquivo `.AppImage` (variável `APPIMAGE`), quando roda como AppImage.
+/// How this process was launched.
+pub struct Execution {
+    /// Running binary (/usr/bin/kvojps-monitor in the .deb).
+    pub executable: PathBuf,
+    /// AppImage file path from APPIMAGE when running as an AppImage.
     pub appimage: Option<PathBuf>,
 }
 
-const ARQUIVO: &str = "kvojps-monitor.desktop";
+const FILE: &str = "kvojps-monitor.desktop";
 
-/// Liga o início com o login na primeira execução e, depois, só mantém a entrada que já existe
-/// apontando para o executável atual (o AppImage pode ter sido movido). Se o usuário removeu a
-/// entrada, ela não volta.
-pub fn sincronizar(
+/// Enable autostart on first run, then keep an existing entry pointing to the current
+/// executable, since an AppImage may move. If the user removes the entry,
+/// do not recreate it.
+pub fn synchronize(
     dir_autostart: &Path,
-    execucao: &Execucao,
-    primeira_execucao: bool,
+    execution: &Execution,
+    first_execution: bool,
 ) -> io::Result<()> {
-    let arquivo = dir_autostart.join(ARQUIVO);
-    if !primeira_execucao && !arquivo.exists() {
+    let file = dir_autostart.join(FILE);
+    if !first_execution && !file.exists() {
         return Ok(());
     }
-    let alvo = execucao.appimage.as_ref().unwrap_or(&execucao.executavel);
+    let target = execution.appimage.as_ref().unwrap_or(&execution.executable);
     std::fs::create_dir_all(dir_autostart)?;
-    std::fs::write(arquivo, entrada(alvo))
+    std::fs::write(file, entry(target))
 }
 
-fn entrada(alvo: &Path) -> String {
+fn entry(target: &Path) -> String {
     format!(
         "[Desktop Entry]\n\
          Type=Application\n\
@@ -37,50 +37,50 @@ fn entrada(alvo: &Path) -> String {
          Icon=kvojps-monitor\n\
          Terminal=false\n\
          X-GNOME-Autostart-enabled=true\n",
-        argumento_exec(alvo)
+        exec_argument(target)
     )
 }
 
-/// Aspas e escapes da chave `Exec` (Desktop Entry Specification): primeiro a regra de aspas,
-/// depois o escape de string do valor, que dobra as barras invertidas.
-fn argumento_exec(caminho: &Path) -> String {
-    let mut entre_aspas = String::from("\"");
-    for c in caminho.to_string_lossy().chars() {
+/// Desktop Entry Exec quoting: first quote the argument, then escape the string value,
+/// doubling its backslashes.
+fn exec_argument(path: &Path) -> String {
+    let mut quoted = String::from("\"");
+    for c in path.to_string_lossy().chars() {
         match c {
             '"' | '`' | '$' | '\\' => {
-                entre_aspas.push('\\');
-                entre_aspas.push(c);
+                quoted.push('\\');
+                quoted.push(c);
             }
-            '%' => entre_aspas.push_str("%%"),
-            _ => entre_aspas.push(c),
+            '%' => quoted.push_str("%%"),
+            _ => quoted.push(c),
         }
     }
-    entre_aspas.push('"');
-    entre_aspas.replace('\\', "\\\\")
+    quoted.push('"');
+    quoted.replace('\\', "\\\\")
 }
 
 #[cfg(test)]
-mod testes {
+mod tests {
     use super::*;
     use std::fs;
 
-    fn deb() -> Execucao {
-        Execucao {
-            executavel: "/usr/bin/kvojps-monitor".into(),
+    fn deb() -> Execution {
+        Execution {
+            executable: "/usr/bin/kvojps-monitor".into(),
             appimage: None,
         }
     }
 
-    fn appimage(caminho: &str) -> Execucao {
-        Execucao {
-            executavel: "/tmp/.mount_kvojpsXYZ/usr/bin/kvojps-monitor".into(),
-            appimage: Some(caminho.into()),
+    fn appimage(path: &str) -> Execution {
+        Execution {
+            executable: "/tmp/.mount_kvojpsXYZ/usr/bin/kvojps-monitor".into(),
+            appimage: Some(path.into()),
         }
     }
 
-    fn linha_exec(dir: &Path) -> String {
-        let conteudo = fs::read_to_string(dir.join("kvojps-monitor.desktop")).unwrap();
-        conteudo
+    fn line_exec(dir: &Path) -> String {
+        let content = fs::read_to_string(dir.join("kvojps-monitor.desktop")).unwrap();
+        content
             .lines()
             .find(|l| l.starts_with("Exec="))
             .unwrap()
@@ -88,23 +88,23 @@ mod testes {
     }
 
     #[test]
-    fn primeira_execucao_liga_o_inicio_com_o_login() {
+    fn first_run_enables_autostart() {
         let d = tempfile::tempdir().unwrap();
         let dir = d.path().join("autostart");
 
-        sincronizar(&dir, &deb(), true).unwrap();
+        synchronize(&dir, &deb(), true).unwrap();
 
-        let conteudo = fs::read_to_string(dir.join("kvojps-monitor.desktop")).unwrap();
-        assert!(conteudo.starts_with("[Desktop Entry]\n"));
-        assert!(conteudo.contains("\nType=Application\n"));
-        assert_eq!(linha_exec(&dir), "Exec=\"/usr/bin/kvojps-monitor\"");
+        let content = fs::read_to_string(dir.join("kvojps-monitor.desktop")).unwrap();
+        assert!(content.starts_with("[Desktop Entry]\n"));
+        assert!(content.contains("\nType=Application\n"));
+        assert_eq!(line_exec(&dir), "Exec=\"/usr/bin/kvojps-monitor\"");
     }
 
     #[test]
-    fn no_appimage_aponta_para_o_arquivo_appimage_e_nao_para_o_ponto_de_montagem() {
+    fn appimage_entry_targets_the_image_instead_of_its_mount() {
         let d = tempfile::tempdir().unwrap();
 
-        sincronizar(
+        synchronize(
             d.path(),
             &appimage("/home/example/Apps/kvojps-monitor.AppImage"),
             true,
@@ -112,22 +112,22 @@ mod testes {
         .unwrap();
 
         assert_eq!(
-            linha_exec(d.path()),
+            line_exec(d.path()),
             "Exec=\"/home/example/Apps/kvojps-monitor.AppImage\""
         );
     }
 
     #[test]
-    fn appimage_movido_reescreve_a_entrada_com_o_caminho_atual() {
+    fn moving_appimage_updates_the_existing_entry() {
         let d = tempfile::tempdir().unwrap();
-        sincronizar(
+        synchronize(
             d.path(),
             &appimage("/home/example/Downloads/kvojps-monitor.AppImage"),
             true,
         )
         .unwrap();
 
-        sincronizar(
+        synchronize(
             d.path(),
             &appimage("/home/example/Apps/kvojps-monitor.AppImage"),
             false,
@@ -135,28 +135,28 @@ mod testes {
         .unwrap();
 
         assert_eq!(
-            linha_exec(d.path()),
+            line_exec(d.path()),
             "Exec=\"/home/example/Apps/kvojps-monitor.AppImage\""
         );
     }
 
     #[test]
-    fn entrada_removida_pelo_usuario_nao_volta_depois_da_primeira_execucao() {
+    fn removed_autostart_entry_stays_removed_after_first_run() {
         let d = tempfile::tempdir().unwrap();
-        sincronizar(d.path(), &appimage("/home/example/a.AppImage"), true).unwrap();
+        synchronize(d.path(), &appimage("/home/example/a.AppImage"), true).unwrap();
         fs::remove_file(d.path().join("kvojps-monitor.desktop")).unwrap();
 
-        sincronizar(d.path(), &appimage("/home/example/a.AppImage"), false).unwrap();
-        sincronizar(d.path(), &deb(), false).unwrap();
+        synchronize(d.path(), &appimage("/home/example/a.AppImage"), false).unwrap();
+        synchronize(d.path(), &deb(), false).unwrap();
 
         assert!(!d.path().join("kvojps-monitor.desktop").exists());
     }
 
     #[test]
-    fn caminho_com_espacos_e_caracteres_reservados_fica_entre_aspas_escapado() {
+    fn exec_path_quotes_spaces_and_reserved_characters() {
         let d = tempfile::tempdir().unwrap();
 
-        sincronizar(
+        synchronize(
             d.path(),
             &appimage("/home/example/Meus Apps/$x 100%.AppImage"),
             true,
@@ -164,7 +164,7 @@ mod testes {
         .unwrap();
 
         assert_eq!(
-            linha_exec(d.path()),
+            line_exec(d.path()),
             "Exec=\"/home/example/Meus Apps/\\\\$x 100%%.AppImage\""
         );
     }
