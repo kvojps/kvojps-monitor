@@ -31,6 +31,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 - [Modo de fixtures nativo para desenvolvimento](issues/01-native-fixture-mode.md): feature Cargo `fixtures` (`npm run dev:fixtures`, `KVOJPS_FIXTURES` por Módulo) publica os snapshots do B pelo caminho normal, sem coletores; injeção no nível do snapshot, não em portas brutas (divergência aprovada).
 - [Topo, grade B e cartão IA e Agentes](issues/02-top-grid-and-ai-agents-card.md): moldura e cartão reescritos a partir do protótipo; ↻ do cartão atualiza só a IA (divergência aprovada); relógio das fixtures corrigido para 30/10 20:00; conferência nativa e aprovação movidas para tickets próprios.
 - [GitHub fiel ao B](issues/03-github.md): resumo reescrito do protótipo, sem textos extras; estados condicionais como linhas `small` no topo do corpo; aprovado no app nativo.
+- [Rede fiel ao B](issues/04-network.md): resumo e detalhe de aplicativos reescritos do protótipo; linha de status com dados reais; estados condicionais como linhas `small` abaixo dela; aprovado no app nativo.
 
 ## Tickets
 

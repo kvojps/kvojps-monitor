@@ -222,7 +222,7 @@
   <section id="module-{module}" data-module={module} class="module {module}" class:card={!inCard}
     aria-label={inCard ? t.modules[module] : undefined} aria-labelledby={inCard ? undefined : `module-${module}-title`}
     tabindex="-1" onfocusin={(event) => remember(module, event)} bind:this={sections[module]}>
-    {#if !inCard && module !== "github"}
+    {#if !inCard && module !== "github" && module !== "network"}
       <header class="module-head">
         <div class="module-title">
           <h2 id="module-{module}-title">{t.modules[module]}</h2>
@@ -304,7 +304,7 @@
   .card.github { --module-band: var(--band-steel); padding: 8px 14px; }
   .card.system { --module-band: var(--band-lavender); }
   .card.trello { --module-band: var(--band-amber); }
-  .card.network { --module-band: var(--band-blue); }
+  .card.network { --module-band: var(--band-blue); padding: 8px 14px; }
   .module { min-width: 0; display: flex; flex-direction: column; scroll-margin-top: 4px; overflow-wrap: anywhere; }
   .module.agents { flex: 1; }
   .module:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

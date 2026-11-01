@@ -102,8 +102,9 @@ describe("Compact panel", () => {
     expect(within(ai).queryByText("atualizado 14:32")).not.toBeInTheDocument();
     expect(within(section("Agentes")).queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
     expect(container.querySelector(".code")).toBeNull();
-    expect(within(section("Rede")).getByText("NetworkManager e kernel")).toBeInTheDocument();
-    expect(within(section("Rede")).getByText("sem dados ainda")).toBeInTheDocument();
+    expect(within(section("Rede")).queryByText("NetworkManager e kernel")).not.toBeInTheDocument();
+    expect(within(section("Rede")).getByRole("heading", { level: 2, name: "Rede" })).toBeInTheDocument();
+    expect(within(section("Trello")).getByText("sem dados ainda")).toBeInTheDocument();
   });
 
   it("shows cached snapshots at once and updates only the module the core pushes", async () => {
@@ -111,9 +112,9 @@ describe("Compact panel", () => {
     render(Panel, { core });
     expect(await within(await screen.findByRole("region", { name: "Sistema" })).findByText("atualizado 11:32")).toBeInTheDocument();
 
-    await publish({ module: "network", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: null });
+    await publish({ module: "trello", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: null });
 
-    expect(within(section("Rede")).getByText("atualizado 09:05")).toBeInTheDocument();
+    expect(within(section("Trello")).getByText("atualizado 09:05")).toBeInTheDocument();
     expect(within(section("Sistema")).getByText("atualizado 11:32")).toBeInTheDocument();
   });
 
@@ -561,9 +562,9 @@ describe("Network module in the panel", () => {
     const runSpeedTest = vi.fn();
     render(Panel, { core: { ...core, runSpeedTest } });
     const network = await screen.findByRole("region", { name: "Rede" });
-    expect(within(network).getByRole("group", { name: "Latência da internet" })).toHaveTextContent("20 ms");
+    expect(within(network).getByRole("group", { name: "Internet" })).toHaveTextContent("20ms");
     expect(within(network).queryAllByRole("listitem")).toHaveLength(0);
-    await userEvent.click(within(network).getByRole("button", { name: "Aplicativos de rede" }));
+    await userEvent.click(within(network).getByRole("button", { name: "5 aplicativos + Outros" }));
     expect(within(screen.getByRole("dialog", { name: "Aplicativos de rede" })).getAllByRole("listitem")).toHaveLength(6);
     await userEvent.keyboard("{Escape}");
     await userEvent.click(within(network).getByRole("button", { name: "Testar velocidade" }));
@@ -711,7 +712,7 @@ it("preserves notification selection when reopening from the panel ring", async 
 it("closes the network apps detail before Escape hides the panel, keeping the anchor", async () => {
   const { core } = fakeCore({ lastAnchor: "github", snapshots: [{ module: "network", updatedAt: 1000, data: networkFull.data }] });
   render(Panel, { core });
-  const trigger = await screen.findByRole("button", { name: "Aplicativos de rede" });
+  const trigger = await screen.findByRole("button", { name: "5 aplicativos + Outros" });
   await userEvent.click(trigger);
   const detail = screen.getByRole("dialog", { name: "Aplicativos de rede" });
   expect(within(detail).getByText("firefox")).toBeInTheDocument();
@@ -729,7 +730,7 @@ it("opening the network apps detail does not change what the core collects", asy
   const { core } = fakeCore({ snapshots: [{ module: "network", updatedAt: 1000, data: networkFull.data }] });
   const runSpeedTest = vi.fn();
   render(Panel, { core: { ...core, runSpeedTest } });
-  const trigger = await screen.findByRole("button", { name: "Aplicativos de rede" });
+  const trigger = await screen.findByRole("button", { name: "5 aplicativos + Outros" });
   const reported = vi.mocked(core.reportVisibleModules).mock.calls.length;
   await userEvent.click(trigger);
   await userEvent.keyboard("{Escape}");
