@@ -38,6 +38,8 @@ zbus = { version = "5", default-features = false, features = ["tokio", "blocking
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 reqwest = { version = "0.13", features = ["blocking", "json"] }
 rusqlite = "0.38"
+# Panel window margin (src/panel.rs); already in the tree through tauri.
+gtk = "0.18"
 # Fixture mode only: snapshot of the panel webview.
 webkit2gtk = { version = "=2.0.2", features = ["v2_40"], optional = true }
 javascriptcore-rs = { version = "=1.1.2", optional = true }

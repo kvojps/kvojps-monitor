@@ -50,6 +50,7 @@ pub fn run() {
             second_launch(app, &args)
         }))
         .manage(Snapshots::default())
+        .manage(panel::Margin::default())
         .setup(|app| {
             let dir_config = config_dir().ok_or("configuration directory unavailable")?;
             let mut state = AppState::load(dir_config.join("kvojps-monitor"));
