@@ -13,15 +13,8 @@
 
   let { core }: { core: Core } = $props();
 
-  type Station = keyof typeof t.stations;
-  const stations: { key: Station; modules: [Module, Module] }[] = [
-    { key: "capacity", modules: ["ai", "system"] },
-    { key: "execution", modules: ["agents", "trello"] },
-    { key: "observation", modules: ["github", "network"] },
-  ];
-
   let area = $state<"panel" | "settings">("panel");
-  /** Last anchor chosen in the navigation; independent from what is visible. */
+  /** Last anchor chosen through module interaction; independent from what is visible. */
   let anchor = $state<Module | null>(null);
   let agentTarget = $state<string | null>(null);
   let snapshots = $state<Partial<Record<Module, Snapshot>>>({});
@@ -61,7 +54,7 @@
 
   /** Report the visible set to the core only when it changes. */
   function syncVisibility() {
-    const modules = area === "panel" ? MODULES.filter((m) => intersecting.has(m)) : [];
+    const modules = area === "panel" && nativeVisible && pageVisible ? MODULES.filter((m) => intersecting.has(m)) : [];
     const key = modules.join();
     if (key === reported) return;
     reported = key;
@@ -82,12 +75,10 @@
     syncVisibility();
   }
 
-  async function choose(module: Module) {
+  function remember(module: Module) {
     agentTarget = null;
     anchor = module;
-    core.chooseAnchor(module);
-    await showPanel();
-    reveal(module, true);
+    if (area === "panel") core.chooseAnchor(module);
   }
 
   /** Open Settings, at the section of module when given. */
@@ -120,11 +111,9 @@
   const NO_AI_READING: AiData = { refreshing: false, codex: { state: "empty", plan: null, reading: null } };
   const bodies: Record<Module, Snippet> = { ai, agents, github, trello, network, system };
 
+  const supportingModules: Module[] = ["github", "network", "trello", "system"];
   const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
-  const waitingCount = $derived(agentsData?.sessions.filter((s) => s.state === "waiting").length ?? 0);
 
-  const stationOf = (module: Module) => stations.find((s) => s.modules.includes(module))!.key;
-  /** Decorative module number, as in the navigation. */
   const code = (module: Module) => String(MODULES.indexOf(module) + 1).padStart(2, "0");
 
   const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -155,6 +144,7 @@
     const stopVisibility = core.listenPanelVisibility?.((visible) => {
       visibilityReceived = true;
       nativeVisible = visible;
+      syncVisibility();
     });
     const stop = core.listenSnapshots(receive);
     const stopTarget = core.listenAgentTarget?.((session) => void target(session));
@@ -171,7 +161,7 @@
       anchor ??= agentTarget ? "agents" : initial.lastAnchor;
       await tick();
       if (area === "panel") reveal(anchor, false);
-      if (!observer) syncVisibility();
+      syncVisibility();
       if (initial.welcome && !agentTarget) {
         welcome = true;
         core.completeWelcome?.();
@@ -196,7 +186,7 @@
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
-<svelte:document onvisibilitychange={() => (pageVisible = !document.hidden)} />
+<svelte:document onvisibilitychange={() => { pageVisible = !document.hidden; syncVisibility(); }} />
 
 {#snippet ai()}
   <!-- Before the first snapshot the instruments explain there is no reading and keep their actions. -->
@@ -228,10 +218,9 @@
 
 {#snippet moduleSection(module: Module, body?: Snippet)}
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
-    tabindex="-1" bind:this={sections[module]}>
+    tabindex="-1" onfocusin={() => remember(module)} bind:this={sections[module]}>
     <header class="module-head">
       <div class="module-title">
-        <span class="eyebrow" aria-hidden="true">{code(module)} / {t.stations[stationOf(module)]}</span>
         <h2 id="module-{module}-title">{t.modules[module]}</h2>
         <p class="source"><span>{t.sources[module]}</span><span aria-hidden="true">·</span><span class="num">{updated(module)}</span></p>
       </div>
@@ -242,41 +231,21 @@
 {/snippet}
 
 <div class="panel">
-  <header class="masthead">
-    <span class="eyebrow">{t.panel.eyebrow}</span>
-    <h1>{t.panel.title}<span class="beacon" aria-hidden="true"></span></h1>
+  <header class="toolbar">
+    <div class="segment cyan" aria-hidden="true"></div>
+    <button aria-current={area === "settings" ? "page" : undefined} onclick={() => openSettings()}>{t.settings.title}</button>
   </header>
-  <div class="divider" aria-hidden="true"><span class="elbow"></span><span class="segment lavender"></span><span class="segment cyan"></span><span class="divider-label">{t.panel.bridge}</span><span class="segment blue"></span><span class="cap"></span></div>
-
-  <nav aria-label={t.nav.label}>
-    {#each MODULES as module (module)}
-      <button aria-current={area === "panel" && anchor === module ? "location" : undefined} onclick={() => choose(module)}>
-        <span class="index num" aria-hidden="true">{code(module)}</span>
-        <span>{t.modules[module]}</span>
-        {#if module === "agents" && agentsData?.accentDot}
-          <span class="alert" role="img" aria-label={interpolate(t.agents.waitingCount, { count: String(waitingCount) })}></span>
-        {/if}
-      </button>
-    {/each}
-    <button class="settings-item" aria-current={area === "settings" ? "page" : undefined} onclick={() => openSettings()}>
-      <span class="index num" aria-hidden="true">07</span>
-      <span>{t.settings.title}</span>
-    </button>
-  </nav>
 
   <div class="workspace">
     <main class="scroller" bind:this={scroller} class:covered={area === "settings"}
       inert={area === "settings"} aria-hidden={area === "settings" ? "true" : undefined}>
-      <div class="stations">
-        {#each stations as station (station.key)}
-          <div role="group" class="station {station.key}" aria-label={t.stations[station.key]}>
-            <div class="station-label" aria-hidden="true">
-              <span>{t.stations[station.key]}</span><span>{station.modules.map((m) => t.modules[m]).join(" / ")}</span>
-            </div>
-            {#each station.modules as module (module)}
-              {@render moduleSection(module, bodies[module])}
-            {/each}
-          </div>
+      <div class="composition">
+        <div class="intelligence">
+          {@render moduleSection("ai", bodies.ai)}
+          {@render moduleSection("agents", bodies.agents)}
+        </div>
+        {#each supportingModules as module (module)}
+          {@render moduleSection(module, bodies[module])}
         {/each}
       </div>
     </main>
@@ -297,159 +266,19 @@
     overflow: hidden;
   }
 
-  .eyebrow {
-    font: 10px var(--mono);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--band-lavender-text);
-  }
-
-  .masthead {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px 22px 18px;
-  }
-  h1 {
-    font-size: 28px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-  .beacon {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    margin: 0 0 5px 16px;
-    background: var(--accent);
-    box-shadow: 0 0 18px var(--accent);
-  }
-
-  /* LCARS divider: structural decoration, outside the accessibility tree. */
-  .divider {
-    display: flex;
-    gap: 7px;
-    height: 46px;
-    margin-bottom: 8px;
-    flex: none;
-  }
-  .elbow {
-    position: relative;
-    width: 90px;
-    flex: none;
-    background: var(--band-amber);
-    border-radius: 40px 0 0 0;
-  }
-  .elbow::after {
-    content: "";
-    position: absolute;
-    inset: 16px 0 0 18px;
-    background: var(--bg);
-    border-top-left-radius: 26px;
-  }
-  .segment {
-    height: 16px;
-    flex: 1;
-  }
-  .lavender { flex: 0.7; background: var(--band-lavender); }
-  .cyan { flex: 1.8; background: var(--band-cyan); }
-  .blue { background: var(--band-blue); }
-  .divider-label {
-    padding: 1px 6px;
-    font: 11px var(--mono);
-    letter-spacing: 2px;
-    white-space: nowrap;
-    color: var(--band-lavender-text);
-  }
-  .cap {
-    width: 70px;
-    height: 16px;
-    background: var(--band-amber);
-    border-radius: 0 16px 16px 0;
-  }
-
-  nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 0 4px 14px 30px;
-    border-left: 18px solid var(--band-amber);
-    flex: none;
-  }
-  nav button {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 37px;
-    padding: 8px 17px;
-    border-radius: 0 24px 24px 0;
-    background: var(--band-lavender);
-    color: var(--on-band);
-    font-weight: 600;
-  }
-  nav button:nth-child(2n) { background: var(--band-cyan); }
-  nav button[aria-current] { background: var(--band-amber); }
-  nav button:hover { filter: brightness(1.15); }
-  nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .index { font-size: 10px; opacity: 0.7; }
-  .settings-item { margin-left: auto; }
-  .settings-item:not([aria-current]) { background: var(--band-blue); }
-  .alert {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--on-band);
-  }
-
-  .workspace {
-    position: relative;
-    flex: 1;
-    min-height: 0;
-    border-left: 18px solid var(--band-amber);
-    border-radius: 0 0 0 45px;
-  }
-
-  .scroller {
-    height: 100%;
-    overflow-y: auto;
-    padding: 4px 4px 24px 30px;
-  }
+  .toolbar { display: flex; align-items: center; gap: 12px; padding: 4px 0 10px; flex: none; }
+  .segment { height: 8px; flex: 1; background: var(--band-cyan); border-radius: 12px 0 0 12px; }
+  .toolbar button { padding: 8px 16px; border-radius: 0 20px 20px 0; background: var(--band-blue); color: var(--on-band); }
+  .toolbar button[aria-current] { background: var(--band-amber); }
+  .workspace { position: relative; flex: 1; min-height: 0; }
+  .scroller { height: 100%; overflow: auto; padding: 4px 4px 16px; }
   .scroller.covered { visibility: hidden; }
-
-  /* Three equal stations with aligned headers and two aligned rows. */
-  .stations {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto auto auto;
-    column-gap: 22px;
-    row-gap: 18px;
-  }
-  .station {
-    display: grid;
-    grid-row: span 3;
-    grid-template-rows: subgrid;
-    gap: 18px;
-    min-width: 0;
-  }
-  .station-label {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    min-height: 33px;
-    padding: 8px 16px;
-    border-radius: 22px 0 0 22px;
-    background: var(--station-band);
-    color: var(--on-band);
-    font: 12px var(--mono);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .station-label span:last-child { font-size: 10px; }
-  .capacity { --station-band: var(--band-lavender); }
-  .execution { --station-band: var(--band-amber); }
-  .observation { --station-band: var(--band-cyan); }
+  .composition { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence github network" "intelligence trello system"; gap: 12px; align-items: start; }
+  .intelligence { grid-area: intelligence; display: flex; flex-direction: column; gap: 12px; min-width: 0; border-left: 6px solid var(--band-violet); padding-left: 8px; }
+  .composition > :global(.github) { grid-area: github; }
+  .composition > :global(.network) { grid-area: network; }
+  .composition > :global(.trello) { grid-area: trello; }
+  .composition > :global(.system) { grid-area: system; }
 
   .module {
     --module-band: var(--band-cyan);
@@ -458,9 +287,8 @@
     flex-direction: column;
     background: var(--module-bg);
     border-top: 5px solid var(--module-band);
-    /* Keep the station label in view when the first row is revealed. */
-    scroll-margin-top: 60px;
-    min-height: 260px;
+    scroll-margin-top: 4px;
+    overflow-wrap: anywhere;
   }
   .module.system { --module-band: var(--band-lavender); }
   .module.agents { --module-band: var(--band-violet); }
@@ -473,8 +301,8 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    margin: 0 16px;
-    padding: 18px 4px 14px;
+    margin: 0 10px;
+    padding: 8px 0;
     border-bottom: 1px solid var(--line);
   }
   .module-title {
@@ -482,11 +310,6 @@
     flex-direction: column;
     gap: 6px;
     min-width: 0;
-  }
-  .module-title .eyebrow {
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    color: var(--muted);
   }
   .module-head h2 {
     font-size: 17px;
@@ -514,30 +337,11 @@
     font-size: 12px;
   }
 
-  /* 651–850 px: stations stacked, their two modules side by side. */
-  @media (max-width: 850px) {
-    .stations { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
-    .station {
-      grid-row: auto;
-      grid-template-rows: auto auto;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      align-items: start;
-    }
-    .station-label { grid-column: 1 / 3; }
-    .scroller { padding-left: 16px; }
+  @media (max-width: 950px) {
+    .composition { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence intelligence" "github network" "trello system"; }
   }
-
-  /* Up to 650 px: a single column. */
   @media (max-width: 650px) {
-    .station { display: flex; flex-direction: column; align-items: stretch; }
     .panel { padding: 4px; }
-    nav, .workspace { border-left-width: 9px; }
-    nav { padding-left: 8px; }
-    .scroller { padding: 4px 4px 24px 8px; }
-    .elbow { width: 45px; }
-    .cap { width: 25px; }
-    .divider-label { display: none; }
-    h1 { font-size: 23px; }
+    .composition { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intelligence" "github" "network" "trello" "system"; }
   }
-
 </style>

@@ -1,7 +1,7 @@
 //! Open and close the panel. Keeping a hidden webview exceeded 150 MB PSS (ticket 01),
 //! so create the window on open and destroy it on close.
 //!
-//! The panel fills 95% of the monitor work area. Mutter places the window
+//! The panel targets 1100 × 700 logical pixels, bounded by the monitor work area. Mutter places the window
 //! (ADR 0001): the app only chooses its size.
 
 use std::sync::Mutex;
@@ -65,13 +65,16 @@ fn fit(window: &WebviewWindow) {
 
 fn work_area_size(monitor: &Monitor) -> PhysicalSize<u32> {
     let area = monitor.work_area().size;
-    let (width, height) = panel_size(area.width, area.height);
+    let (width, height) = panel_size(area.width, area.height, monitor.scale_factor());
     PhysicalSize::new(width, height)
 }
 
-/// 95% of the work area, in physical pixels so scale is already applied.
-fn panel_size(width: u32, height: u32) -> (u32, u32) {
-    (width * 95 / 100, height * 95 / 100)
+/// Convert the logical target to physical pixels before clamping to the work area.
+fn panel_size(width: u32, height: u32, scale: f64) -> (u32, u32) {
+    (
+        width.min((1100.0 * scale).round() as u32),
+        height.min((700.0 * scale).round() as u32),
+    )
 }
 
 pub fn close(app: &AppHandle) {
@@ -99,10 +102,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn panel_fills_ninety_five_percent_of_the_work_area() {
-        // 1920x1080 at 100% with the 32 px GNOME top bar; never rounds above 95%.
-        assert_eq!(panel_size(1920, 1048), (1824, 995));
-        // 2880x1800 at 200%: the work area already comes in physical pixels.
-        assert_eq!(panel_size(2880, 1736), (2736, 1649));
+    fn panel_targets_logical_size_and_fits_scaled_work_area() {
+        assert_eq!(panel_size(1920, 1048, 1.0), (1100, 700));
+        assert_eq!(panel_size(2880, 1736, 2.0), (2200, 1400));
+        assert_eq!(panel_size(1920, 1048, 1.5), (1650, 1048));
+        assert_eq!(panel_size(800, 600, 1.0), (800, 600));
+        assert_eq!(panel_size(1600, 1200, 2.0), (1600, 1200));
     }
 }

@@ -14,8 +14,8 @@
       {
         "label": "panel",
         "title": "kvojps-monitor",
-        "width": 1280,
-        "height": 800,
+        "width": 1100,
+        "height": 700,
         "resizable": true,
         "decorations": false,
         "visible": true,

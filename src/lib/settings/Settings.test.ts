@@ -67,7 +67,7 @@ function fakeCore(initial: Partial<InitialState> = {}, general: GeneralSettings 
 }
 
 const snapshot = (module: Snapshot["module"], data: unknown): Snapshot => ({ module, updatedAt: 1, data });
-const openSettings = () => userEvent.click(within(screen.getByRole("navigation", { name: "Módulos" })).getByRole("button", { name: "Configurações" }));
+const openSettings = () => userEvent.click(screen.getByRole("button", { name: "Configurações" }));
 
 describe("first run", () => {
   it("opens Settings with the welcome, the status of each module and its shortcuts", async () => {
@@ -122,7 +122,7 @@ describe("first run", () => {
   it("opens on the panel after the first run", async () => {
     const { core } = fakeCore({ welcome: false });
     render(Panel, { core });
-    await screen.findByRole("group", { name: "Capacidade" });
+    await screen.findByRole("region", { name: "IA" });
     expect(screen.queryByRole("heading", { name: "Configurações" })).not.toBeInTheDocument();
     expect(core.completeWelcome).not.toHaveBeenCalled();
   });
@@ -217,7 +217,7 @@ describe("appearance", () => {
   it("applies the saved theme and persists a new choice", async () => {
     const { core } = fakeCore(appearance({ theme: "light" }));
     render(Panel, { core });
-    await screen.findByRole("group", { name: "Capacidade" });
+    await screen.findByRole("region", { name: "IA" });
     await vi.waitFor(() => expect(document.documentElement.dataset.theme).toBe("light"));
 
     await openSettings();
