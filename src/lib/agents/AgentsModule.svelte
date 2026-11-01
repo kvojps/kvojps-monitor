@@ -12,8 +12,12 @@
     "permission prompt": t.agents.permission, "input needed": t.agents.input,
     "sandbox request": t.agents.sandbox, "dialog open": t.agents.dialog,
   };
-  /** Live states summarized in the counters; closed sessions are counted from `closed`. */
-  const LIVE_STATES = ["working", "waiting", "done", "failed"] as const;
+  /** The five session states, in the legend's order; closed sessions count while retained. */
+  const states = ["working", "waiting", "done", "failed", "closed"] as const;
+  const colors: Record<AgentSession["state"], string> = {
+    working: "var(--accent)", waiting: "var(--warn)", done: "var(--ok)",
+    failed: "var(--bad)", closed: "var(--band-lavender-text)",
+  };
   const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   let list = $state<HTMLElement>();
@@ -25,20 +29,17 @@
   let ring = $state<HTMLButtonElement>();
   let selected = $state<string | null>(null);
   const shown = $derived(data ? [...data.sessions, ...data.closed] : []);
-  const states = [...LIVE_STATES, "closed"] as const;
-  const colors: Record<AgentSession["state"], string> = {
-    working: "var(--accent)", waiting: "var(--warn)", done: "var(--ok)",
-    failed: "var(--bad)", closed: "var(--muted)",
-  };
   const count = (state: AgentSession["state"]) => shown.filter((s) => s.state === state).length;
   const waiting = $derived(count("waiting"));
-  const gradient = $derived.by(() => {
+  /** Ring segments over every retained session; no segment when there is none. */
+  const segments = $derived.by(() => {
     let offset = 0;
     return states.map((state) => {
-      const start = offset;
-      offset += shown.length ? count(state) / shown.length * 100 : 0;
-      return `${colors[state]} ${start}% ${offset}%`;
-    }).join(", ");
+      const share = shown.length ? count(state) / shown.length * 100 : 0;
+      const segment = { state, length: Math.max(0, share - 2), offset };
+      offset += share;
+      return segment;
+    });
   });
 
   async function open(id: string | null = selected) {
@@ -80,8 +81,7 @@
         ?.scrollIntoView?.({ block: "nearest" });
     });
   });
-  const provider = (session: AgentSession) => session.provider === "codex" ? "codex" : "claude";
-  const providerName = (session: AgentSession) => provider(session) === "codex" ? t.agents.codex : t.agents.provider;
+  const providerName = (session: AgentSession) => session.provider === "codex" ? t.agents.codex : t.agents.provider;
 
   function elapsed(session: AgentSession, observedAt: number) {
     const seconds = Math.max(0, Math.floor(((session.closedAt ?? observedAt) - session.startedAt) / 1000));
@@ -99,58 +99,74 @@
       return interpolate(t.agents.lastState, { state: t.agents.states[session.lastState] });
     return null;
   }
+
+  const caption = $derived(!data ? t.agents.noReading : shown.length === 0 ? t.agents.empty
+    : shown.length === 1 ? t.agents.oneSession : interpolate(t.agents.sessions, { count: String(shown.length) }));
 </script>
 
 <svelte:window onkeydowncapture={keyboard} />
 
 <div class="agents" onfocusin={(event) => { if (restoringFocus) event.stopPropagation(); }}>
-  {#if !data}
-    <p class="blank">{t.agents.noReading}</p>
-  {:else}
-    <div class="banner" class:pending={waiting > 0} role="group" aria-label={t.agents.intervention}>
-      <span class="attention">{#if waiting > 0}<span aria-hidden="true">● </span>{t.agents.states.waiting}{:else}{t.agents.noIntervention}{/if}</span>
-      <button disabled={!waiting} onclick={() => open(shown.find((s) => s.state === "waiting")?.id ?? null)}><strong class="num">{String(waiting).padStart(2, "0")}</strong>{#if waiting}<span class="sr-only">{t.agents.states.waiting}</span>{/if}</button>
-    </div>
-
-    {#if data.codexWaitingUnavailable}<p class="notice">{t.agents.codexWaitingUnavailable}</p>{/if}
-    {#if data.failed}
-      <p class="notice alert">{[t.agents.failure, data.lastSuccessAt != null && interpolate(t.agents.lastRead, { time: time.format(data.lastSuccessAt) })].filter(Boolean).join(" · ")}</p>
-    {/if}
-
-    <div class="compact-summary">
-      <button class="ring" bind:this={ring} aria-label={t.agents.list} onclick={() => open()} style:background={shown.length ? `conic-gradient(${gradient})` : "var(--surface-2)"}>
-        <span><strong>{count("working")}</strong><small>{t.agents.states.working}</small></span>
-      </button>
-      <dl class="flow" aria-label={t.agents.summary}>
-        {#each states as state}
-          <div><dt><button style:color={colors[state]} onclick={() => open(shown.find((s) => s.state === state)?.id ?? null)} aria-describedby={"agent-legend-" + state}>{state === "closed" ? t.agents.closed : t.agents.states[state]}</button>
-            <span class="legend-projects" id={"agent-legend-" + state}>{shown.filter((s) => s.state === state).map((s) => `${s.project} · ${s.name ?? t.agents.unnamed}`).join(", ") || "—"}</span>
-          </dt><dd>{count(state)}</dd></div>
-        {/each}
-      </dl>
-    </div>
-    {#if shown.length === 0}<p class="blank">{t.agents.empty}</p>{/if}
+  {#if data?.failed}
+    <small role="status" class="line alert"><span aria-hidden="true">{"⚠ "}</span>{[t.agents.failure, data.lastSuccessAt != null && interpolate(t.agents.lastRead, { time: time.format(data.lastSuccessAt) })].filter(Boolean).join(" · ")}</small>
   {/if}
+  {#if data?.codexWaitingUnavailable}<small class="line">{t.agents.codexWaitingUnavailable}</small>{/if}
+
+  <div class="summary">
+    <div class="agent-instrument">
+      <button class="session-dial" bind:this={ring} aria-label={t.agents.list} onclick={() => open()}>
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="orbit" cx="60" cy="60" r="55" />
+          {#if shown.length === 0}
+            <circle class="base" cx="60" cy="60" r="47" />
+          {:else}
+            {#each segments as segment (segment.state)}
+              <circle cx="60" cy="60" r="47" fill="none" stroke={colors[segment.state]} stroke-width="8" pathLength="100"
+                stroke-dasharray="{segment.length} 100" stroke-dashoffset={-segment.offset} transform="rotate(-90 60 60)" />
+            {/each}
+          {/if}
+        </svg>
+        <span class="reading num">{data ? count("working") : "—"}</span>
+      </button>
+      <h3>{t.agents.states.working}</h3>
+      <small>{caption}</small>
+    </div>
+    <div class="legend-list">
+      {#each states as state (state)}
+        <div class="legend-item">
+          <button class="legend" style:--state-color={colors[state]} aria-describedby={"agent-legend-" + state}
+            onclick={() => open(shown.find((s) => s.state === state)?.id ?? null)}>
+            <i aria-hidden="true"></i><span>{t.agents.states[state]}</span> <b class="num">{data ? count(state) : "—"}</b>
+          </button>
+          <span class="session-tip" id={"agent-legend-" + state}>{shown.filter((s) => s.state === state).map((s) => `${s.project} · ${s.name ?? t.agents.unnamed}`).join(" / ") || "—"}</span>
+        </div>
+      {/each}
+    </div>
+  </div>
+  {#if waiting > 0}
+    <button class="waiting" onclick={() => open(shown.find((s) => s.state === "waiting")?.id ?? null)}>
+      <span><span aria-hidden="true">{"⚠ "}</span>{interpolate(t.agents.waitingCount, { count: String(waiting) })}</span>
+      <span class="see">{t.agents.seeSessions}</span>
+    </button>
+  {/if}
+
   <dialog bind:this={dialog} aria-label={t.agents.list} oncancel={(event) => { event.preventDefault(); close(); }}>
-    <header><h2>{t.agents.list}</h2><button onclick={close}>{t.agents.close}</button></header>
+    <header><h2>{t.agents.list}</h2><button class="detail-button" onclick={close}>{t.agents.close} <span aria-hidden="true">×</span></button></header>
     {#if notified && !shown.some((s) => s.id === notified)}<p role="status">{t.agents.targetUnavailable}</p>{/if}
     {#if detailOpen}
-      {#if !data}<p class="blank">{t.agents.noReading}</p>{:else if shown.length === 0}<p class="blank">{t.agents.empty}</p>{/if}
+      {#if !data}<p class="source">{t.agents.noReading}</p>{:else if shown.length === 0}<p class="source">{t.agents.empty}</p>{/if}
     {/if}
     {#if data}
       <ul class="sessions" aria-label={t.agents.list} bind:this={list}>
         {#each shown as session (session.id)}
-          {@const waitReason = reason(session)}
+          {@const why = reason(session)}
           <li data-session-id={session.id} data-state={session.state} aria-current={selected === session.id ? "true" : undefined}>
-            <span class="code num" aria-hidden="true">{t.agents.providerCodes[provider(session)]}</span>
-            <div class="body">
-              <h3>{session.name ?? t.agents.unnamed}</h3>
-              <p class="origin">{session.project} · {providerName(session)}</p>
-              {#if session.branch}<p>{session.branch}</p>{/if}
-              <p class="status"><span class="state">{t.agents.states[session.state]}</span>{#if waitReason}<span>{waitReason}</span>{/if}</p>
-              {#if notified === session.id}<p class="tag">{t.agents.notified}</p>{/if}
-            </div>
-            <span class="elapsed num">{elapsed(session, data.observedAt)}</span>
+            <b>{session.project} · <span>{session.name ?? t.agents.unnamed}</span></b>
+            <p><span>{providerName(session)}</span> · <span class="state">{t.agents.states[session.state]}</span></p>
+            <small>
+              {#if why}<span>{why}</span> · {/if}{#if session.branch}<span>{session.branch}</span> · {/if}<span class="num">{elapsed(session, data.observedAt)}</span>
+            </small>
+            {#if notified === session.id}<small class="tag">{t.agents.notified}</small>{/if}
           </li>
         {/each}
       </ul>
@@ -159,53 +175,43 @@
 </div>
 
 <style>
-  button { cursor: pointer; }
-  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .compact-summary { display: flex; align-items: center; gap: 16px; }
-  .ring { flex: none; width: 112px; height: 112px; border-radius: 50%; padding: 10px; border: 0; }
-  .ring > span { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; border-radius: 50%; background: var(--surface); }
-  .ring strong { font-size: 28px; }
-  .ring small { font-size: 10px; }
-  .flow { flex: 1; min-width: 0; }
-  dt { position: relative; }
-  .legend-projects { display: none; position: absolute; z-index: 2; background: var(--surface); padding: 8px; border: 1px solid var(--line); width: 220px; overflow-wrap: anywhere; }
-  dt:hover .legend-projects, dt:focus-within .legend-projects { display: block; }
-  dialog { margin: auto; width: min(680px, 90vw); max-height: 80vh; overflow: auto; padding: 20px; color: var(--text); background: var(--surface); border: 1px solid var(--line); }
+  .agents { display: flex; flex-direction: column; margin-top: 18px; min-width: 0; flex: 1; }
+  small { font-size: .88em; color: var(--muted); }
+  h3 { font-size: 1em; font-weight: 500; }
+  .line { display: block; margin-bottom: 6px; overflow-wrap: anywhere; }
+  .line.alert { color: var(--warn); }
+  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: center; }
+  .agent-instrument { text-align: center; min-width: 0; }
+  .session-dial { position: relative; width: 94px; height: 94px; margin: auto; display: block; }
+  .session-dial svg { width: 100%; height: 100%; display: block; }
+  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2.55em; }
+  .base { fill: none; stroke: var(--line); stroke-width: 8; }
+  .orbit { fill: none; stroke: var(--control-line); stroke-width: 1; stroke-dasharray: 24 12 6 30; transform-origin: center; }
+  .legend-list { align-self: center; min-width: 0; }
+  .legend-item { position: relative; }
+  .legend { width: 100%; display: flex; gap: 7px; align-items: center; padding: 4px 0; text-align: left; font-size: .92em; }
+  .legend i { width: 6px; height: 6px; border-radius: 50%; background: var(--state-color); flex-shrink: 0; }
+  .legend b { margin-left: auto; }
+  .session-tip { display: none; position: absolute; z-index: 4; top: 100%; right: 0; width: 240px; overflow-wrap: anywhere; background: var(--surface-2); color: var(--text); padding: 9px; border: 1px solid var(--control-line); box-shadow: 0 4px 20px #0006; font-size: 12px; font-weight: 400; }
+  .legend-item:hover .session-tip, .legend-item:focus-within .session-tip { display: block; }
+  .waiting { color: var(--warn); border: 1px solid var(--warn); display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; width: 100%; margin: 25px 0 4px; text-align: left; }
+  .waiting .see { font-size: .9em; }
+  .session-dial:focus-visible, .legend:focus-visible, .waiting:focus-visible, .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  dialog { margin: auto; width: min(680px, 90vw); max-height: 80vh; overflow: auto; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); padding: 20px; font-size: 13px; }
   dialog::backdrop { background: #000a; }
-  dialog header { display: flex; justify-content: space-between; gap: 16px; }
-
-  .agents { display: flex; flex-direction: column; gap: 8px; padding: 8px 14px 12px; min-width: 0; flex: 1; }
-  .banner {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 0 4px 6px; border-bottom: 3px solid var(--band-violet);
-  }
-  .attention { font: 11px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-  .banner strong { font-size: 30px; font-weight: 300; line-height: 1; color: var(--muted); }
-  .pending .attention, .pending strong { color: var(--warn); }
-  .notice { font-size: 12px; color: var(--muted); }
-  .notice.alert { color: var(--warn); }
-  .blank { display: grid; place-items: center; min-height: 100px; padding: 12px; border: 1px dashed var(--line); font-size: 12px; color: var(--muted); text-align: center; }
-
-  .sessions { list-style: none; display: flex; flex-direction: column; }
-  li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 4px; border-bottom: 1px solid var(--line); scroll-margin: 60px 0 16px; }
-  li[aria-current] { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-dim); }
-  .code {
-    flex: none; display: grid; place-items: center; width: 35px; height: 30px;
-    border-radius: 20px 0 0 20px; background: var(--band-violet); color: var(--on-band); font-size: 11px;
-  }
-  .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-  h3 { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
-  .origin { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
-  .status { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 10px var(--mono); letter-spacing: 0.5px; color: var(--muted); }
-  .state { text-transform: uppercase; }
+  dialog header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; }
+  dialog h2 { font-size: 1.25em; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+  .detail-button { color: var(--accent); border-bottom: 1px solid var(--line); padding: 7px 0; }
+  .source { margin-top: 12px; color: var(--muted); }
+  .sessions { list-style: none; }
+  li { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; overflow-wrap: anywhere; display: flex; flex-direction: column; scroll-margin: 60px 0 16px; }
+  li p { margin: 8px 0 4px; }
+  li[aria-current] { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--accent-dim); }
   [data-state="working"] .state { color: var(--accent); }
   [data-state="waiting"] .state { color: var(--warn); }
   [data-state="done"] .state { color: var(--ok); }
   [data-state="failed"] .state { color: var(--bad); }
-  .tag { font: 10px var(--mono); color: var(--accent); }
-  .elapsed { flex: none; font-size: 11px; color: var(--muted); white-space: nowrap; }
-
-  .flow { display: flex; flex-direction: column; margin-top: auto; }
-  .flow div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 4px; border-bottom: 2px solid var(--surface-2); font-size: 11px; color: var(--muted); }
-  .flow dd { color: var(--band-lavender-text); font-weight: 600; }
+  [data-state="closed"] .state { color: var(--band-lavender-text); }
+  .tag { color: var(--accent); margin-top: 4px; }
 </style>

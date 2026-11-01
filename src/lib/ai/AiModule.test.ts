@@ -24,10 +24,10 @@ it("shows a five hour instrument per provider with usage and reset", () => {
   const codex = within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" });
   expect(codex).toHaveAttribute("aria-valuenow", "91");
   expect(codex).toHaveTextContent("91%");
-  expect(within(provider("Codex")).getByText("reinicia em 18 h 23 min")).toBeInTheDocument();
+  expect(within(provider("Codex")).getByText("5 h · reinicia 14:22")).toBeInTheDocument();
   const claude = within(provider("Claude")).getByRole("meter", { name: "Claude · janela de 5 h" });
   expect(claude).toHaveAttribute("aria-valuenow", "15");
-  expect(within(provider("Claude")).getByText("reinicia em 3 h 30 min")).toBeInTheDocument();
+  expect(within(provider("Claude")).getByText("5 h · reinicia 23:30")).toBeInTheDocument();
 });
 
 it("shows a weekly bar per provider from the all models bucket only", () => {
@@ -40,13 +40,16 @@ it("shows a weekly bar per provider from the all models bucket only", () => {
     .map((meter) => meter.getAttribute("aria-valuenow"))).toEqual(["6"]);
   expect(screen.queryByText("Sonnet")).not.toBeInTheDocument();
   expect(screen.queryByText("33%")).not.toBeInTheDocument();
+  expect(within(provider("Codex")).getByText("Reinício 04/11/2026")).toBeInTheDocument();
+  expect(within(provider("Claude")).getByText("Reinício 05/11/2026")).toBeInTheDocument();
 });
 
-it("identifies each reading by source and age, without plans", () => {
+it("shows only the reading time as in prototype B, without source, age or plans", () => {
   vi.setSystemTime(USAGE_NOW + 420_000);
   render(AiModule, { data: usage as AiData, refresh: vi.fn() });
-  expect(within(provider("Claude")).getByText("oauth/usage · atualizado há 7 minutos")).toBeInTheDocument();
-  expect(within(provider("Codex")).getByText("app-server · atualizado agora")).toBeInTheDocument();
+  expect(within(provider("Claude")).getByText("Leitura 20:00")).toBeInTheDocument();
+  expect(within(provider("Codex")).getByText("Leitura 12:34")).toBeInTheDocument();
+  expect(screen.queryByText(/atualizado|oauth\/usage|app-server/)).not.toBeInTheDocument();
   expect(screen.queryByText("Pro")).not.toBeInTheDocument();
   expect(screen.queryByText("Plus")).not.toBeInTheDocument();
 });
@@ -72,12 +75,17 @@ it("removes a restarted weekly bar and keeps the five hour reading", async () =>
   expect(within(codex).getByRole("meter", { name: "Codex · janela de 5 h" })).toHaveAttribute("aria-valuenow", "91");
 });
 
-it("keeps an old reading with its age", async () => {
+it("keeps an old reading with its time, naming the date once it is a day old", async () => {
   const { default: stale } = await import("./fixtures/stale.json");
   vi.setSystemTime(1793460871000);
-  render(AiModule, { data: stale as AiData, refresh: vi.fn() });
-  expect(within(provider("Codex")).getByText("rollout · atualizado há 1 hora")).toBeInTheDocument();
+  const view = render(AiModule, { data: stale as AiData, refresh: vi.fn() });
+  expect(within(provider("Codex")).getByText("Leitura 11:33")).toBeInTheDocument();
   expect(within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" })).toHaveAttribute("aria-valuenow", "91");
+  view.unmount();
+  const old = structuredClone(stale) as AiData;
+  old.codex.reading!.readAt -= 86_400_000;
+  render(AiModule, { data: old, refresh: vi.fn() });
+  expect(within(provider("Codex")).getByText("Leitura 30/10, 11:33")).toBeInTheDocument();
 });
 
 it("replaces a missing CLI's instruments with an explanation, keeping the other provider", async () => {
@@ -102,8 +110,8 @@ it("shows sustained Codex failures and keeps the last reading with its age", asy
   vi.setSystemTime(1793460871000 + 90_000);
   render(AiModule, { data: failure as AiData, refresh: vi.fn() });
   const codex = provider("Codex");
-  expect(within(codex).getByRole("status")).toHaveTextContent("Falha ao atualizar há 1 minuto");
-  expect(within(codex).getByText("rollout · atualizado há 1 hora")).toBeInTheDocument();
+  expect(within(codex).getByText(/Falha ao atualizar/)).toHaveTextContent("⚠ Falha ao atualizar há 1 minuto");
+  expect(within(codex).getByText("Leitura 11:33")).toBeInTheDocument();
   expect(within(codex).getByRole("meter", { name: "Codex · janela de 5 h" })).toBeInTheDocument();
 });
 
@@ -121,7 +129,7 @@ it("shows Claude's windows from the status line", async () => {
   vi.setSystemTime(STATUS_LINE_NOW);
   render(AiModule, { data: connected as AiData, refresh: vi.fn() });
   const claude = provider("Claude");
-  expect(within(claude).getByText("status line · atualizado agora")).toBeInTheDocument();
+  expect(within(claude).getByText("Leitura 11:26")).toBeInTheDocument();
   expect(within(claude).getByRole("meter", { name: "Claude · janela de 5 h" })).toHaveAttribute("aria-valuenow", "24");
   expect(within(claude).getByRole("meter", { name: "Claude · semana" })).toHaveAttribute("aria-valuenow", "41");
   expect(within(claude).queryByRole("status")).not.toBeInTheDocument();
@@ -133,8 +141,8 @@ it("warns when another tool replaced the status line and reconnects only on clic
   const reconnect = vi.fn();
   render(AiModule, { data: replaced as AiData, refresh: vi.fn(), reconnect });
   const claude = provider("Claude");
-  expect(within(claude).getByRole("status")).toHaveTextContent("Status line desconectada · Reconectar");
-  expect(within(claude).getByText("status line · atualizado há 1 hora")).toBeInTheDocument();
+  expect(within(claude).getByRole("status")).toHaveTextContent("⚠ Status line desconectada · Reconectar");
+  expect(within(claude).getByText("Leitura 11:26")).toBeInTheDocument();
   expect(reconnect).not.toHaveBeenCalled();
   await fireEvent.click(within(claude).getByRole("button", { name: "Reconectar" }));
   expect(reconnect).toHaveBeenCalledOnce();
@@ -173,8 +181,8 @@ it("shows an expired Claude token and keeps the status line reading", async () =
   vi.setSystemTime(STATUS_LINE_NOW);
   render(AiModule, { data: expired as AiData, refresh: vi.fn() });
   const claude = provider("Claude");
-  expect(within(claude).getByRole("status")).toHaveTextContent("Token do Claude expirado · abra o Claude Code");
-  expect(within(claude).getByText("status line · atualizado agora")).toBeInTheDocument();
+  expect(within(claude).getByRole("status")).toHaveTextContent("⚠ Token do Claude expirado · abra o Claude Code");
+  expect(within(claude).getByText("Leitura 20:00")).toBeInTheDocument();
   expect(within(claude).getByRole("meter", { name: "Claude · janela de 5 h" })).toHaveAttribute("aria-valuenow", "20");
 });
 
@@ -183,9 +191,9 @@ it("shows sustained oauth/usage failures and keeps the last reading", async () =
   vi.setSystemTime(USAGE_NOW + 420_000);
   render(AiModule, { data: failure as AiData, refresh: vi.fn() });
   const claude = provider("Claude");
-  expect(within(claude).getByRole("status")).toHaveTextContent("Falha ao atualizar há 2 minutos");
-  expect(within(claude).getByText("oauth/usage · atualizado há 7 minutos")).toBeInTheDocument();
-  expect(within(provider("Codex")).queryByRole("status")).not.toBeInTheDocument();
+  expect(within(claude).getByRole("status")).toHaveTextContent("⚠ Falha ao atualizar há 2 minutos");
+  expect(within(claude).getByText("Leitura 20:00")).toBeInTheDocument();
+  expect(within(provider("Codex")).queryByText(/Falha/)).not.toBeInTheDocument();
 });
 
 it("hides oauth/usage failures while Claude is paused offline", async () => {
@@ -208,14 +216,14 @@ it("refreshes on demand and waits ten seconds between clicks", async () => {
   expect(button).toBeEnabled();
 });
 
-it("disables refresh while refreshing or offline and keeps the reading age", () => {
+it("disables refresh while refreshing or offline and keeps the reading time", () => {
   const { unmount } = render(AiModule, { data: { ...(usage as AiData), refreshing: true }, refresh: vi.fn() });
   expect(screen.getByRole("button", { name: "Atualizar IA" })).toBeDisabled();
-  expect(screen.getByRole("status")).toHaveTextContent("Atualizando…");
+  expect(screen.getAllByRole("status")[0]).toHaveTextContent("Atualizando…");
   unmount();
   render(AiModule, { data: { ...(usage as AiData), paused: true }, refresh: vi.fn() });
   expect(screen.getByRole("button", { name: "Atualizar IA" })).toBeDisabled();
-  expect(within(provider("Claude")).getByText("oauth/usage · atualizado agora")).toBeInTheDocument();
+  expect(within(provider("Claude")).getByText("Leitura 20:00")).toBeInTheDocument();
 });
 
 it("opens Settings from the module", async () => {
@@ -225,12 +233,24 @@ it("opens Settings from the module", async () => {
   expect(configure).toHaveBeenCalledOnce();
 });
 
-it("names high usage in text, not only by colour", () => {
+it("names high usage in a body line, keeping the ring in the provider colour", () => {
   render(AiModule, { data: usage as AiData, refresh: vi.fn() });
   const codex = within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" });
   expect(codex).toHaveAttribute("aria-valuetext", "91% · uso alto");
-  expect(codex).toHaveTextContent("uso alto");
+  expect(codex).not.toHaveTextContent("uso alto");
+  expect(within(provider("Codex")).getByRole("status")).toHaveTextContent("⚠ Uso alto na janela de 5 h");
   expect(within(provider("Codex")).getByRole("meter", { name: "Codex · semana" })).toHaveAttribute("aria-valuetext", "48%");
+  expect(within(provider("Claude")).queryByRole("status")).not.toBeInTheDocument();
+  expect(provider("Codex").style.getPropertyValue("--instrument")).toBe("var(--accent)");
+  expect(provider("Claude").style.getPropertyValue("--instrument")).toBe("var(--band-lavender-text)");
+});
+
+it("titles the shared card in prototype B's words, without source or update subtitle", () => {
+  render(AiModule, { data: usage as AiData, refresh: vi.fn() });
+  expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("IA e Agentes");
+  expect(screen.queryByText("Codex e Claude Code")).not.toBeInTheDocument();
+  expect(screen.queryByText("consumido")).not.toBeInTheDocument();
+  expect(screen.queryByText("Janela de 5 h")).not.toBeInTheDocument();
 });
 
 it("explains a window missing from the reading instead of guessing it", () => {
@@ -255,7 +275,7 @@ it("describes compact title actions on focus and pointer without changing focus 
   const { rerender } = render(AiModule, { data: usage as AiData, refresh: vi.fn() });
   const refresh = screen.getByRole("button", { name: "Atualizar IA" });
   expect(refresh).toHaveAccessibleDescription("Consultar os limites de uso de Claude e Codex");
-  expect(screen.getByRole("button", { name: "Configurar IA" })).toHaveAccessibleDescription("Abrir conexões e consentimentos de IA nas Configurações");
+  expect(screen.getByRole("button", { name: "Configurar IA" })).toHaveAccessibleDescription("Abrir IA e Agentes nas Configurações");
   refresh.focus();
   expect(refresh).toHaveFocus();
   await rerender({ data: { ...(usage as AiData), refreshing: true } });
@@ -267,17 +287,16 @@ it("identifies offline providers while preserving cached instruments and reading
   render(AiModule, { data: offline as AiData, refresh: vi.fn() });
   for (const name of ["Codex", "Claude"]) {
     const region = within(provider(name));
-    expect(region.getByRole("status")).toHaveTextContent("Coleta pausada · offline ou aguardando retomada");
+    expect(region.getByText("Coleta pausada · offline ou aguardando retomada")).toHaveAttribute("role", "status");
     expect(region.getByRole("meter", { name: `${name} · janela de 5 h` })).toBeInTheDocument();
-    expect(region.getByText(/atualizado/)).toBeInTheDocument();
-    expect(region.getByText(/Leitura às/)).toBeInTheDocument();
+    expect(region.getByText(/^Leitura \d\d:\d\d$/)).toBeInTheDocument();
   }
 });
 
 it("distinguishes loading without a reading from a completed empty snapshot", async () => {
   const { default: loading } = await import("./fixtures/loading.json");
   const { rerender } = render(AiModule, { data: loading as AiData, refresh: vi.fn() });
-  expect(screen.getByRole("status")).toHaveTextContent("Atualizando…");
+  expect(screen.getByText("Atualizando…")).toHaveAttribute("role", "status");
   expect(screen.queryByRole("meter")).not.toBeInTheDocument();
   await rerender({ data: { ...(loading as AiData), refreshing: false } });
   expect(screen.queryByText("Atualizando…")).not.toBeInTheDocument();

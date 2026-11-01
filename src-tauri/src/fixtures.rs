@@ -19,12 +19,13 @@ use tauri::{AppHandle, Manager};
 use crate::module::Module;
 use crate::snapshot::Snapshot;
 
-/// Fixed clock: the instant of the `claude-usage` fixture used by earlier validations.
-pub const NOW: u64 = 1_793_448_000_000;
+/// Fixed clock: the instant the `claude-usage` fixture was published, so both AI
+/// windows are still open as in prototype B.
+pub const NOW: u64 = 1_793_401_200_000;
 
 /// Pins `Date.now()` and `new Date()` in the panel webview to `NOW`.
 pub const CLOCK_SCRIPT: &str = "(() => {
-  const now = 1793448000000;
+  const now = 1793401200000;
   const Real = Date;
   class FixedDate extends Real {
     constructor(...args) { super(...(args.length ? args : [now])); }

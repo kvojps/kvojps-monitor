@@ -1,14 +1,11 @@
-/* Decorative choreography only. No measurement, text, graph or alert animates.
-   Enable only after native visibility and appearance have been restored. */
-:root[data-decoration="running"] .panel .ticks {
-  transform-origin: 70px 70px;
+/* Decorative motion of prototype B only: ring orbits, top bar and card border glow.
+   No measurement, text, graph or alert animates. Runs only while the panel sets
+   data-decoration="running": native panel visible, appearance restored, motion not reduced. */
+:root[data-decoration="running"] .panel .orbit {
   animation: decorative-orbit 48s linear infinite;
 }
-:root[data-decoration="running"] .panel .beacon {
-  animation: decorative-glow 4s ease-in-out infinite alternate;
-}
-.panel .segment { position: relative; overflow: hidden; }
-.panel .segment::after {
+.panel .bridge span { position: relative; overflow: hidden; }
+.panel .bridge span::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -16,51 +13,27 @@
   transform: translateX(-100%);
   pointer-events: none;
 }
-:root[data-decoration="running"] .panel .segment::after {
+:root[data-decoration="running"] .panel .bridge span::after {
   animation: decorative-flow 3.5s linear infinite;
 }
-:root[data-decoration="running"] .panel .blue::after { animation-delay: -2s; }
-:root[data-decoration="running"] .panel .lavender::after { animation-delay: -3s; }
-.panel .module { position: relative; }
-.panel .module::after {
+:root[data-decoration="running"] .panel .bridge span:nth-child(2)::after { animation-delay: -2s; }
+:root[data-decoration="running"] .panel .bridge span:nth-child(3)::after { animation-delay: -3s; }
+.panel .card { position: relative; }
+.panel .card::after {
   content: "";
   position: absolute;
-  top: 12px;
-  bottom: 12px;
-  right: 0;
-  width: 2px;
-  background: linear-gradient(transparent, var(--accent), transparent);
-  transform: scaleY(.15);
-  transform-origin: top;
+  inset: 0;
+  border-right: 1px solid var(--line);
   pointer-events: none;
 }
-:root[data-decoration="running"] .panel .module::after {
-  animation: decorative-scan 7s ease-in-out infinite;
+:root[data-decoration="running"] .panel .card::after {
+  animation: decorative-glow 7s ease-in-out infinite;
 }
-:root[data-decoration="running"] .panel .station:nth-child(2) .module::after { animation-delay: -2.3s; }
-:root[data-decoration="running"] .panel .station:nth-child(3) .module::after { animation-delay: -4.6s; }
-.panel .station .station-label {
-  background-size: 200% 100%;
-  background-image: linear-gradient(100deg, transparent 25%, #80dcff22 50%, transparent 75%);
-}
-:root[data-decoration="running"] .panel .station .station-label { animation: decorative-drift 9s linear infinite; }
-:root[data-decoration="running"] .panel nav button { transition: transform 150ms ease; }
-:root[data-decoration="running"] .panel nav button:hover { transform: translateY(-2px); }
 /* Covered modules cannot spend time animating underneath Settings. */
 .panel .scroller.covered *, .panel .scroller.covered *::after { animation: none !important; }
 @keyframes decorative-orbit { to { transform: rotate(360deg); } }
-@keyframes decorative-glow { to { box-shadow: 0 0 28px 5px var(--accent-dim); } }
 @keyframes decorative-flow { to { transform: translateX(100%); } }
-@keyframes decorative-scan {
-  0%, 100% { transform: scaleY(.15); transform-origin: top; }
-  49% { transform: scaleY(1); transform-origin: top; }
-  50% { transform: scaleY(1); transform-origin: bottom; }
-  99% { transform: scaleY(.15); transform-origin: bottom; }
-}
-@keyframes decorative-drift {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
-}
+@keyframes decorative-glow { 50% { border-color: var(--accent); } }
 /* Immediate fallback while a live media-query change reaches Svelte. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -68,5 +41,4 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
-  .panel nav button:hover { transform: none !important; }
 }

@@ -319,36 +319,29 @@
     "codex": "Codex",
     "missingCodex": "Codex não encontrado · instale e faça login no CLI",
     "emptyCodex": "Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻",
-    "sources": {
-      "appServer": "app-server",
-      "rollout": "rollout",
-      "statusLine": "status line",
-      "oauthUsage": "oauth/usage"
-    },
-    "reading": "{source} · atualizado {age}",
-    "now": "agora",
-    "resetsIn": "reinicia em {time}",
-    "resetsAt": "reinicia {day} {time}",
     "restarted": "Reiniciado às {time} · sem leitura nova",
     "failureAge": "Falha ao atualizar {age}",
     "fiveHourOf": "{provider} · janela de 5 h",
     "weeklyOf": "{provider} · semana",
-    "fiveHourLabel": "Janela de 5 h",
     "weeklyLabel": "Semana",
-    "consumed": "consumido",
     "configureAi": "Configurar IA",
     "noReading": "Sem leitura dos limites",
     "high": "uso alto",
     "refreshDescription": "Consultar os limites de uso de Claude e Codex",
-    "configureDescription": "Abrir conexões e consentimentos de IA nas Configurações",
-    "readingTime": "Leitura às {time}",
-    "paused": "Coleta pausada · offline ou aguardando retomada"
+    "configureDescription": "Abrir IA e Agentes nas Configurações",
+    "paused": "Coleta pausada · offline ou aguardando retomada",
+    "fiveHour": "5 h",
+    "fiveHourResets": "5 h · reinicia {time}",
+    "weeklyResets": "Reinício {date}",
+    "readAt": "Leitura {time}",
+    "highFiveHour": "Uso alto na janela de 5 h",
+    "highWeekly": "Uso alto na semana",
+    "now": "agora"
   },
   "agents": {
     "close": "Fechar",
     "targetUnavailable": "Sessão da notificação indisponível",
     "empty": "Nenhuma sessão de agente ativa",
-    "closed": "Encerradas",
     "unnamed": "Sem nome",
     "provider": "Claude Code",
     "codex": "Codex",
@@ -368,17 +361,13 @@
     },
     "noReading": "Sem leitura das sessões de agente ainda",
     "list": "Sessões de agente",
-    "intervention": "Intervenção",
-    "noIntervention": "Nenhuma intervenção pendente",
-    "summary": "Resumo das sessões",
     "notified": "Da notificação",
     "lastState": "Última situação: {state}",
     "lastRead": "última leitura às {time}",
     "waitingCount": "{count} aguardando você",
-    "providerCodes": {
-      "claude": "CC",
-      "codex": "CX"
-    }
+    "sessions": "{count} sessões · inclui encerradas",
+    "oneSession": "1 sessão · inclui encerradas",
+    "seeSessions": "Ver sessões ↗"
   },
   "agentNotifications": {
     "waiting": "Aguardando sua resposta",
@@ -396,5 +385,8 @@
     "setting": "Detecção instantânea",
     "trust": "No Codex, abra /hooks e revise e confie nos hooks do kvojps-monitor para ativar a detecção instantânea.",
     "error": "Não foi possível alterar os hooks. Verifique as permissões e o formato das configurações."
+  },
+  "intelligence": {
+    "title": "IA e Agentes"
   }
 }

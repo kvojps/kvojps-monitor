@@ -87,14 +87,21 @@ describe("Compact panel", () => {
     expect(settingsButton()).toBeInTheDocument();
   });
 
-  it("identifies each module source and its last update", async () => {
+  it("frames the panel as prototype B: top bar, settings on the right, one IA e Agentes card", async () => {
     const fourteenThirty = new Date(2026, 9, 30, 14, 32).getTime();
     const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: fourteenThirty, data: null }] });
-    render(Panel, { core });
+    const { container } = render(Panel, { core });
 
     const ai = await screen.findByRole("region", { name: "IA" });
-    expect(within(ai).getByText("Codex e Claude Code")).toBeInTheDocument();
-    expect(within(ai).getByText("atualizado 14:32")).toBeInTheDocument();
+    expect(container.querySelectorAll(".bridge span")).toHaveLength(3);
+    expect(settingsButton()).toHaveTextContent("⚙ Configurações");
+    expect(screen.queryByText("Demonstração · leituras independentes")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "IA e Agentes" })).toHaveLength(1);
+    expect(ai.closest(".card")).toBe(section("Agentes").closest(".card"));
+    expect(within(ai).queryByText("Codex e Claude Code")).not.toBeInTheDocument();
+    expect(within(ai).queryByText("atualizado 14:32")).not.toBeInTheDocument();
+    expect(within(section("Agentes")).queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
+    expect(container.querySelector(".code")).toBeNull();
     expect(within(section("Rede")).getByText("NetworkManager e kernel")).toBeInTheDocument();
     expect(within(section("Rede")).getByText("sem dados ainda")).toBeInTheDocument();
   });
@@ -376,7 +383,7 @@ describe("Agents module in the panel", () => {
     const { core } = fakeCore({ snapshots: [{ module: "agents", updatedAt: 1, data: waitingAgents }] });
     render(Panel, { core });
     const agents = await screen.findByRole("region", { name: "Agentes" });
-    expect(within(agents).getByRole("group", { name: "Intervenção" })).toHaveTextContent("01");
+    expect(within(agents).getByRole("button", { name: /1 aguardando você/ })).toBeInTheDocument();
     await userEvent.click(within(agents).getByRole("button", { name: "Sessões de agente" }));
     expect(within(within(agents).getByRole("list", { name: "Sessões de agente" })).getByText("Minha sessão")).toBeInTheDocument();
   });

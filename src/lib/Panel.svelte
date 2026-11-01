@@ -116,8 +116,6 @@
   const supportingModules: Module[] = ["github", "network", "trello", "system"];
   const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
 
-  const code = (module: Module) => String(MODULES.indexOf(module) + 1).padStart(2, "0");
-
   const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
   function updated(module: Module) {
     const at = snapshots[module]?.updatedAt ?? null;
@@ -192,7 +190,7 @@
 
 {#snippet ai()}
   <!-- Before the first snapshot the instruments explain there is no reading and keep their actions. -->
-  <AiModule updated={updated("ai")} data={(snapshots.ai?.data as AiData | null) ?? NO_AI_READING} refresh={() => core.refreshAi?.()} configure={() => openSettings("ai")}
+  <AiModule data={(snapshots.ai?.data as AiData | null) ?? NO_AI_READING} refresh={() => core.refreshAi?.()} configure={() => openSettings("ai")}
     reconnect={() => void (core.connectClaude?.() ?? Promise.reject()).catch(() => openSettings("ai"))} />
 {/snippet}
 
@@ -219,15 +217,17 @@
 {/snippet}
 
 {#snippet moduleSection(module: Module, body?: Snippet)}
-  <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
+  {@const inCard = module === "ai" || module === "agents"}
+  <!-- IA and Agents share one visual card but stay separate modules: own section, snapshot and anchor. -->
+  <section id="module-{module}" data-module={module} class="module {module}" class:card={!inCard}
+    aria-label={inCard ? t.modules[module] : undefined} aria-labelledby={inCard ? undefined : `module-${module}-title`}
     tabindex="-1" onfocusin={(event) => remember(module, event)} bind:this={sections[module]}>
-    {#if module !== "ai" && module !== "github"}
+    {#if !inCard && module !== "github"}
       <header class="module-head">
         <div class="module-title">
           <h2 id="module-{module}-title">{t.modules[module]}</h2>
           <p class="source"><span>{t.sources[module]}</span><span aria-hidden="true">·</span><span class="num">{updated(module)}</span></p>
         </div>
-        <span class="code num" aria-hidden="true">{code(module)}</span>
       </header>
     {/if}
     {@render body?.()}
@@ -236,15 +236,17 @@
 
 <div class="panel">
   <header class="toolbar">
-    <div class="segment cyan" aria-hidden="true"></div>
-    <button aria-current={area === "settings" ? "page" : undefined} onclick={() => openSettings()}>{t.settings.title}</button>
+    <div class="bridge" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="utility">
+      <button class="settings" aria-current={area === "settings" ? "page" : undefined} onclick={() => openSettings()}><span aria-hidden="true">⚙</span> {t.settings.title}</button>
+    </div>
   </header>
 
   <div class="workspace">
     <main class="scroller" bind:this={scroller} class:covered={area === "settings"}
       inert={area === "settings"} aria-hidden={area === "settings" ? "true" : undefined}>
       <div class="composition">
-        <div class="intelligence">
+        <div class="card intelligence">
           {@render moduleSection("ai", bodies.ai)}
           {@render moduleSection("agents", bodies.agents)}
         </div>
@@ -265,40 +267,46 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 6px 12px 12px;
+    padding: 8px 18px 10px;
     background: var(--bg);
     overflow: hidden;
+    font-size: 13px;
   }
 
-  .toolbar { display: flex; align-items: center; gap: 12px; padding: 4px 0 10px; flex: none; }
-  .segment { height: 8px; flex: 1; background: var(--band-cyan); border-radius: 12px 0 0 12px; }
-  .toolbar button { padding: 8px 16px; border-radius: 0 20px 20px 0; background: var(--band-blue); color: var(--on-band); }
-  .toolbar button[aria-current] { background: var(--band-amber); }
+  .toolbar { flex: none; }
+  .bridge { display: flex; gap: 7px; height: 6px; margin-bottom: 5px; }
+  .bridge span { background: var(--band-lavender); flex: 2; border-radius: 15px 0 0 0; }
+  .bridge span:nth-child(2) { background: var(--band-cyan); flex: 5; border-radius: 0; }
+  .bridge span:last-child { background: var(--band-amber); flex: 1; border-radius: 0 12px 12px 0; }
+  .utility { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px; min-height: 24px; }
+  .settings { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+  .settings span { font-size: 16px; line-height: 1; }
+  .settings[aria-current] { color: var(--accent); }
+  .settings:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .workspace { position: relative; flex: 1; min-height: 0; }
-  .scroller { height: 100%; overflow: auto; padding: 4px 4px 8px; }
+  .scroller { height: 100%; overflow: auto; }
   .scroller.covered { visibility: hidden; }
-  .composition { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence github network" "intelligence trello system"; gap: 12px; align-items: start; }
-  .intelligence { grid-area: intelligence; display: flex; flex-direction: column; gap: 12px; min-width: 0; border-left: 6px solid var(--band-violet); padding-left: 8px; }
+  .composition { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence github network" "intelligence trello system"; gap: 12px; align-items: stretch; }
+  .intelligence { grid-area: intelligence; display: flex; flex-direction: column; }
   .composition > :global(.github) { grid-area: github; }
   .composition > :global(.network) { grid-area: network; }
   .composition > :global(.trello) { grid-area: trello; }
   .composition > :global(.system) { grid-area: system; }
 
-  .module {
+  /* One card per module, except IA and Agents, which share the intelligence card. */
+  .card {
     --module-band: var(--band-cyan);
     min-width: 0;
-    display: flex;
-    flex-direction: column;
     background: var(--module-bg);
-    border-top: 5px solid var(--module-band);
-    scroll-margin-top: 4px;
-    overflow-wrap: anywhere;
+    border-top: 4px solid var(--module-band);
   }
-  .module.system { --module-band: var(--band-lavender); }
-  .module.agents { --module-band: var(--band-violet); }
-  .module.trello { --module-band: var(--band-amber); }
-  .module.github { --module-band: var(--band-steel); }
-  .module.network { --module-band: var(--band-blue); }
+  .card.intelligence { --module-band: var(--band-lavender); padding: 8px 14px; }
+  .card.github { --module-band: var(--band-steel); }
+  .card.system { --module-band: var(--band-lavender); }
+  .card.trello { --module-band: var(--band-amber); }
+  .card.network { --module-band: var(--band-blue); }
+  .module { min-width: 0; display: flex; flex-direction: column; scroll-margin-top: 4px; overflow-wrap: anywhere; }
+  .module.agents { flex: 1; }
   .module:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .module-head {
     display: flex;
@@ -328,17 +336,6 @@
     gap: 6px;
     font-size: 11px;
     color: var(--muted);
-  }
-  .code {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 24px;
-    border-radius: 20px;
-    background: var(--module-band);
-    color: var(--on-band);
-    font-size: 12px;
   }
 
   @media (max-width: 950px) {

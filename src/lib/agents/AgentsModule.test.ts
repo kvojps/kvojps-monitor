@@ -10,46 +10,58 @@ import states from "./fixtures/states.json";
 
 const list = () => screen.getByRole("list", { name: "Sessões de agente" });
 const row = (name: string) => within(list()).getAllByRole("listitem").find((item) => within(item).queryByText(name))!;
-const counter = (label: string) => screen.getByText(label, { selector: "dt button" }).closest("dt")!.nextElementSibling?.textContent;
+const legend = (label: string) => screen.getByRole("button", { name: new RegExp(`^${label} (\\d+|—)$`) });
+const counter = (label: string) => legend(label).querySelector("b")?.textContent;
+const ring = () => screen.getByRole("button", { name: "Sessões de agente" });
 
-it("explains when no sessions are active and shows no intervention", () => {
+it("shows an explicit empty ring when no sessions are active and no waiting alert", () => {
   render(AgentsModule, { data: empty as AgentsData });
   expect(screen.getByText("Nenhuma sessão de agente ativa")).toBeInTheDocument();
-  const banner = screen.getByRole("group", { name: "Intervenção" });
-  expect(banner).toHaveTextContent("Nenhuma intervenção pendente");
-  expect(banner).not.toHaveTextContent("Aguardando você");
+  expect(ring()).toHaveTextContent("0");
+  expect(ring().querySelectorAll("circle[stroke-dasharray]")).toHaveLength(0);
+  expect(screen.queryByText(/aguardando você/)).not.toBeInTheDocument();
   expect(screen.queryByRole("list", { name: "Sessões de agente" })).not.toBeInTheDocument();
 });
 
-it("explains there is no reading yet before the first snapshot", () => {
+it("distinguishes an unavailable reading from zero sessions", () => {
   render(AgentsModule, { data: null });
   expect(screen.getByText("Sem leitura das sessões de agente ainda")).toBeInTheDocument();
   expect(screen.queryByText("Nenhuma sessão de agente ativa")).not.toBeInTheDocument();
+  expect(ring()).toHaveTextContent("—");
+  expect(counter("Em andamento")).toBe("—");
 });
 
-it("highlights the interventions counted from the sessions", () => {
+it("summarizes the sessions as in prototype B and alerts the ones waiting for you", async () => {
   render(AgentsModule, { data: states as AgentsData });
-  const banner = screen.getByRole("group", { name: "Intervenção" });
-  expect(banner).toHaveTextContent("Aguardando você");
-  expect(banner).toHaveTextContent("01");
+  expect(ring()).toHaveTextContent("1");
+  expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Em andamento");
+  expect(screen.queryByText("Trabalhando")).not.toBeInTheDocument();
+  expect(screen.getByText("6 sessões · inclui encerradas")).toBeInTheDocument();
+  const alert = screen.getByRole("button", { name: /1 aguardando você/ });
+  expect(alert).toHaveTextContent("⚠ 1 aguardando você");
+  expect(alert).toHaveTextContent("Ver sessões ↗");
+  await userEvent.click(alert);
+  expect(row("example-session")).toHaveAttribute("aria-current", "true");
 });
 
 it("shows project, name, provider, state, reason and duration of each session", async () => {
   render(AgentsModule, { data: states as AgentsData });
   await userEvent.click(screen.getByRole("button", { name: "Sessões de agente" }));
   const first = row("example-session");
-  for (const text of ["example-project · Claude Code", "Aguardando você", "Aguardando aprovação", "1 min 40 s"])
+  expect(first).toHaveTextContent("example-project · example-session");
+  for (const text of ["Claude Code", "Aguardando você", "Aguardando aprovação", "1 min 40 s"])
     expect(within(first).getByText(text)).toBeInTheDocument();
   const codex = row("Sessão Codex");
-  for (const text of ["kvojps-monitor · Codex", "Em andamento", "1 h 01 min"])
+  expect(codex).toHaveTextContent("kvojps-monitor · Sessão Codex");
+  for (const text of ["Codex", "Em andamento", "1 h 01 min"])
     expect(within(codex).getByText(text)).toBeInTheDocument();
-  expect(within(row("notes · Claude Code")).getByText("Sem nome")).toBeInTheDocument();
+  expect(row("Sem nome")).toHaveTextContent("notes · Sem nome");
 });
 
 it("names each of the five session states in text", () => {
   render(AgentsModule, { data: states as AgentsData, notified: "s-closed" });
   for (const [name, state] of [["example-session", "Aguardando você"], ["Sessão Codex", "Em andamento"],
-    ["notes · Claude Code", "Turno concluído"], ["deploy", "Com falha"], ["Sessão encerrada", "Encerrada"]])
+    ["Sem nome", "Turno concluído"], ["deploy", "Com falha"], ["Sessão encerrada", "Encerrada"]])
     expect(within(row(name)).getByText(state)).toBeInTheDocument();
   expect(within(row("Sessão encerrada")).getByText("Última situação: Com falha")).toBeInTheDocument();
 });
@@ -62,23 +74,23 @@ it("summarizes retained closed sessions while keeping the detail closed", () => 
   expect(counter("Aguardando você")).toBe("1");
   expect(counter("Turno concluído")).toBe("1");
   expect(counter("Com falha")).toBe("1");
-  expect(counter("Encerradas")).toBe("2");
+  expect(counter("Encerrada")).toBe("2");
 });
 
 it("derives the counters from the snapshot, without fixed values", () => {
   render(AgentsModule, { data: waiting as AgentsData });
   expect(counter("Aguardando você")).toBe("1");
   expect(counter("Em andamento")).toBe("0");
-  expect(counter("Encerradas")).toBe("0");
+  expect(counter("Encerrada")).toBe("0");
 });
 
 it("identifies each provider and explains unavailable Codex waiting detection", async () => {
   render(AgentsModule, { data: mixed as AgentsData });
   await userEvent.click(screen.getByRole("button", { name: "Sessões de agente" }));
-  expect(within(row("Sessão Codex")).getByText("project · Codex")).toBeInTheDocument();
-  expect(within(row("Minha sessão")).getByText("project · Claude Code")).toBeInTheDocument();
+  expect(within(row("Sessão Codex")).getByText("Codex")).toBeInTheDocument();
+  expect(within(row("Minha sessão")).getByText("Claude Code")).toBeInTheDocument();
   expect(screen.getByText("Aguardando indisponível sem Detecção instantânea")).toBeVisible();
-  expect(screen.getByText("Nenhuma intervenção pendente")).toBeInTheDocument();
+  expect(screen.queryByText(/aguardando você/)).not.toBeInTheDocument();
 });
 
 it("keeps the sessions with the age of the last good read when collection fails", async () => {
@@ -157,13 +169,13 @@ it("reopens the preserved selection and reaches a repeated notification without 
 
 it("exposes project and name from the keyboard legend and opens its matching session", async () => {
   render(AgentsModule, { data: states as AgentsData });
-  const legend = screen.getByRole("button", { name: "Com falha" });
-  legend.focus();
-  expect(legend).toHaveAccessibleDescription("infra · deploy");
+  const failed = legend("Com falha");
+  failed.focus();
+  expect(failed).toHaveAccessibleDescription("infra · deploy");
   await userEvent.keyboard("{Enter}");
   expect(row("deploy")).toHaveAttribute("aria-current", "true");
   await userEvent.keyboard("{Escape}");
-  expect(legend).toHaveFocus();
+  expect(failed).toHaveFocus();
 });
 
 it("reaches a notification target that arrives in a later snapshot without moving focus", async () => {
