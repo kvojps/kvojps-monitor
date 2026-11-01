@@ -3,6 +3,7 @@
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
   import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
+  import { BASE_DIAL, dialSize } from "./instrumentFill";
   import GithubModule from "./github/GithubModule.svelte";
   import NetworkModule from "./network/NetworkModule.svelte";
   import SystemModule from "./system/SystemModule.svelte";
@@ -39,6 +40,7 @@
   });
 
   let scroller: HTMLElement;
+  let intelligence: HTMLElement;
   let settings = $state<ReturnType<typeof Settings>>();
   const sections: Partial<Record<Module, HTMLElement>> = {};
   /** Element focused before opening Settings, focused again on return. */
@@ -115,6 +117,32 @@
 
   const supportingModules: Module[] = ["github", "network", "trello", "system"];
   const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
+
+  /** The free height of the "IA e Agentes" card goes to its dials: no empty strip between or after the blocks. */
+  function fitInstruments() {
+    intelligence.style.setProperty("--dial", `${BASE_DIAL}px`);
+    const style = getComputedStyle(intelligence);
+    const inner = intelligence.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    const used = Array.from(intelligence.children).reduce((sum, child) => {
+      const box = getComputedStyle(child);
+      return sum + child.getBoundingClientRect().height + parseFloat(box.marginTop) + parseFloat(box.marginBottom);
+    }, 0);
+    intelligence.style.setProperty("--dial", `${dialSize(inner - used)}px`);
+  }
+
+  onMount(() => {
+    if (typeof ResizeObserver !== "function") return;
+    let frame = 0;
+    // The card size comes from the grid; its blocks change with conditional lines.
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fitInstruments);
+    });
+    observer.observe(intelligence);
+    Array.from(intelligence.children).forEach((child) => observer.observe(child));
+    fitInstruments();
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  });
 
   onMount(() => {
     let observer: IntersectionObserver | undefined;
@@ -232,7 +260,7 @@
     <main class="scroller" bind:this={scroller} class:covered={area === "settings"}
       inert={area === "settings"} aria-hidden={area === "settings" ? "true" : undefined}>
       <div class="composition">
-        <div class="card intelligence">
+        <div class="card intelligence" bind:this={intelligence}>
           {@render moduleSection("ai", bodies.ai)}
           {@render moduleSection("agents", bodies.agents)}
         </div>
@@ -293,7 +321,6 @@
   .card.trello { --module-band: var(--band-amber); }
   .card.network { --module-band: var(--band-blue); }
   .module { min-width: 0; display: flex; flex-direction: column; scroll-margin-top: 4px; overflow-wrap: anywhere; }
-  .module.agents { flex: 1; }
   .module:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   @media (max-width: 950px) {

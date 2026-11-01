@@ -36,6 +36,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 - [Sistema fiel ao B](issues/06-system.md): resumo reescrito do protótipo; GB só sob a RAM, bateria em texto; cabeçalho de fonte/horário removido do Painel; estados condicionais como linhas `small` no topo do corpo; aprovado no app nativo.
 - [Captura nativa para agentes](issues/08-agent-native-capture.md): `scripts/capture-panel.sh` pede à instância viva (só feature `fixtures`) snapshot da webview + JSON de rolagem; B sem rolagem em 1100/1000 × 700, escuro e claro; Vite frio pode tirar o CSS de Módulos (captura recusa); Painel abre em 1048 × 648 no Wayland (vai para a validação integrada).
 - [Conferência nativa do topo e cartão IA e Agentes](issues/09-native-review-top-and-ai-agents.md): aprovado no app nativo; textos `small` na fonte normal em todos os Módulos (como no B); Agentes distribuído na altura do cartão; Trello sem prévia do primeiro card e nomes de lista em uma linha (divergência aprovada).
+- [Preenchimento vertical do cartão IA e Agentes](issues/11-ai-agents-vertical-fill.md): instrumentos que crescem; a sobra de altura vai para os anéis da IA e de Agentes (94–180 px), blocos em sequência sem vãos; protótipo no branch local.
 
 ## Tickets
 

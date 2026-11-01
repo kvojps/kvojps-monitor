@@ -175,22 +175,22 @@
 </div>
 
 <style>
-  .agents { display: flex; flex-direction: column; margin-top: 18px; min-width: 0; flex: 1; }
+  .agents { display: flex; flex-direction: column; margin-top: 18px; min-width: 0; }
   small { font-size: .88em; color: var(--muted); }
   h3 { font-size: 1em; font-weight: 500; }
   .line { display: block; margin-bottom: 6px; overflow-wrap: anywhere; }
   .line.alert { color: var(--warn); }
-  /* The summary takes the free height above and below it, so the card has no empty strip at the end. */
-  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: center; margin-block: auto; }
+  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: center; }
   .agent-instrument { text-align: center; min-width: 0; }
-  .session-dial { position: relative; width: 94px; height: 94px; margin: auto; display: block; }
+  /* --dial grows with the free height of the card (Panel); the legend spreads with it. */
+  .session-dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; display: block; }
   .session-dial svg { width: 100%; height: 100%; display: block; }
-  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2.55em; }
+  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(min(var(--dial, 94px), 100%) * .35); }
   .base { fill: none; stroke: var(--line); stroke-width: 8; }
   .orbit { fill: none; stroke: var(--control-line); stroke-width: 1; stroke-dasharray: 24 12 6 30; transform-origin: center; }
   .legend-list { align-self: center; min-width: 0; }
   .legend-item { position: relative; }
-  .legend { width: 100%; display: flex; gap: 7px; align-items: center; padding: 4px 0; text-align: left; font-size: .92em; }
+  .legend { width: 100%; display: flex; gap: 7px; align-items: center; padding: calc(4px + (var(--dial, 94px) - 94px) / 10) 0; text-align: left; font-size: .92em; }
   .legend i { width: 6px; height: 6px; border-radius: 50%; background: var(--state-color); flex-shrink: 0; }
   .legend b { margin-left: auto; }
   .session-tip { display: none; position: absolute; z-index: 4; top: 100%; right: 0; width: 240px; overflow-wrap: anywhere; background: var(--surface-2); color: var(--text); padding: 9px; border: 1px solid var(--control-line); box-shadow: 0 4px 20px #0006; font-size: 12px; font-weight: 400; }
