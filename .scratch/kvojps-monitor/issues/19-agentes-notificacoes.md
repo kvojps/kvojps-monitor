@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 (Segurança da rede, notificação e badge de Risco), 17 (Sessões do Claude Code por polling)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] Título `<Claude Code | Codex> · <projeto>` [`· <nome>`]; corpo sem nenhum trecho de prompt ou resposta (teste explícito)
 - [x] Turno concluído < 30 s não notifica (teste explícito); interrupção e Encerrada nunca notificam

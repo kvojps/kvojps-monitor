@@ -4,7 +4,7 @@
 
 **Blocked by:** 17 (Sessões do Claude Code por polling)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] SQLite `~/.codex/state_5.sqlite` em modo read-only, tabela `threads` (cwd, título, criação, última atualização, branch)
 - [x] Último evento do rollout (`task_started`/`task_complete`/`turn_aborted`) + processo vivo definem o estado; `turn_aborted` = Turno concluído

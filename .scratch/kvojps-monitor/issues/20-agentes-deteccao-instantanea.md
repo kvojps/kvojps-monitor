@@ -4,7 +4,7 @@
 
 **Blocked by:** 18 (Sessões do Codex), 19 (Notificações de Agentes)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] Modo `hook <fonte> <evento>` do próprio binário: lê o JSON do stdin, extrai só metadados (id da sessão, estado, ferramenta, cwd) e envia ao socket `$XDG_RUNTIME_DIR/kvojps-monitor.sock`
 - [x] Sempre sai com código 0 em < 200 ms, inclusive com o app fora do ar (teste explícito)

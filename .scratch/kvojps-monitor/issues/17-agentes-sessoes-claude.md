@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Módulo Sistema ao vivo)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] `claude agents --json --all` a cada ~2 s via porta de processo, sempre
 - [x] Mapeamento para os Estados da sessão: `busy`/`waiting` (com `waitingFor`)/`idle` e background `working`/`blocked`/`done`/`failed`/`stopped`
