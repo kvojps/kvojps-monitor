@@ -49,6 +49,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 8. [Captura nativa para agentes](issues/08-agent-native-capture.md)
 9. [Conferência nativa do topo e cartão IA e Agentes](issues/09-native-review-top-and-ai-agents.md)
 10. [Uso alto no estado B](issues/10-high-usage-in-state-b.md)
+11. [Preenchimento vertical do cartão IA e Agentes](issues/11-ai-agents-vertical-fill.md)
 
 ## Not yet specified
 
