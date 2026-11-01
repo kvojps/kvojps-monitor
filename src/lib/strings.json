@@ -234,7 +234,6 @@
     "listsOne": "1 lista",
     "listsMany": "{count} listas",
     "countsByList": "Cards por lista",
-    "firstCard": "Primeiro card · {list}",
     "noCards": "Quadro sem cards",
     "openBoard": "Abrir quadro completo",
     "boardDetail": "Quadro Trello",

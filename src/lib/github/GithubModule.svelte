@@ -113,7 +113,7 @@
     <small class="line alert"><span aria-hidden="true">⚠ </span>{data.failureSince != null ? interpolate(t.github.failureAge, { age: age(data.failureSince) }) : t.github.error}</small>
   {/if}
   {#if data?.lastSuccessAt != null && (data.state !== "ready" || paused)}
-    <small class="line num">{interpolate(t.github.updatedAge, { age: age(data.lastSuccessAt) })}</small>
+    <small class="line">{interpolate(t.github.updatedAge, { age: age(data.lastSuccessAt) })}</small>
   {/if}
   <div class="readings" data-stale={invalid}>
     {#if activity}
@@ -155,7 +155,7 @@
     {#if data && (data.featured || data.state === "ready" || data.lastSuccessAt != null)}
       <div class="featured" role="region" aria-label={t.github.featured}>
         {#if data.featured}
-          <small class="num">{interpolate(plural(data.featured.commits, t.github.featuredCommits), { commits: count.format(data.featured.commits) })}</small>
+          <small>{interpolate(plural(data.featured.commits, t.github.featuredCommits), { commits: count.format(data.featured.commits) })}</small>
           <b>{data.featured.name}</b>
           <!-- The disk cache never stores commit titles. -->
           {#if data.featured.title}<span>{data.featured.title}</span>{/if}

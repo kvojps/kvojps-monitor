@@ -29,19 +29,22 @@ async function openBoard() {
 }
 async function select(card: string) { await userEvent.click(cardIn(card)); }
 
-it("summarizes the real board with counts per list and a card preview", () => {
+it("summarizes the real board with counts per list and no card preview", () => {
   render(TrelloModule, props(full));
   expect(screen.getByText("Quadro 1")).toBeInTheDocument();
   expect(screen.getByText("17 cards · 8 listas")).toBeInTheDocument();
   expect(countOf("Lista 1")).toBe("4");
   expect(countOf("Lista 2")).toBe("0");
-  expect(screen.getByRole("button", { name: /Card 1\.1/ })).toHaveTextContent("Primeiro card · Lista 1");
+  expect(screen.queryByText(/Primeiro card/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Card 1.1")).not.toBeInTheDocument();
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
-it("shows the hidden-title notice instead of a fixed title in the preview of a cached board", () => {
-  render(TrelloModule, props(stale));
-  expect(screen.getByRole("button", { name: /Primeiro card/ })).toHaveTextContent("Título disponível após atualizar");
+it("keeps each list name on one line and names it in full on hover", () => {
+  render(TrelloModule, props(full));
+  const name = within(screen.getByRole("list", { name: "Cards por lista" })).getByText("Lista 1");
+  expect(name).toHaveClass("list-name");
+  expect(name).toHaveAttribute("title", "Lista 1");
 });
 
 it("opens the full board with every list, its count and its cards", async () => {
@@ -54,11 +57,11 @@ it("opens the full board with every list, its count and its cards", async () => 
   }
 });
 
-it("opens the board on the previewed card, selected", async () => {
+it("paints labels in the board with their real Trello colors", async () => {
   render(TrelloModule, props(full));
-  await userEvent.click(screen.getByRole("button", { name: /Primeiro card/ }));
-  expect(cardIn("Card 1.1")).toHaveAttribute("aria-pressed", "true");
-  expect(cardIn("Card 1.1")).toHaveFocus();
+  await openBoard();
+  expect(within(cardIn("Card 1.1")).getAllByTestId("label").map((l) => l.style.background))
+    .toEqual(["rgb(75, 206, 151)", "rgb(87, 157, 255)"]);
 });
 
 it("shows labels and due states in words, not only in color", async () => {
@@ -432,7 +435,7 @@ it("keeps the board with its age and disables refresh while offline", () => {
   render(TrelloModule, props(offline));
   expect(screen.getByRole("button", { name: "Atualizar Trello" })).toBeDisabled();
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: new RegExp(offline.lists![0].cards[0].name) })).toBeInTheDocument();
+  expect(countOf(offline.lists![0].name)).toBe(String(offline.lists![0].cards.length));
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
@@ -494,9 +497,7 @@ it("shows nothing beyond prototype B in the normal state", () => {
   expect(screen.getByRole("heading", { level: 2, name: "Trello" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Atualizar Trello" })).toHaveTextContent(/^↻$/);
   expect(screen.getByRole("button", { name: "Configurar Trello" })).toHaveTextContent(/^⚙$/);
-  expect(screen.getByRole("button", { name: /Primeiro card/ })).toHaveTextContent(/^Primeiro card · Lista 1\s*Card 1\.1$/);
-  expect(within(screen.getByRole("button", { name: /Primeiro card/ })).getAllByTestId("label").map((l) => l.style.background))
-    .toEqual(["rgb(75, 206, 151)", "rgb(87, 157, 255)"]);
+  expect(screen.queryByText(/Primeiro card/)).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Abrir quadro completo" })).toHaveTextContent("Abrir quadro completo ↗");
   expect(container.querySelectorAll(".line")).toHaveLength(0);
   expect(screen.queryByText(/Atualizado|Fonte|Entrega|Sem vencimento/)).not.toBeInTheDocument();

@@ -197,7 +197,7 @@
           {@render dial(provider.name, five)}
         {/if}
         <h3>{provider.name}</h3>
-        <small class="num">{fivePercent !== null && five?.resetsAt != null
+        <small>{fivePercent !== null && five?.resetsAt != null
           ? interpolate(t.ai.fiveHourResets, { time: clock.format(five.resetsAt) }) : t.ai.fiveHour}</small>
       </div>
       {#if provider.blank}
@@ -211,7 +211,7 @@
               aria-valuemin={0} aria-valuemax={100} aria-valuenow={weekPercent} aria-valuetext={valueText(weekPercent)}>
               <i style:width="{Math.min(100, weekPercent)}%"></i>
             </div>
-            {#if week?.resetsAt != null}<small class="num">{interpolate(t.ai.weeklyResets, { date: date.format(week.resetsAt) })}</small>{/if}
+            {#if week?.resetsAt != null}<small>{interpolate(t.ai.weeklyResets, { date: date.format(week.resetsAt) })}</small>{/if}
           {:else}
             <div class="track" aria-hidden="true"></div>
             <small>{missing(week)}</small>
@@ -219,7 +219,7 @@
         </div>
       {/if}
       {#if provider.reading}
-        <small class="source num"><time datetime={new Date(provider.reading.readAt).toISOString()}>{readAt(provider.reading.readAt)}</time></small>
+        <small class="source"><time datetime={new Date(provider.reading.readAt).toISOString()}>{readAt(provider.reading.readAt)}</time></small>
       {/if}
       {#if fivePercent !== null && fivePercent >= HIGH}{@render notice({ text: t.ai.highFiveHour, alert: true })}{/if}
       {#if weekPercent !== null && weekPercent >= HIGH}{@render notice({ text: t.ai.highWeekly, alert: true })}{/if}

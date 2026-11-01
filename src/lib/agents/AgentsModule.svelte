@@ -180,7 +180,8 @@
   h3 { font-size: 1em; font-weight: 500; }
   .line { display: block; margin-bottom: 6px; overflow-wrap: anywhere; }
   .line.alert { color: var(--warn); }
-  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: center; }
+  /* The summary takes the free height above and below it, so the card has no empty strip at the end. */
+  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: center; margin-block: auto; }
   .agent-instrument { text-align: center; min-width: 0; }
   .session-dial { position: relative; width: 94px; height: 94px; margin: auto; display: block; }
   .session-dial svg { width: 100%; height: 100%; display: block; }

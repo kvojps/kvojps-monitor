@@ -78,10 +78,6 @@
     }));
   });
   const total = $derived(lists.reduce((n, list) => n + list.cards.length, 0));
-  const preview = $derived.by(() => {
-    const list = lists.find((l) => l.cards.length > 0);
-    return list ? { list, card: list.cards[0] } : null;
-  });
   const title = (card: { name: string }) => card.name || t.trello.hiddenTitle;
   const listOf = (card: string) => lists.find((list) => list.cards.some((c) => c.id === card))?.id;
   const nameOf = (list: string) => lists.find((l) => l.id === list)?.name ?? "";
@@ -271,24 +267,18 @@
       <small class="line alert"><span aria-hidden="true">⚠ </span>{data.failureSince != null ? interpolate(t.trello.failureAge, { age: age(data.failureSince) }) : t.trello.error}</small>
     {/if}
     {#if data.lastSuccessAt != null && (data.state !== "ready" || paused)}
-      <small class="line num">{interpolate(t.trello.updatedAge, { age: age(data.lastSuccessAt) })}</small>
+      <small class="line">{interpolate(t.trello.updatedAge, { age: age(data.lastSuccessAt) })}</small>
     {/if}
     {#if outcome?.kind === "failed" && !detailOpen}<small role="alert" class="line alert">{outcome.text}</small>{/if}
     <div class="summary" data-stale={stale}>
       {#if data.board}
-        <div class="board-summary"><b>{data.board.name}</b><span class="num">{boardCounts}</span></div>
+        <div class="board-summary"><b>{data.board.name}</b><span>{boardCounts}</span></div>
       {/if}
       {#if lists.length === 0}<p class="empty-board">{t.trello.noLists}</p>{:else}
         <ul class="list-counts" aria-label={t.trello.countsByList}>
-          {#each lists as list (list.id)}<li><span>{list.name}</span><b class="num">{list.cards.length}</b></li>{/each}
+          {#each lists as list (list.id)}<li><span class="list-name" title={list.name}>{list.name}</span><b class="num">{list.cards.length}</b></li>{/each}
         </ul>
-        {#if preview}
-          <button class="card-preview" onclick={(event) => openBoard(event, preview.card.id)}>
-            <small>{interpolate(t.trello.firstCard, { list: preview.list.name })}</small>
-            <b class:secondary={!preview.card.name}>{title(preview.card)}</b>
-            {@render labels(preview.card)}
-          </button>
-        {:else}<p class="empty-board">{t.trello.noCards}</p>{/if}
+        {#if total === 0}<p class="empty-board">{t.trello.noCards}</p>{/if}
         <button class="detail-button" onclick={(event) => openBoard(event)}>{t.trello.openBoard}<span aria-hidden="true">{" ↗"}</span></button>
       {/if}
     </div>
@@ -382,14 +372,11 @@
   .board-summary span { color: var(--muted); white-space: nowrap; }
   .list-counts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
   .list-counts li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
-  .list-counts span { min-width: 0; overflow-wrap: anywhere; }
-  .card-preview { text-align: left; display: grid; gap: 5px; background: var(--surface-2); width: 100%; margin-top: 8px; padding: 7px; border-left: 3px solid var(--band-amber); overflow-wrap: anywhere; color: inherit; }
-  .card-preview b { font-weight: 600; }
-  .card-preview .labels i { width: 20px; height: 3px; border-radius: 0; }
+  .list-counts .list-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .labels { display: flex; flex-wrap: wrap; gap: 4px; }
   .detail-button { color: var(--accent); border-bottom: 1px solid var(--line); padding: 7px 0; text-align: left; margin-top: 5px; }
   .empty-board { margin-top: 8px; color: var(--muted); }
-  .icon:focus-visible, .link:focus-visible, .card-preview:focus-visible, .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .icon:focus-visible, .link:focus-visible, .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
   /* Full board, as TrelloBoardPrototype: 1040 × 610 on the 1100 × 700 target, bounded by the window. */
   dialog { margin: auto; width: min(1040px, 96vw); height: min(610px, 92vh); max-width: 96vw; max-height: 92vh; overflow: hidden; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); padding: 20px; font-size: 13px; }

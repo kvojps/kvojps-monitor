@@ -128,7 +128,7 @@
       <small class="line"><span aria-hidden="true">⊘&nbsp;</span>{t.network.speedUnavailable}</small>
     {/if}
     {#if speed && speedStale}
-      <small class="line alert num"><span aria-hidden="true">⚠&nbsp;</span>{interpolate(t.network.speedStale, { age: age(speed.measuredAt), date: date.format(speed.measuredAt) })}</small>
+      <small class="line alert"><span aria-hidden="true">⚠&nbsp;</span>{interpolate(t.network.speedStale, { age: age(speed.measuredAt), date: date.format(speed.measuredAt) })}</small>
     {/if}
 
     <div class="network-top">
@@ -148,18 +148,18 @@
           <b class="none">{t.network.noSpeed}</b>
         {/if}
         <span>Mbps · {t.network.test} <span aria-hidden="true">↻</span></span>
-        {#if speed}<small class="num">{interpolate(t.network.speedAt, { time: clock.format(speed.measuredAt) })}</small>{/if}
+        {#if speed}<small>{interpolate(t.network.speedAt, { time: clock.format(speed.measuredAt) })}</small>{/if}
       </button>
       <span id="network-speed-values" class="sr-only">{#if speed}{t.network.download}: {number.format(speed.download)} Mbps. {t.network.upload}: {number.format(speed.upload)} Mbps. {interpolate(t.network.speedAt, { time: date.format(speed.measuredAt) })}.{:else}{t.network.noSpeed}{/if}</span>
     </div>
 
     {#if connected}
       <p class="metrics">
-        <span>{t.network.jitter} <b class="num">{measured(data.internet.jitter, "ms")}</b></span>
-        <span>{t.network.loss} <b class="num">{measured(data.internet.loss, "%")}</b></span>
-        <span>{t.network.gateway} <b class="num">{measured(data.gateway.latency, "ms")}</b></span>
+        <span>{t.network.jitter} <b>{measured(data.internet.jitter, "ms")}</b></span>
+        <span>{t.network.loss} <b>{measured(data.internet.loss, "%")}</b></span>
+        <span>{t.network.gateway} <b>{measured(data.gateway.latency, "ms")}</b></span>
       </p>
-      <small class="num">{interpolate(t.network.gatewayBand, { jitter: measured(data.gateway.jitter, "ms"), loss: measured(data.gateway.loss, "%") })}</small>
+      <small>{interpolate(t.network.gatewayBand, { jitter: measured(data.gateway.jitter, "ms"), loss: measured(data.gateway.loss, "%") })}</small>
     {/if}
 
     <section class="traffic-area" aria-labelledby="network-traffic">

@@ -96,12 +96,12 @@
           aria-valuenow={value} aria-valuetext="{value}% · {pair(m.used, m.total)}">
           <i style:width="{value}%"></i>
         </div>
-        {#if m.note}<small class="num">{pair(m.used, m.total)}</small>{/if}
+        {#if m.note}<small>{pair(m.used, m.total)}</small>{/if}
       </div>
     {/each}
 
     {#if battery}
-      <p class="battery num" class:warning={battery.warning}>
+      <p class="battery" class:warning={battery.warning}>
         <span aria-hidden="true">▰ </span>{t.system.battery} {Math.round(battery.percentage)}% · {t.system.statesBattery[battery.state]}
       </p>
     {/if}

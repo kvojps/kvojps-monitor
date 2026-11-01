@@ -28,3 +28,11 @@ Aprovado pelo usuário em 2026-11-01 após conferência no app nativo (`npm run 
 - Quadro completo no layout de `TrelloBoardPrototype.svelte`, com entrega ou “Sem vencimento” por card e “Abrir no Trello ↗” sob o card selecionado; movimentação, reversão, arraste, teclado e abertura externa preservados.
 - Estados condicionais como linhas `small` no topo do corpo: não conectado, escolher quadro, sem leitura, credencial inválida, falha, antigo, atualizando e falha de movimentação.
 - Sem divergências da spec.
+
+## Divergência aprovada (2026-11-01)
+
+Na [Conferência nativa do topo e cartão IA e Agentes](09-native-review-top-and-ai-agents.md), o usuário pediu, contra o B:
+
+- **Sem prévia “Primeiro card · Lista”** no resumo. As etiquetas nas cores reais ficam só no quadro completo. “Quadro sem cards” aparece só quando o quadro não tem nenhum card.
+- **Nomes das listas em uma linha** na grade de contagens, com reticências; o nome inteiro aparece na dica (`title`).
+- “N cards · M listas” e “Atualizado há X” na fonte normal, como no B.
