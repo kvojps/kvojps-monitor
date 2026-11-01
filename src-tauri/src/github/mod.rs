@@ -387,7 +387,7 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     }
     /// Recomputes the contribution streak, fetching earlier years only while it reaches their end.
     fn update_streak(&mut self, token: &str, now: u64) -> Result<(), HttpError> {
-        let today = date(now);
+        let today = date(now, self.clock.utc_offset_ms(now));
         loop {
             let current = calendar_days(&self.data["calendar"]);
             let Some(&(start, _)) = current.first() else {
@@ -470,9 +470,10 @@ fn contribution_streak(days: &[(NaiveDate, u64)], today: NaiveDate) -> (u32, boo
         day = day - Days::new(1);
     }
 }
-/// UTC calendar day of an instant, the same reference as the calendar year.
-fn date(ms: u64) -> NaiveDate {
-    DateTime::<Utc>::from_timestamp_millis(ms as i64)
+/// Local calendar day of an instant. GitHub files each commit under the day of its
+/// own time zone, so a streak judged by the UTC day would break every evening.
+fn date(ms: u64, offset_ms: i64) -> NaiveDate {
+    DateTime::<Utc>::from_timestamp_millis(ms as i64 + offset_ms)
         .unwrap()
         .date_naive()
 }
@@ -802,6 +803,44 @@ mod scenarios {
         clock.advance(3_600_000);
         assert_eq!(g.refresh(true).unwrap().data["streak"], 6);
         assert_eq!(calls.lock().unwrap().len(), 1);
+    }
+    /// A clock in São Paulo (UTC-3).
+    #[derive(Clone)]
+    struct SaoPaulo(FakeClock);
+    impl Clock for SaoPaulo {
+        fn now(&self) -> u64 {
+            self.0.now()
+        }
+        fn utc_offset_ms(&self, _: u64) -> i64 {
+            -3 * 3_600_000
+        }
+    }
+    /// Contributions up to 30 Oct, none yet on 31 Oct local.
+    struct EveningCalendar;
+    impl Http for EveningCalendar {
+        fn graphql(&self, token: &str, body: &Value) -> Result<Value, HttpError> {
+            let mut response = Api { empty: false }.graphql(token, body)?;
+            if body["query"]
+                .as_str()
+                .unwrap()
+                .contains("contributionsCollection")
+            {
+                let days: Vec<_> = days("2026-10-27", &[1, 2, 3, 4, 0, 0])
+                    .into_iter()
+                    .map(|(d, n)| json!({"date": d.to_string(), "contributionCount": n, "color": ""}))
+                    .collect();
+                response["data"]["viewer"]["contributionsCollection"]["contributionCalendar"]
+                    ["weeks"] = json!([{ "contributionDays": days }]);
+            }
+            Ok(response)
+        }
+    }
+    #[test]
+    fn streak_judges_today_by_the_local_day_in_the_evening() {
+        // 31 Oct 22:00 in São Paulo is already 1 Nov in UTC.
+        let clock = FakeClock::at(1793494800000);
+        let mut g = Github::new(Gh, EveningCalendar, SaoPaulo(clock));
+        assert_eq!(g.refresh(true).unwrap().data["streak"], 4);
     }
     #[test]
     fn streak_is_null_without_calendar() {

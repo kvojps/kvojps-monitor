@@ -118,6 +118,10 @@ impl Files for RootFilesystem {
 /// Current time in epoch milliseconds.
 pub trait Clock: Send {
     fn now(&self) -> u64;
+    /// Local time-zone offset from UTC at an instant, in milliseconds; UTC unless overridden.
+    fn utc_offset_ms(&self, _at: u64) -> i64 {
+        0
+    }
 }
 
 pub struct SystemClock;
@@ -127,6 +131,13 @@ impl Clock for SystemClock {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |d| d.as_millis() as u64)
+    }
+    fn utc_offset_ms(&self, at: u64) -> i64 {
+        use chrono::{Offset, TimeZone};
+        chrono::Local
+            .timestamp_millis_opt(at as i64)
+            .single()
+            .map_or(0, |t| t.offset().fix().local_minus_utc() as i64 * 1000)
     }
 }
 
