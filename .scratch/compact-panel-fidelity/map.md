@@ -39,6 +39,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 - [Preenchimento vertical do cartão IA e Agentes](issues/11-ai-agents-vertical-fill.md): instrumentos que crescem; a sobra de altura vai para os anéis da IA e de Agentes (94–180 px), blocos em sequência sem vãos; protótipo no branch local.
 - [Alinhamento da distribuição vertical dos Módulos](issues/12-vertical-distribution-alignment.md): instrumentos que crescem também nos cartões de apoio (barras do GitHub, tráfego da Rede, linhas do Trello, medidores do Sistema); grade até o fim do Painel; número dos anéis cresce a ⅙ do anel; sem sessão aguardando, caixa neutra “Nenhuma sessão aguardando você” no lugar do aviso (divergência aprovada); protótipo no branch local.
 - [Uso alto no estado B](issues/10-high-usage-in-state-b.md): a linha “⚠ Uso alto” sai em qualquer porcentagem (resíduo cinematográfico, não é exigência da v1); só o `aria-valuetext` diz “uso alto” a partir de 85 %.
+- [Composição fixa sem dados](issues/13-composition-without-data.md): variante C, área única no corpo com motivo e ação quando falta a leitura inteira (por fonte no cartão IA e Agentes); antigo segue com dado apagado e linha `small`; faltas parciais só no item; protótipo no branch local.
 
 ## Tickets
 
@@ -55,6 +56,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 11. [Preenchimento vertical do cartão IA e Agentes](issues/11-ai-agents-vertical-fill.md)
 12. [Alinhamento da distribuição vertical dos Módulos](issues/12-vertical-distribution-alignment.md)
 13. [Composição fixa sem dados](issues/13-composition-without-data.md)
+14. [Composição fixa sem dados na produção](issues/14-composition-without-data-in-production.md)
 
 ## Not yet specified
 

@@ -1,7 +1,7 @@
 # 13: Composição fixa sem dados
 
 Type: prototype
-Status: open
+Status: resolved
 Blocked by: None (can start immediately).
 
 ## Question
@@ -25,3 +25,15 @@ Pontos a decidir no protótipo:
 - **Agentes:** a caixa do aviso mostra a mensagem do motivo (sem leitura, falha, aguardando indisponível) em vez de sumir.
 
 Conferir no app nativo (`npm run dev:fixtures` com `KVOJPS_FIXTURES`, `scripts/capture-panel.sh`) com as fixtures de cada estado ausente de cada Módulo, em 1100 × 700 e 1000 × 700, temas escuro e claro, sem rolagem; a composição deve ficar igual à do estado B.
+
+## Answer
+
+Aprovada pelo usuário em 2026-11-01: **variante C, área única no corpo** (“Prefiro a variante C”).
+
+- **Falta a leitura inteira** (sem leitura ainda, falha sem leitura anterior, credencial ou fonte ausente, Trello sem quadro escolhido): o cabeçalho do cartão fica como no B e o corpo do Módulo vira **uma única área** que ocupa a altura dele, com ícone, a mensagem do motivo e, quando existe, um botão de ação (“Configurar”, “Reconectar”, “Tentar de novo”). No cartão IA e Agentes cada fonte tem a própria área: Codex e Claude na coluna de cada anel; Agentes no lugar do anel, da legenda e do aviso.
+- **Tom:** “sem leitura” neutro (borda e texto discretos, ícone ◌); falha, credencial e fonte ausente em âmbar (⚠). Vermelho não entra.
+- **Antigo** (há leitura anterior): o dado anterior fica **apagado** sob a linha “⚠ Leitura antiga · atualizada há …”; não vira área.
+- **Linhas condicionais do topo** (antigo, coleta pausada etc.) continuam como linha `small` no topo do corpo; o instrumento que cresce do cartão ([Alinhamento da distribuição vertical](12-vertical-distribution-alignment.md)) encolhe para absorvê-las.
+- **Faltas parciais** só no item afetado, sem área: “Temperatura · sem sensor” com “—”; “Sem swap configurada” sob a barra vazia; “▱ Sem bateria detectada” no lugar da bateria; “Janela semanal indisponível” sob a barra Semana; “Sem teste ainda” no teste de velocidade; aplicativos indisponíveis no botão de aplicativos; no Codex sem Detecção instantânea, a caixa do aviso de Agentes mostra “Aguardando indisponível sem Detecção instantânea · Configurar” em vez de sumir.
+- Rede, Sistema e Agentes não têm credencial: sem leitura ou falha caem nas mensagens deles.
+- Protótipo (variantes A instrumento vazio, B caixa por bloco, C área única; seis cenários e Módulo afetado; `npm run prototype:absent`) no branch local `prototype/composition-without-data` (commit `0dd2439`), não enviado. Conferido só no Chromium headless em 1100 × 700; a conferência nativa vai para [Composição fixa sem dados na produção](14-composition-without-data-in-production.md).
