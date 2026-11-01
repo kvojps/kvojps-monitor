@@ -2090,5 +2090,6 @@
   "login": "exemplo",
   "paused": true,
   "refreshing": false,
-  "state": "error"
+  "state": "error",
+  "streak": 60
 }

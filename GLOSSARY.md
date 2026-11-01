@@ -51,3 +51,7 @@ _Avoid_: Saúde da rede, status da rede
 **Repo em destaque**:
 O repositório com mais commits seus nos últimos 7 dias, exibido no Módulo GitHub.
 _Avoid_: Repo principal, top repo
+
+**Sequência de contribuições**:
+Os dias consecutivos com ao menos uma contribuição no GitHub, terminando hoje ou ontem; um dia de hoje ainda sem contribuição não a interrompe.
+_Avoid_: Streak, ofensiva, hot streak

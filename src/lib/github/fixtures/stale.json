@@ -2089,5 +2089,6 @@
   "lastSuccessAt": 1793448000000,
   "login": "exemplo",
   "refreshing": false,
-  "state": "stale"
+  "state": "stale",
+  "streak": 60
 }

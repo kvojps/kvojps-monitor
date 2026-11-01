@@ -70,6 +70,7 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 41. Como usuário, quero "Sem commits nos últimos 7 dias" quando não houver destaque, sem um substituto.
 42. Como usuário, quero que o app use meu `gh` já autenticado sem copiar o token, e que, sem `gh`, me ofereça "Rodar `gh auth login`" ou "Colar token clássico".
 43. Como usuário, quero um botão ↻ para atualizar o Módulo GitHub.
+43a. Como usuário, quero ver minha Sequência de contribuições ("🔥 12 dias seguidos") e quantas contribuições fiz hoje, para manter o ritmo sem abrir o perfil.
 
 ### Módulo Trello
 
@@ -191,6 +192,7 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 - **Credencial**: `gh auth token` a cada atualização (nada copiado). Fallback: token clássico com escopo `repo` colado e guardado no keyring. Configurações mostram "via gh · <login>" ou "token próprio".
 - **Calendário**: GraphQL `viewer.contributionsCollection(from: 1º jan, to: 31 dez).contributionCalendar` do ano corrente; privadas como contagem anônima (`restrictedContributionsCount`).
 - **Repo em destaque**: `viewer.repositories` (afiliação dono/colaborador/membro de org, os 20 com push mais recente, forks incluídos) + `history(author: {id}, since:)` na branch padrão; janela móvel de 7×24 h; empate → commit mais recente. Exibe commits na janela e total ("42 commits em 7 dias · 240 no total"), último commit (tempo relativo + título truncado). Não usa `pushedAt`. Vazio: "Sem commits nos últimos 7 dias". Sem `read:user`.
+- **Sequência de contribuições**: calculada no núcleo a partir do calendário; dias consecutivos com ≥ 1 contribuição terminando hoje ou ontem (hoje sem contribuição não interrompe), com "hoje" na data UTC, a mesma referência do ano do calendário. Se a sequência alcança o primeiro dia conhecido, consulta o ano anterior sob demanda (até 5 anos), guardado só em memória. O cache em disco guarda só o número.
 - **Validação ao salvar token**: `viewer { login }` + escopo `repo`.
 
 ### Módulo Trello
@@ -261,7 +263,7 @@ Aprovado pelo usuário em 2026-10-31 e conferido no app nativo. Substitui o visu
 
 - **IA:** anéis de 5 h de Claude e Codex com % e reinício, barras semanais, "Leitura HH:MM". Anéis sempre na cor do provedor (Codex ciano, Claude lilás). "Uso alto" não aparece como linha; só o `aria-valuetext` diz "uso alto" a partir de 85 %. Após reinício sem leitura nova, remover arco/barra e mostrar "Reiniciado às HH:MM · sem leitura nova". O ↻ do cartão atualiza só a IA.
 - **Agentes:** anel com a quantidade Em andamento no centro, segmentos por Estado da sessão e legenda com contagens; denominador = ativas + encerradas ainda retidas. Hover/foco na legenda identifica projeto/nome. "⚠ N aguardando você" é alerta acionável; sem ninguém aguardando, caixa neutra "Nenhuma sessão aguardando você". Zero sessões é vazio explícito, distinto de leitura indisponível.
-- **GitHub:** total anual (identificado como anual), mapa de oito semanas, barras de 14 dias e Repo em destaque com commits em 7 dias e título do último commit.
+- **GitHub:** total anual (identificado como anual) com a Sequência de contribuições logo abaixo ("🔥 12 dias seguidos"; 0 → "Sem sequência"; emoji oculto do leitor de tela), mapa de oito semanas, barras de 14 dias com a de hoje em destaque e rótulo "Atividade · últimos 14 dias · hoje N", e Repo em destaque com commits em 7 dias e título do último commit. Divergência aprovada do B; ver ticket 08.
 - **Trello:** nome do quadro, contagem de cards/listas, contagem por lista (nomes em uma linha, sem prévia do primeiro card); ↻/⚙ por ícone. Contagens acompanham a movimentação.
 - **Rede:** linha de status com conexão real, "Qualidade: X" e "Segurança: Y"; latência da Internet em destaque; teste de velocidade em Mbps ("Teste · HH:MM"); jitter/perda e gateway; gráfico de tráfego com duas séries e taxas atuais. Nunca "Rede segura". Mbps é capacidade medida; KB/s ou MB/s é tráfego; a escala do gráfico vem das amostras.
 - **Sistema:** CPU e temperatura, RAM (GB só sob a RAM), swap, disco, bateria em texto.

@@ -71,6 +71,8 @@
       days,
       weeksMax: Math.max(1, ...recent.map((d) => d.contributionCount)),
       daysMax: Math.max(1, ...days.map((d) => d.contributionCount)),
+      today: days.at(-1)?.date === until ? days.at(-1)!.contributionCount : 0,
+      until,
     };
   });
 
@@ -135,7 +137,12 @@
   {#if activity}
     <div class="readings" data-stale={old}>
       <div class="github-top">
-        <div><strong class="num">{count.format(activity.annual)}</strong><small>{t.github.annual}</small></div>
+        <div>
+          <strong class="num">{count.format(activity.annual)}</strong><small>{t.github.annual}</small>
+          {#if data?.streak != null}
+            <small class="streak">{#if data.streak > 0}<span aria-hidden="true">{"🔥 "}</span>{interpolate(plural(data.streak, t.github.streak), { days: count.format(data.streak) })}{:else}{t.github.noStreak}{/if}</small>
+          {/if}
+        </div>
         {#if activity.weeks.length > 0}
           {@const sum = total(activity.recent)}
           {@const from = dayMonth(activity.recent[0].date)}
@@ -158,12 +165,12 @@
       {#if activity.days.length > 0}
         <ul class="activity" aria-label={t.github.daysList}>
           {#each activity.days as day (day.date)}
-            <li aria-label={interpolate(plural(day.contributionCount, t.github.day), { day: dayMonth(day.date), count: count.format(day.contributionCount) })}>
+            <li data-today={day.date === activity.until || undefined} aria-label={interpolate(plural(day.contributionCount, t.github.day), { day: dayMonth(day.date), count: count.format(day.contributionCount) })}>
               <i style:height="{Math.max(2, (day.contributionCount / activity.daysMax) * 100)}%"></i>
             </li>
           {/each}
         </ul>
-        <small>{t.github.days}</small>
+        <small>{interpolate(t.github.daysToday, { count: count.format(activity.today) })}</small>
       {/if}
       <div class="featured" role="region" aria-label={t.github.featured}>
         {#if data?.featured}
@@ -202,6 +209,7 @@
   .activity { flex: 1; min-height: 26px; display: flex; align-items: flex-end; gap: 5px; margin: 6px 0 4px; padding: 0; list-style: none; }
   .activity li { flex: 1; height: 100%; display: flex; align-items: flex-end; }
   .activity i { display: block; width: 100%; background: var(--band-steel); border-radius: 3px 3px 0 0; }
+  .activity li[data-today] i { background: var(--accent); }
   .featured { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 9px; display: grid; gap: 4px; overflow-wrap: anywhere; }
   .featured span { font-size: .92em; }
   .line { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }

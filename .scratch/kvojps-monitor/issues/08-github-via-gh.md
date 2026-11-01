@@ -31,3 +31,15 @@ Nota de sanitização (ticket 40): contagens e horários do exemplo de repositó
 - `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` e `cargo test`: aprovados (76 testes Rust).
 - `npm run check`, `npm test` e `npm run build`: aprovados (28 testes de UI; nenhum diagnóstico Svelte).
 - Revisão em dois agentes: Standards sem violações obrigatórias; Spec sem achados restantes. Sugestão não bloqueante: substituir gradualmente `Value`/strings de estado por tipos de domínio.
+
+## Divergência aprovada: Sequência de contribuições e contagem de hoje (2026-11-01)
+
+Pedido do usuário depois da v1 do Módulo, discutido em sessão de grilling; acrescenta ao cartão algo que o protótipo B não mostra.
+
+- Linha "🔥 N dias seguidos" sob "contribuições no ano" (singular "1 dia seguido"; 0 → "Sem sequência"); emoji com `aria-hidden`. Sem altura nova: as barras de 14 dias continuam com a sobra.
+- Rótulo das barras "Atividade · últimos 14 dias · hoje N" e a barra de hoje em `--accent`.
+- Conta contribuições (a mesma fonte do calendário), não só commits: nenhuma chamada nova no caso comum.
+- Regra: termina hoje ou ontem; hoje sem contribuição não interrompe. Calculada no núcleo (`contribution_streak`), exposta como `streak` no snapshot e no cache (só o número).
+- Virada de ano: ao alcançar o primeiro dia conhecido, consulta o ano anterior sob demanda (até 5 anos), em memória, sem reconsulta no ciclo seguinte.
+- "Hoje" no núcleo é a data UTC (mesma referência do ano do calendário); a UI usa a data local para as barras. Entre 21 h e 24 h em São Paulo, uma contribuição já agrupada no dia UTC seguinte entra na sequência antes de aparecer em "hoje". Não verificado contra a API em qual fuso o GitHub agrupa `contributionDays`.
+- Validação: `cargo clippy`, `cargo test` (280), `npm run check`, `npm test` (276) e `npm run build` aprovados. `cargo fmt --check` acusa só `src/panel.rs`, que já falhava na `main` antes da mudança.

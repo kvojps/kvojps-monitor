@@ -2,7 +2,7 @@ use crate::module::Module;
 use crate::persistence::{Event, LogRecord, Persistence, Volatile};
 use crate::ports::{Clock, Http, HttpError, Processes};
 use crate::snapshot::Snapshot;
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, Datelike, Days, NaiveDate, Utc};
 use serde_json::{json, Value};
 
 pub struct Github<P, H, R> {
@@ -23,12 +23,17 @@ pub struct Github<P, H, R> {
     failure_since: Option<u64>,
     lifecycle: Option<crate::lifecycle::Status>,
     refresh_pending: bool,
+    /// Contribution days of earlier years, fetched only when the streak reaches them; immutable.
+    past_days: Vec<(NaiveDate, u64)>,
+    past_fetches: usize,
 }
 impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     pub fn new(processes: P, http: H, clock: R) -> Self {
         Self {
             lifecycle: None,
             refresh_pending: false,
+            past_days: Vec::new(),
+            past_fetches: 0,
             failures: 0,
             retry_at: 0,
             rejected: None,
@@ -251,7 +256,13 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         if self.active_credential != Some(credential) {
             calendar = true;
         }
-        let result = self.query(token.trim(), source, now, calendar);
+        if self.active_credential != Some(credential) {
+            self.past_days.clear();
+            self.past_fetches = 0;
+        }
+        let result = self
+            .query(token.trim(), source, now, calendar)
+            .and_then(|()| self.update_streak(token.trim(), now));
         if result.is_ok() {
             self.active_credential = Some(credential);
         }
@@ -374,6 +385,96 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         self.data["featured"] = json!(featured);
         Ok(())
     }
+    /// Recomputes the contribution streak, fetching earlier years only while it reaches their end.
+    fn update_streak(&mut self, token: &str, now: u64) -> Result<(), HttpError> {
+        let today = date(now);
+        loop {
+            let current = calendar_days(&self.data["calendar"]);
+            let Some(&(start, _)) = current.first() else {
+                self.data["streak"] = Value::Null;
+                return Ok(());
+            };
+            let mut days: Vec<_> = self
+                .past_days
+                .iter()
+                .copied()
+                .filter(|(day, _)| *day < start)
+                .collect();
+            days.extend(current);
+            let (streak, reached_start) = contribution_streak(&days, today);
+            let before = days[0].0 - Days::new(1);
+            if !reached_start || self.past_fetches >= MAX_PAST_FETCHES {
+                self.data["streak"] = json!(streak);
+                return Ok(());
+            }
+            let query = "query($from:DateTime!,$to:DateTime!) { viewer { contributionsCollection(from:$from,to:$to) { contributionCalendar { weeks { contributionDays { date contributionCount } } } } } }";
+            let response = self.http.graphql(token, &json!({"query":query,"variables":{"from":format!("{}-01-01T00:00:00Z", before.year()),"to":format!("{before}T23:59:59Z")}}))?;
+            if response.get("errors").is_some() {
+                return Err(().into());
+            }
+            self.past_fetches += 1;
+            let fetched: Vec<_> =
+                calendar_days(&response["data"]["viewer"]["contributionsCollection"])
+                    .into_iter()
+                    .filter(|(day, _)| *day <= before)
+                    .collect();
+            if fetched.is_empty() {
+                self.data["streak"] = json!(streak);
+                return Ok(());
+            }
+            self.past_days.extend(fetched);
+            self.past_days.sort();
+            self.past_days.dedup_by_key(|(day, _)| *day);
+        }
+    }
+}
+/// How many earlier years a streak may reach back into.
+const MAX_PAST_FETCHES: usize = 5;
+/// Contribution days of a contributionsCollection, oldest first.
+fn calendar_days(collection: &Value) -> Vec<(NaiveDate, u64)> {
+    let mut days: Vec<_> = collection["contributionCalendar"]["weeks"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .flat_map(|week| week["contributionDays"].as_array().into_iter().flatten())
+        .filter_map(|day| {
+            Some((
+                day["date"].as_str()?.parse().ok()?,
+                day["contributionCount"].as_u64()?,
+            ))
+        })
+        .collect();
+    days.sort();
+    days
+}
+/// Consecutive days with at least one contribution ending today, or yesterday while
+/// today has none yet. Also tells whether the count ran past the oldest known day.
+fn contribution_streak(days: &[(NaiveDate, u64)], today: NaiveDate) -> (u32, bool) {
+    let counts: std::collections::HashMap<_, _> = days.iter().copied().collect();
+    let Some(&(start, _)) = days.first() else {
+        return (0, false);
+    };
+    let mut day = today;
+    if counts.get(&day).copied().unwrap_or(0) == 0 {
+        day = day - Days::new(1);
+    }
+    let mut streak = 0;
+    loop {
+        if day < start {
+            return (streak, true);
+        }
+        if counts.get(&day).copied().unwrap_or(0) == 0 {
+            return (streak, false);
+        }
+        streak += 1;
+        day = day - Days::new(1);
+    }
+}
+/// UTC calendar day of an instant, the same reference as the calendar year.
+fn date(ms: u64) -> NaiveDate {
+    DateTime::<Utc>::from_timestamp_millis(ms as i64)
+        .unwrap()
+        .date_naive()
 }
 fn credential_id(token: &str) -> u64 {
     use std::hash::{Hash, Hasher};
@@ -628,6 +729,88 @@ mod scenarios {
         r.advance(2000);
         assert!(g.due(false));
         assert_eq!(g.step(false, false).unwrap().data["state"], "ready");
+    }
+    fn day(text: &str) -> NaiveDate {
+        text.parse().unwrap()
+    }
+    fn days(from: &str, counts: &[u64]) -> Vec<(NaiveDate, u64)> {
+        (0..counts.len())
+            .map(|i| (day(from) + Days::new(i as u64), counts[i]))
+            .collect()
+    }
+    #[test]
+    fn streak_counts_through_today_when_it_has_contributions() {
+        let d = days("2026-10-25", &[0, 3, 1, 2]);
+        assert_eq!(contribution_streak(&d, day("2026-10-28")), (3, false));
+    }
+    #[test]
+    fn streak_stays_alive_until_yesterday_while_today_is_empty() {
+        let d = days("2026-10-25", &[0, 3, 1, 0]);
+        assert_eq!(contribution_streak(&d, day("2026-10-28")), (2, false));
+        // Today not in the calendar yet counts as empty too.
+        assert_eq!(contribution_streak(&d[..3], day("2026-10-28")), (2, false));
+    }
+    #[test]
+    fn streak_breaks_after_a_whole_empty_day() {
+        let d = days("2026-10-25", &[3, 1, 0, 0]);
+        assert_eq!(contribution_streak(&d, day("2026-10-28")), (0, false));
+    }
+    #[test]
+    fn streak_reports_reaching_the_oldest_known_day() {
+        let d = days("2026-01-01", &[2, 1]);
+        assert_eq!(contribution_streak(&d, day("2026-01-02")), (2, true));
+        assert_eq!(contribution_streak(&d[..0], day("2026-01-02")), (0, false));
+    }
+    /// The current year has contributed every day since 1 Jan; the previous year ends with a run of 3.
+    struct YearBoundary(std::sync::Arc<std::sync::Mutex<Vec<Value>>>);
+    impl Http for YearBoundary {
+        fn graphql(&self, token: &str, body: &Value) -> Result<Value, HttpError> {
+            let query = body["query"].as_str().unwrap();
+            let calendar = |from: &str, counts: &[u64]| {
+                let days: Vec<_> = days(from, counts)
+                    .into_iter()
+                    .map(|(d, n)| json!({"date": d.to_string(), "contributionCount": n, "color": ""}))
+                    .collect();
+                json!({"restrictedContributionsCount": 0, "contributionCalendar": {"totalContributions": 0, "weeks": [{"contributionDays": days}]}})
+            };
+            if !query.contains("repositories") && query.contains("contributionsCollection") {
+                self.0.lock().unwrap().push(body["variables"].clone());
+                let mut previous = vec![0; 365];
+                previous[361..].fill(4);
+                return Ok(
+                    json!({"data": {"viewer": {"contributionsCollection": calendar("2025-01-01", &previous)}}}),
+                );
+            }
+            let mut response = Api { empty: false }.graphql(token, body)?;
+            if query.contains("contributionsCollection") {
+                response["data"]["viewer"]["contributionsCollection"] =
+                    calendar("2026-01-01", &[1, 2, 5]);
+            }
+            Ok(response)
+        }
+    }
+    #[test]
+    fn streak_reaching_first_of_january_fetches_previous_year_once() {
+        let calls = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let clock = FakeClock::at(1767355200000); // 2026-01-02 12:00 UTC
+        let mut g = Github::new(Gh, YearBoundary(calls.clone()), clock.clone());
+        assert_eq!(g.refresh(true).unwrap().data["streak"], 6);
+        assert_eq!(
+            *calls.lock().unwrap(),
+            vec![json!({"from": "2025-01-01T00:00:00Z", "to": "2025-12-31T23:59:59Z"})]
+        );
+        clock.advance(3_600_000);
+        assert_eq!(g.refresh(true).unwrap().data["streak"], 6);
+        assert_eq!(calls.lock().unwrap().len(), 1);
+    }
+    #[test]
+    fn streak_is_null_without_calendar() {
+        let mut g = Github::new(
+            super::tests::Gh,
+            super::tests::Http,
+            FakeClock::at(1793448000000),
+        );
+        assert!(g.refresh(true).unwrap().data["streak"].is_null());
     }
     struct ApiError;
     impl Http for ApiError {

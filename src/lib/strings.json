@@ -180,7 +180,12 @@
     "weeks": "Últimas 8 semanas",
     "weeksMap": "Últimas 8 semanas: {total} contribuições de {from} a {to}, máximo de {peak} em um dia",
     "weeksMapNone": "Últimas 8 semanas: sem contribuições de {from} a {to}",
-    "days": "Atividade · últimos 14 dias",
+    "daysToday": "Atividade · últimos 14 dias · hoje {count}",
+    "streak": {
+      "one": "{days} dia seguido",
+      "other": "{days} dias seguidos"
+    },
+    "noStreak": "Sem sequência",
     "daysList": "Contribuições por dia nos últimos 14 dias",
     "day": {
       "one": "{day}: {count} contribuição",

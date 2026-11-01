@@ -34,7 +34,38 @@ it("shows the B summary: annual total, eight weeks, 14 days and featured reposit
   const { container } = render(GithubModule, { data: data(full), refresh: vi.fn() });
   expect(screen.getByRole("heading", { name: "GitHub" })).toBeInTheDocument();
   expect(container).toHaveTextContent(
-    /^GitHub ↻ Consultar novamente a atividade do GitHub ⚙ Abrir as configurações de conexão do GitHub 1\.608\s*contribuições no ano\s*Últimas 8 semanas\s*Atividade · últimos 14 dias\s*Repo em destaque · 27 commits \/ 7 dias\s*exemplo\/repo-1\s*Atualiza documentação$/);
+    /^GitHub ↻ Consultar novamente a atividade do GitHub ⚙ Abrir as configurações de conexão do GitHub 1\.608\s*contribuições no ano\s*🔥 60 dias seguidos\s*Últimas 8 semanas\s*Atividade · últimos 14 dias · hoje 0\s*Repo em destaque · 27 commits \/ 7 dias\s*exemplo\/repo-1\s*Atualiza documentação$/);
+});
+
+describe("contribution streak and today", () => {
+  it("shows the streak under the annual total, hiding the emoji from screen readers", () => {
+    render(GithubModule, { data: data(full), refresh: vi.fn() });
+    const streak = screen.getByText("60 dias seguidos", { exact: false });
+    expect(streak).toHaveTextContent("🔥 60 dias seguidos");
+    expect(streak.querySelector('[aria-hidden="true"]')).toHaveTextContent("🔥");
+  });
+  it("uses the singular for a one-day streak", () => {
+    render(GithubModule, { data: { ...data(full), streak: 1 }, refresh: vi.fn() });
+    expect(screen.getByText("1 dia seguido", { exact: false })).toBeInTheDocument();
+  });
+  it("keeps the line with a neutral text when there is no streak", () => {
+    render(GithubModule, { data: { ...data(full), streak: 0 }, refresh: vi.fn() });
+    expect(screen.getByText("Sem sequência")).toBeInTheDocument();
+    expect(screen.queryByText(/🔥/)).not.toBeInTheDocument();
+  });
+  it("omits the line when the core has no streak", () => {
+    render(GithubModule, { data: { ...data(full), streak: null }, refresh: vi.fn() });
+    expect(screen.queryByText(/seguid|Sem sequência/)).not.toBeInTheDocument();
+  });
+  it("labels today's count and highlights today's bar", () => {
+    const today = structuredClone(data(full));
+    const days = today.calendar!.contributionCalendar.weeks.flatMap((w) => w.contributionDays);
+    days.find((d) => d.date === "2026-10-31")!.contributionCount = 5;
+    render(GithubModule, { data: today, refresh: vi.fn() });
+    expect(screen.getByText("Atividade · últimos 14 dias · hoje 5")).toBeInTheDocument();
+    const bars = within(screen.getByRole("list", { name: "Contribuições por dia nos últimos 14 dias" })).getAllByRole("listitem");
+    expect(bars.filter((bar) => bar.hasAttribute("data-today"))).toEqual([bars.at(-1)]);
+  });
 });
 
 it("shows nothing beyond B in the normal state", () => {
@@ -60,7 +91,7 @@ it("names each of the last 14 days' bars with its date and value", () => {
   expect(days[0]).toHaveAccessibleName("18/10: 29 contribuições");
   expect(days[3]).toHaveAccessibleName("21/10: 35 contribuições");
   expect(days[13]).toHaveAccessibleName("31/10: 0 contribuições");
-  expect(screen.getByText("Atividade · últimos 14 dias")).toBeInTheDocument();
+  expect(screen.getByText("Atividade · últimos 14 dias · hoje 0")).toBeInTheDocument();
 });
 
 it("leaves out calendar days after today", () => {

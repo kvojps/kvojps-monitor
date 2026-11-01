@@ -232,6 +232,8 @@ export interface GithubData {
   refreshing: boolean;
   calendar: { restrictedContributionsCount: number; contributionCalendar: {totalContributions:number; weeks: {contributionDays: {date:string; contributionCount:number; color:string}[]}[]} } | null;
   featured: {name:string; commits:number; total:number; title:string; when:number} | null;
+  /** Contribution streak in days, ending today or yesterday; null without a calendar. */
+  streak?: number | null;
 }
 
 export interface TrelloCard {

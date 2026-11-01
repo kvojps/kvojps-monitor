@@ -37,6 +37,9 @@ impl Storage for DiskStorage {
 struct CachedGithub {
     calendar: Option<Calendar>,
     featured: Option<Featured>,
+    /// Only a day count; never contribution content.
+    #[serde(default)]
+    streak: Option<u64>,
 }
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

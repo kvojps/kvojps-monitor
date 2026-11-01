@@ -2081,5 +2081,6 @@
   "featured": null,
   "login": "exemplo",
   "refreshing": false,
-  "state": "ready"
+  "state": "ready",
+  "streak": 60
 }
