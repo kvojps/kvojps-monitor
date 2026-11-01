@@ -2,7 +2,7 @@
 
 Type: grilling
 Status: open
-Blocked by: 11
+Blocked by: 12
 
 ## Question
 
@@ -15,3 +15,5 @@ Origem: ticket 02 (2026-11-01). Hoje: limiar 85 %, linha `small` âmbar sob o pr
 Bloqueado pelo [Preenchimento vertical do cartão IA e Agentes](11-ai-agents-vertical-fill.md) a pedido do usuário (2026-11-01): a altura do conteúdo do cartão decide primeiro; a linha de uso alto se encaixa no resultado.
 
 Desbloqueado em 2026-11-01: o [Preenchimento vertical](11-ai-agents-vertical-fill.md) decidiu por instrumentos que crescem. A linha de uso alto, se ficar, só encolhe os anéis; não abre vão.
+
+Bloqueado pelo [Alinhamento da distribuição vertical dos Módulos](12-vertical-distribution-alignment.md) a pedido do usuário (2026-11-01): a distribuição vertical decide primeiro.
