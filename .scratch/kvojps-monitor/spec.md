@@ -3,7 +3,7 @@
 Nota de sanitização (ticket 40): contagens e horários do exemplo de repositório privado são sintéticos; não representam atividade real do mantenedor.
 
 Status: ready-for-agent
-Origem: mapa [kvojps-monitor v1](../kvojps-monitor-v1/map.md) — cada decisão abaixo vem de um ticket resolvido lá; em caso de dúvida, o ticket é a fonte.
+Origem: mapa de planejamento da v1 e esforços visuais (Painel cinematográfico, Painel compacto e fidelidade ao protótipo B), apagados de `.scratch/` em 2026-11-01 depois de consolidados aqui; o histórico fica no git. Os porquês das decisões estão em [Decisões e porquês](#decisões-e-porquês) e em `docs/adr/`.
 Vocabulário: [GLOSSARY.md](../../GLOSSARY.md). Decisão arquitetural: [ADR 0001](../../docs/adr/0001-indicador-sem-extensao-gnome.md).
 
 ## Problem Statement
@@ -20,16 +20,16 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 
 1. Como usuário, quero um Indicador na barra superior do GNOME que inicie com o login, para ter o app sempre à mão sem abri-lo manualmente.
 2. Como usuário, quero que o clique simples no Indicador abra um menu com "Abrir painel", e que o duplo clique ou o clique do meio abram o Painel direto, para chegar aos dados em um gesto.
-3. Como usuário, quero um Painel compacto (~440×600), sem decoração, de cantos arredondados, para consultar tudo sem uma janela pesada.
-4. Como usuário, quero que o Painel feche com Esc e ao perder o foco, para que ele se comporte como um popup de bandeja.
-5. Como usuário, quero que o Painel abra no último Módulo que visitei, para retomar de onde parei.
-6. Como usuário, quero um trilho vertical de ícones (IA, Agentes, GitHub, Trello, Rede, Sistema) com Configurações no rodapé, e um Módulo em detalhe por vez, para navegar sem rolar por tudo.
-7. Como usuário, quero no cabeçalho de cada Módulo o nome dele e a hora da última atualização, para saber se o dado é recente.
-8. Como usuário, quero que o Indicador ganhe um ponto de acento enquanto alguma Sessão de agente estiver Aguardando você, e que o ícone de Agentes no trilho espelhe esse ponto, para perceber de relance que algo me espera.
+3. Como usuário, quero um Painel sem decoração de aproximadamente 1100 × 700 com os resumos dos seis Módulos visíveis ao mesmo tempo, sem rolagem, para consultar tudo de relance (ver [Visual do Painel](#visual-do-painel)).
+4. Como usuário, quero que o Painel feche com Esc e ao perder o foco, para que ele se comporte como um popup de bandeja; com um detalhe aberto, Esc fecha primeiro o detalhe.
+5. Como usuário, quero que o Painel volte à última Âncora (o último Módulo com que interagi), para retomar de onde parei.
+6. Como usuário, quero os seis resumos numa única superfície, com listas extensas (Sessões de agente, Aplicativos de rede, quadro do Trello) em detalhes sobrepostos sob demanda e Configurações como área separada acessível no topo.
+7. Como usuário, quero saber se um dado é antigo ou falhou, por uma linha discreta no próprio cartão quando isso ocorrer, sem cabeçalhos extras no estado normal.
+8. Como usuário, quero que o Indicador ganhe um ponto de acento enquanto alguma Sessão de agente estiver Aguardando você, e que o cartão de Agentes mostre esse alerta, para perceber de relance que algo me espera.
 9. Como usuário, quero um badge discreto no Indicador quando a Segurança da rede estiver em Risco, para não ficar numa rede perigosa sem saber.
 10. Como usuário, quero que abrir o app de novo enquanto ele já roda só abra o Painel, para nunca ter duas instâncias.
-11. Como usuário, quero visual escuro por padrão seguindo o tema do sistema (claro também suportado), acento verde-água, números em monoespaçada tabular e cores semânticas só para estados, para uma leitura limpa e técnica.
-12. Como usuário, quero que o Painel mostre o dado em cache imediatamente ao abrir ou trocar de Módulo e atualize em segundo plano com um indicador discreto, sem tela de carregamento.
+11. Como usuário, quero a linguagem visual LCARS do protótipo B (preto profundo, ciano e azul elétrico), temas escuro/claro/sistema, números em monoespaçada tabular, movimento decorativo discreto com opção de reduzir, e estados nunca indicados só por cor.
+12. Como usuário, quero que o Painel mostre o dado em cache imediatamente ao abrir e atualize em segundo plano com um indicador discreto, sem tela de carregamento.
 
 ### Módulo IA
 
@@ -131,9 +131,9 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 - **Tauri v2**: núcleo em Rust (coleta, estado, keyring, notificações, autostart) + UI em **Svelte 5 + TypeScript + Vite**, CSS próprio com tokens de design (sem Tailwind nem kit de componentes).
 - **Um único processo de usuário, sem privilégio**. O núcleo detém todo o estado e chama `codex app-server` (longa duração) e `claude agents --json` como subprocessos. Sem serviço auxiliar privilegiado, sem `postinst` com capabilities.
 - **Instância única**: um segundo lançamento sinaliza a instância viva para abrir o Painel e sai.
-- **Núcleo → UI**: o núcleo empurra **um snapshot por Módulo** via eventos Tauri quando algo muda; a UI só renderiza e envia **comandos** pontuais (mover card, rodar teste de velocidade, atualizar Módulo, salvar/validar credencial, conectar/desconectar status line, ligar/desligar hooks, mudar preferências). A UI também informa ao núcleo qual Módulo está visível (a coleta de alguns depende disso).
+- **Núcleo → UI**: o núcleo empurra **um snapshot por Módulo** via eventos Tauri quando algo muda; a UI só renderiza e envia **comandos** pontuais (mover card, rodar teste de velocidade, atualizar Módulo, salvar/validar credencial, conectar/desconectar status line, ligar/desligar hooks, mudar preferências). A UI também informa ao núcleo o **conjunto de Módulos visíveis** (que intersectam a área efetivamente visível do Painel; vazio com Painel oculto ou em Configurações), do qual a coleta de alguns depende. Não multiplicar coletas por notificação de interseção.
 - **Indicador** (ADR 0001): só bandeja via crate `ksni`. Clique simples → menu com "Abrir painel"; duplo clique / clique do meio → Painel. Estados do ícone: normal, ponto de acento (sessão Aguardando você), badge de Risco de rede. Sem extensão do GNOME Shell.
-- **Painel**: janela sem decoração posicionada pelo Mutter; fecha com Esc e ao perder o foco; abre no último Módulo visitado (lembrado entre execuções), exceto via clique em notificação (Módulo Agentes com a sessão destacada). Ao fechar, a webview é ocultada; **medir a memória no primeiro esqueleto** e, se passar de ~150 MB em repouso, destruir a webview ao fechar.
+- **Painel**: janela sem decoração posicionada pelo Mutter; fecha com Esc e ao perder o foco; restaura a última Âncora (lembrada entre execuções), exceto via clique em notificação (detalhe de Sessões de agente com a sessão destacada, sem mudar a Âncora). Ao fechar, a **webview é destruída** (`panel::close`): a medição do primeiro esqueleto deu ~298 MB de PSS, acima do limite de ~150 MB. Não trocar por ocultar sem nova medição.
 - **Autostart**: ligado na primeira execução, desligável; entrada `.desktop` em `~/.config/autostart/`; no AppImage, reescrita a cada execução com o caminho atual.
 - **Segredos**: GNOME Keyring via Secret Service (crate `keyring`). Sem keyring: recusa salvar e explica. Nunca texto puro.
 - **Cada fonte atrás de um adapter** próprio: formatos de `~/.claude`, `~/.codex`, SQLite do Codex e rollouts não são interfaces estáveis.
@@ -160,7 +160,7 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 | Sistema · disco | não coleta | 30 s |
 | Sistema · bateria | não coleta | sinal do UPower |
 
-- **Abrir Painel / trocar Módulo**: mostra cache; se o dado passou do intervalo "visível", atualiza em segundo plano com indicador discreto.
+- **Abrir Painel / Módulo passa a ficar visível**: mostra cache; se o dado passou do intervalo "visível", atualiza em segundo plano com indicador discreto.
 - **↻ manual** em IA, GitHub e Trello, por Módulo, com espera de 10 s entre cliques. Agentes, Rede e Sistema sem ↻.
 - **Sem rede** (conectividade do NetworkManager): pausa GitHub, Trello, `oauth/usage` e consulta do Codex; mostra último dado com idade, sem faixa de erro. Ao voltar, atualiza tudo uma vez, escalonado.
 - **Suspensão/retomada** (sinal do logind): espera conectividade, atualiza tudo escalonado, zera relógios, reinicia subprocessos mortos.
@@ -220,7 +220,7 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 ### Configurações e primeira execução
 - **Seções**: Geral (início com o login, checagem de nova versão, pasta de logs), IA (Conectar/Desconectar Claude Code, opt-in `oauth/usage` com aviso, status do Codex), Agentes (Detecção instantânea, três interruptores de notificação), GitHub (fonte da credencial), Trello (passo a passo, quadro, desconectar), Rede (teste de velocidade automático).
 - **Boas-vindas**: tela única só na primeira abertura, com status por Módulo e atalhos de configuração (inclui "Conectar ao Claude Code").
-- **Módulo sem credencial**: visível no trilho, estado vazio com "Configurar".
+- **Módulo sem credencial**: cartão continua no lugar, com a área de ausência (motivo + "Configurar").
 - **Validação antes de gravar**; falha não salva nada e mostra o erro junto do campo.
 
 ### Logs
@@ -236,6 +236,70 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 - **Release** (tag `v*`): reaproveita o CI; `tauri-action` em `ubuntu-24.04` gera `.deb` + AppImage; publica `SHA256SUMS` e GitHub artifact attestations (sem GPG); release em **rascunho** com notas automáticas, publicado à mão. Sem `CHANGELOG.md`.
 - **Suporte declarado**: Ubuntu 24.04+ com GNOME e extensão AppIndicator; outras distros "pode funcionar". Sem Flatpak/Snap.
 - **README** (pt-BR, enxuto, guias longos em `docs/`): o que é + captura do Painel; requisitos e como ativar a extensão AppIndicator; instalação `.deb`/AppImage com verificação; primeiros passos por Módulo; aviso do opt-in `oauth/usage`; privacidade (tudo local, lista de hosts acessados: api.github.com, api.trello.com, api.anthropic.com só no opt-in, speed.cloudflare.com, os de conectividade/ping); desinstalação (desfazer status line, hooks e autostart); licença.
+
+## Visual do Painel
+
+Aprovado pelo usuário em 2026-10-31 e conferido no app nativo. Substitui o visual original da v1 (Painel ~440×600 com trilho de ícones, um Módulo por vez, acento verde-água) e a fase intermediária "cinematográfica" (janela de 95% da área útil em três Estações). Fontes, coleta, privacidade, credenciais, notificações e regras de negócio continuam as das seções acima.
+
+### Fonte da verdade
+
+- **Protótipo B — Núcleo lateral** é a referência de design e conteúdo: `src/lib/compact-prototype/` (`npm run prototype:compact`, `?variant=B`) e a captura aprovada [`docs/assets/painel-b.png`](../../docs/assets/painel-b.png). Esta spec manda só em comportamento, dados, estados que o B não demonstra e guardrails.
+- Regra: **no estado normal, nada que o B não mostra.** Resumos são escritos com a marcação e o CSS do B como molde, ligando dados reais; não acrescentar subtítulos de fonte/horário, selos, caixas extras ou textos explicativos.
+- Textos fixos do protótipo viram dados reais no mesmo formato e posição (tipo de conexão, "Qualidade: X", "Segurança: Y", estado da bateria, "Teste · HH:MM", cores reais das etiquetas do Trello). Ficam fora do produto: "Demonstração · leituras independentes", rodapé de depuração, controle flutuante, "Detalhe ilustrativo" e retornos simulados.
+- O centro do anel de Agentes diz "Em andamento" (Estado da sessão), não "Trabalhando".
+
+### Janela e composição
+
+- Aproximadamente **1100 × 700 lógicos**, respeitando área útil e escala; sem maximizar nem tela cheia. No Wayland o tao entrega 52 px a menos por eixo; o Painel compensa a diferença medida.
+- Sem título geral nem navegação por Módulos. Linha do topo com ações gerais e Configurações; lado esquerdo vazio.
+- Grade B: coluna esquerda com o cartão **IA e Agentes** (um cartão visual; os Módulos continuam independentes em dados, estados, snapshots e Âncora); nas outras duas colunas, GitHub e Rede em cima, Trello e Sistema embaixo. A grade vai até o fim do Painel.
+- **Instrumentos que crescem**: a sobra de altura vai para os anéis da IA e de Agentes (94–180 px; número a ⅙ do anel), barras do GitHub, tráfego da Rede, linhas do Trello e medidores do Sistema; blocos em sequência, sem vãos. A sobra do cartão IA e Agentes vai para a legenda de Agentes.
+- Sem rolagem em 1100 × 700 e 1000 × 700 com as fixtures do B. Se área útil, texto ampliado ou conteúdo maior impedirem, reorganizar e rolar (referência: duas colunas até 950 px, uma até 650 px), sem cortar conteúdo, reduzir fonte automaticamente nem esconder alertas.
+- Configurações é área separada, com retorno ao Painel e todos os fluxos da v1, mais tema (escuro/claro/sistema) e redução de animações.
+
+### Resumos
+
+- **IA:** anéis de 5 h de Claude e Codex com % e reinício, barras semanais, "Leitura HH:MM". Anéis sempre na cor do provedor (Codex ciano, Claude lilás). "Uso alto" não aparece como linha; só o `aria-valuetext` diz "uso alto" a partir de 85 %. Após reinício sem leitura nova, remover arco/barra e mostrar "Reiniciado às HH:MM · sem leitura nova". O ↻ do cartão atualiza só a IA.
+- **Agentes:** anel com a quantidade Em andamento no centro, segmentos por Estado da sessão e legenda com contagens; denominador = ativas + encerradas ainda retidas. Hover/foco na legenda identifica projeto/nome. "⚠ N aguardando você" é alerta acionável; sem ninguém aguardando, caixa neutra "Nenhuma sessão aguardando você". Zero sessões é vazio explícito, distinto de leitura indisponível.
+- **GitHub:** total anual (identificado como anual), mapa de oito semanas, barras de 14 dias e Repo em destaque com commits em 7 dias e título do último commit.
+- **Trello:** nome do quadro, contagem de cards/listas, contagem por lista (nomes em uma linha, sem prévia do primeiro card); ↻/⚙ por ícone. Contagens acompanham a movimentação.
+- **Rede:** linha de status com conexão real, "Qualidade: X" e "Segurança: Y"; latência da Internet em destaque; teste de velocidade em Mbps ("Teste · HH:MM"); jitter/perda e gateway; gráfico de tráfego com duas séries e taxas atuais. Nunca "Rede segura". Mbps é capacidade medida; KB/s ou MB/s é tráfego; a escala do gráfico vem das amostras.
+- **Sistema:** CPU e temperatura, RAM (GB só sob a RAM), swap, disco, bateria em texto.
+
+### Detalhes sobrepostos
+
+- Anel, legenda e alerta de Agentes abrem **Sessões de agente** (ativas e encerradas retidas, com projeto/nome, provedor, estado, motivo e duração). **Aplicativos de rede** abre top 5 + "Outros" com a explicação. Ambos: até 680 px ou 90 % da largura, até 80 % da altura, rolagem interna.
+- **Quadro do Trello** dentro do Painel: ~1040 × 610 no alvo (até 96 % × 92 %), colunas de ~228 px, rolagem horizontal do quadro e vertical por lista; cards com título, etiquetas e vencimento; nenhum card eliminado. Mover: selecionar card → **Mover para** → **Mover card**, ou **Mover para esta lista** na coluna de destino; arrastar é atalho; o seletor alcança listas fora da área visível. Otimista, com reversão e explicação na falha. Abrir no Trello por ação explícita ou duplo clique.
+- Abrir detalhe mantém o contexto. **Fechar** e Esc fecham o detalhe e devolvem o foco ao acionador; Esc sem detalhe oculta o Painel. Foco limitado ao detalhe modal.
+- Notificação de sessão abre o Painel no detalhe de Sessões com a sessão destacada, inclusive encerrada ainda retida; nunca apontar para outra sessão.
+
+### Estados
+
+- Exigências da v1 que o B não mostra (VPN, motivos de Atenção/Risco, avisos do teste de velocidade, alertas do Sistema, falha, offline, credencial, antigo) aparecem **só quando a condição ocorre**, como linha `small` colorida no corpo do cartão (no topo do corpo; na Rede, abaixo da linha de status), sem novos elementos de cabeçalho. Texto `small` na fonte normal.
+- **Sem a leitura inteira** (variante C): área única no corpo do cartão (`AbsentArea`) com motivo e ação; no cartão IA e Agentes, por fonte. **Antigo**: dado esmaecido + linha `small`. **Faltas parciais**: só no item afetado (ex.: aplicativos "sem medição"; caixa de Agentes "na última leitura" após falha).
+- Nunca converter ausência de leitura em zero. Falha de uma fonte não apaga as demais. Atualizações não roubam foco nem desfazem seleção.
+
+### Tokens, tipografia e acessibilidade
+
+| Papel | Escuro | Claro |
+| --- | --- | --- |
+| Fundo | `#02070d` | `#f3f7fb` |
+| Superfície | `#06111d` | `#e4edf5` |
+| Superfície secundária | `#0a1d2c` | `#d5e3ef` |
+| Texto | `#d8f5ff` | `#132c40` |
+| Texto secundário | `#9bb9c7` | `#38566b` |
+| Linha | `#173c51` | `#9ab2c6` |
+| Acento | `#4ce5ff` | ajustado ao contraste |
+
+Ubuntu Sans (ou sem serifa local equivalente); números em monoespaçada tabular. Tema claro preserva geometria e hierarquia, não só clareia o fundo. Contraste WCAG AA (4,5:1 texto comum; 3:1 texto grande e controles), foco visível, ordem de leitura coerente, ações por teclado, hover com equivalente por foco, resumos textuais dos gráficos, ícones decorativos fora da árvore acessível.
+
+### Movimento
+
+Só nos elementos que existem no B: anéis decorativos (48 s por volta), barra do topo e brilho de borda (4 s por trecho, ida e volta). Arcos de medição, números, textos e alertas não se movem nem piscam; decoração não indica atividade. Redução manual ou do sistema (a do sistema prevalece) interrompe a decoração e remove transições. Com o Painel oculto não há trabalho de animação. Implementação só em CSS; ver [trace](../../docs/motion-trace.md).
+
+### Critérios ainda não medidos no app nativo
+
+Resposta visual ≤ 100 ms, 60 fps em tela de 60 Hz, acréscimo médio de CPU da decoração ≤ 2 pontos percentuais de um núcleo, ausência de animação com Painel oculto e memória. Protocolo em [`docs/desempenho.md`](../../docs/desempenho.md); pendência em [ticket 25](issues/25-validacao-nativa-pendente.md).
 
 ## Testing Decisions
 
@@ -266,5 +330,23 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 
 - **Ordem sugerida de fatias verticais** (para `to-tickets`): (1) esqueleto Tauri — Indicador, Painel, trilho, instância única, autostart, medição de memória; (2) Sistema; (3) Rede; (4) IA; (5) Agentes + notificações + hooks; (6) GitHub; (7) Trello; (8) primeira execução e Configurações completas; (9) CI e release (o CI pode nascer já na fatia 1).
 - **Riscos conhecidos**: `codex app-server` é marcado "experimental"; `oauth/usage` é não documentado e pode mudar ou violar os termos (por isso opt-in); formatos de `~/.claude/sessions`, SQLite e rollouts do Codex podem mudar a qualquer versão (por isso adapters e fixtures); termos da OpenAI não foram verificados (403 na pesquisa).
-- **Não verificado**: memória real do Tauri em repouso (medir na fatia 1).
-- **Achados completos** das pesquisas ficam em [`docs/research/`](../../docs/research/) (trazidos das branches `research/*`, apagadas em 2026-11-01). O protótipo visual `prototype/painel-visual` foi descartado com a sua branch; as decisões dele estão no ticket 10 da v1.
+- **Achados completos** das pesquisas ficam em [`docs/research/`](../../docs/research/) (trazidos das branches `research/*`, apagadas em 2026-11-01).
+
+## Decisões e porquês
+
+Resumo dos tickets de planejamento apagados em 2026-11-01 (recuperáveis no git, commit anterior a `docs: consolidate resolved maps into the v1 spec`). Pesquisas completas em [`docs/research/`](../../docs/research/).
+
+- **Stack** — Tauri v2 + Svelte 5, processo único sem privilégio que empurra snapshots à UI; `.deb` + AppImage em runner 24.04. Indicador só de bandeja: [ADR 0001](../../docs/adr/0001-indicador-sem-extensao-gnome.md).
+- **Limites de uso** — Codex via `codex app-server` (oficial, mas "experimental"); Claude via status line por padrão e `oauth/usage` opt-in: [ADR 0002](../../docs/adr/0002-limites-claude-status-line-e-oauth-opt-in.md). Nunca assumir 0 % após reinício, porque o consumo pode vir de claude.ai.
+- **Sessões de agente** — Claude via `claude agents --json` + hooks; Codex via SQLite + rollouts + hooks; um adapter por fonte, porque nenhum desses formatos é interface estável. Hooks opt-in e aditivos; sem hooks, polling de 2 s.
+- **Notificações** — só Aguardando você, Com falha e Turno concluído ≥ 30 s; uma por sessão, agrupadas a partir de 3 em 10 s. Por quê: notificar só o que exige ação.
+- **Rede** — dois eixos (Segurança: Sem alertas/Atenção/Risco; Qualidade: Boa/Regular/Ruim) em vez de "saúde", porque uma rede rápida pode ser insegura e vice-versa; nunca afirmar "rede segura". Notifica e marca o Indicador só em Risco. Velocidade via Cloudflare sob demanda, ao conectar e a cada 6 h.
+- **Tráfego por processo** — só sem privilégio: [ADR 0003](../../docs/adr/0003-trafego-por-processo-sem-privilegio.md).
+- **GitHub** — Repo em destaque conta só seus commits na branch padrão com o token do `gh`, sem pedir `read:user`; estado vazio sem substituto. Calendário via GraphQL.
+- **Trello** — key + token próprios do usuário no plano Free; polling, sem webhook (exigiria servidor público).
+- **Credenciais** — GitHub via `gh` em tempo de execução (fallback token clássico no keyring); validar antes de salvar; credencial inválida mostra faixa "Reconectar" sem notificação.
+- **Cadência** — ritmo lento com Painel fechado e rápido para Módulos visíveis; cache mostrado na hora, backoff até 15 min, pausa sem rede.
+- **Sistema** — sem notificação, só cor de atenção; coleta só com o Módulo visível.
+- **Release** — repo público MIT, release em rascunho publicado à mão, `SHA256SUMS` + attestations, sem GPG; só aviso diário de nova versão, sem auto-update.
+- **Visual** — o primeiro protótipo (trilho, um Módulo por vez) deu lugar ao Painel cinematográfico (três Estações em 95 % da tela), depois ao Painel compacto (todos os resumos sem rolagem em ~1100 × 700). A primeira implementação compacta podou os Módulos cinematográficos e saiu com excessos; a correção foi reescrever cada resumo a partir do protótipo B, que virou a fonte da verdade visual. Cada Módulo foi aprovado pelo usuário no app nativo.
+- **Modo de fixtures nativo** — fixtures injetadas no nível do snapshot (não em portas brutas), porque as fixtures do B são snapshots da UI; feature Cargo `fixtures`, proibida em `--release`. Ver [`docs/desenvolvimento.md`](../../docs/desenvolvimento.md).

@@ -4,7 +4,7 @@ App pessoal de bandeja para Ubuntu/GNOME/Wayland (Tauri v2: núcleo Rust + UI Sv
 
 ## Fonte da verdade
 
-- **Implementando a v1**: siga a spec em `.scratch/kvojps-monitor/spec.md`. Cada decisão vem de um ticket do mapa `.scratch/kvojps-monitor-v1/map.md`; abra o ticket quando precisar do porquê.
+- **Implementando a v1**: siga a spec em `.scratch/kvojps-monitor/spec.md` (tickets em `.scratch/kvojps-monitor/issues/`). O visual segue o protótipo B (seção "Visual do Painel"); os porquês ficam na seção "Decisões e porquês" e em `docs/adr/`.
 - **Divergindo da spec**: pare e pergunte antes de seguir; registre a mudança no ticket de origem.
 
 ## Idioma
