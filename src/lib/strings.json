@@ -206,7 +206,7 @@
     "error": "Não foi possível atualizar o Trello",
     "failureAge": "Falha ao atualizar {age}",
     "updatedAge": "Atualizado {age}",
-    "emptyList": "Sem cards",
+    "emptyList": "Nenhum card nesta lista",
     "hiddenTitle": "Título disponível após atualizar",
     "due": "Entrega {date}",
     "overdue": "Vencido: {date}",
@@ -234,7 +234,7 @@
     "reconnect": "Reconectar",
     "configureTrello": "Configurar Trello",
     "noReading": "Sem leitura do quadro do Trello ainda",
-    "open": "Abrir {card} no navegador",
+    "open": "Abrir no Trello: {card}",
     "noLists": "Quadro sem listas",
     "boardCounts": "{cards} · {lists}",
     "cardsOne": "1 card",
@@ -253,7 +253,7 @@
     "moveCard": "Mover card",
     "cancelSelection": "Cancelar seleção",
     "moveHere": "Mover para esta lista",
-    "selectHint": "Selecione um card para movê-lo, ou arraste entre listas.",
+    "selectHint": "Selecione um card para habilitar a movimentação.",
     "selectedIn": "em {list}",
     "moving": "Movendo “{card}” para {list}…",
     "moved": "“{card}” movido para {list}.",
@@ -276,7 +276,12 @@
     "labelShade": {
       "dark": "{color} escuro",
       "light": "{color} claro"
-    }
+    },
+    "refreshDescription": "Consultar novamente o quadro do Trello",
+    "configureDescription": "Abrir as configurações de conexão do Trello",
+    "noDue": "Sem vencimento",
+    "openShort": "Abrir no Trello",
+    "boardHint": "Selecione um card e a lista de destino, ou arraste entre colunas."
   },
   "ai": {
     "refresh": "Atualizar IA",

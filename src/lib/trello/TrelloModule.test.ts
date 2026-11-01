@@ -31,7 +31,7 @@ async function select(card: string) { await userEvent.click(cardIn(card)); }
 
 it("summarizes the real board with counts per list and a card preview", () => {
   render(TrelloModule, props(full));
-  expect(screen.getByRole("heading", { name: "Quadro 1" })).toBeInTheDocument();
+  expect(screen.getByText("Quadro 1")).toBeInTheDocument();
   expect(screen.getByText("17 cards · 8 listas")).toBeInTheDocument();
   expect(countOf("Lista 1")).toBe("4");
   expect(countOf("Lista 2")).toBe("0");
@@ -79,7 +79,7 @@ it("opens a card in the browser on double click or explicit action only", async 
   const card = full.lists![0].cards[0];
   await select(card.name);
   expect(p.openCard).not.toHaveBeenCalled();
-  await userEvent.click(within(board()).getByRole("button", { name: `Abrir ${card.name} no navegador` }));
+  await userEvent.click(within(board()).getByRole("button", { name: `Abrir no Trello: ${card.name}` }));
   await fireEvent.dblClick(cardIn(card.name));
   expect(p.openCard).toHaveBeenCalledTimes(2);
   expect(p.openCard).toHaveBeenCalledWith(card.url);
@@ -202,7 +202,7 @@ it("offers no move offline or with a refused credential, but still opens cards",
     await userEvent.click(within(board()).getAllByRole("button", { name: new RegExp(`^${name}`) })[0]);
     expect(within(board()).queryByRole("combobox")).not.toBeInTheDocument();
     expect(within(board()).queryByRole("button", { name: "Mover para esta lista" })).not.toBeInTheDocument();
-    await userEvent.click(within(board()).getByRole("button", { name: `Abrir ${name} no navegador` }));
+    await userEvent.click(within(board()).getByRole("button", { name: `Abrir no Trello: ${name}` }));
     expect(p.openCard).toHaveBeenCalledWith(card.url);
     expect(p.moveCard).not.toHaveBeenCalled();
     unmount();
@@ -263,7 +263,7 @@ it("selects, moves and opens a card entirely from the keyboard", async () => {
   await user.keyboard("{Enter}");
   expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(from.cards[0].id, to.id);
   expect(cardIn(from.cards[0].name)).toHaveFocus();
-  await user.click(within(board()).getByRole("button", { name: `Abrir ${from.cards[0].name} no navegador` }));
+  await user.click(within(board()).getByRole("button", { name: `Abrir no Trello: ${from.cards[0].name}` }));
   expect(p.openCard).toHaveBeenCalledWith(from.cards[0].url);
 });
 
@@ -349,7 +349,7 @@ it("restores the horizontal board scroll when reopened", async () => {
 it("marks empty lists and explains a board without lists or cards", async () => {
   render(TrelloModule, props(full));
   await openBoard();
-  expect(within(column("Lista 2")).getByText("Sem cards")).toBeInTheDocument();
+  expect(within(column("Lista 2")).getByText("Nenhum card nesta lista")).toBeInTheDocument();
   cleanup();
   render(TrelloModule, props({ ...full, lists: [] }));
   expect(screen.getByText("Quadro sem listas")).toBeInTheDocument();
@@ -487,4 +487,30 @@ it("starts a reopened board without the previous move outcome", async () => {
   await userEvent.click(within(board()).getByRole("button", { name: "Fechar" }));
   await openBoard();
   expect(within(board()).getByRole("status")).toHaveTextContent("Nenhuma alteração realizada.");
+});
+
+it("shows nothing beyond prototype B in the normal state", () => {
+  const { container } = render(TrelloModule, props(full));
+  expect(screen.getByRole("heading", { level: 2, name: "Trello" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Atualizar Trello" })).toHaveTextContent(/^↻$/);
+  expect(screen.getByRole("button", { name: "Configurar Trello" })).toHaveTextContent(/^⚙$/);
+  expect(screen.getByRole("button", { name: /Primeiro card/ })).toHaveTextContent(/^Primeiro card · Lista 1\s*Card 1\.1$/);
+  expect(within(screen.getByRole("button", { name: /Primeiro card/ })).getAllByTestId("label").map((l) => l.style.background))
+    .toEqual(["rgb(75, 206, 151)", "rgb(87, 157, 255)"]);
+  expect(screen.getByRole("button", { name: "Abrir quadro completo" })).toHaveTextContent("Abrir quadro completo ↗");
+  expect(container.querySelectorAll(".line")).toHaveLength(0);
+  expect(screen.queryByText(/Atualizado|Fonte|Entrega|Sem vencimento/)).not.toBeInTheDocument();
+});
+
+it("opens the full board as prototype B: board name, hint, due line and open action under the selected card", async () => {
+  render(TrelloModule, props(full));
+  await openBoard();
+  expect(within(board()).getByRole("heading", { level: 3, name: "Quadro 1" })).toBeInTheDocument();
+  expect(within(board()).getByText("Selecione um card e a lista de destino, ou arraste entre colunas.")).toBeInTheDocument();
+  expect(within(board()).getByText("Selecione um card para habilitar a movimentação.")).toBeInTheDocument();
+  expect(within(cardIn("Card 1.1")).getByText("Sem vencimento")).toBeInTheDocument();
+  expect(within(board()).queryByRole("button", { name: /^Abrir no Trello/ })).not.toBeInTheDocument();
+  await select("Card 1.1");
+  expect(within(board()).getByRole("button", { name: "Abrir no Trello: Card 1.1" })).toHaveTextContent("Abrir no Trello ↗");
+  expect(within(board()).getByRole("button", { name: "Fechar" })).toHaveTextContent("Fechar ×");
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  /** The Trello summary and full board as prototype B shows them; states B does not show become body lines. */
   import { onMount, tick, untrack } from "svelte";
   import type { TrelloData } from "../core";
   import { t, interpolate } from "../strings";
@@ -8,8 +9,22 @@
     moveCard: (card: string, list: string) => Promise<void>;
   } = $props();
   let now = $state(Date.now());
+  /** Manual refreshes stay at least ten seconds apart. */
   let allowedAt = $state(0);
-  onMount(() => { const timer = setInterval(() => now = Date.now(), 1000); return () => clearInterval(timer); });
+  let tipsDismissed = $state(false);
+  let titleActions: HTMLDivElement;
+  onMount(() => {
+    const timer = setInterval(() => now = Date.now(), 1000);
+    function dismissDescription(event: KeyboardEvent) {
+      if (event.key !== "Escape" || tipsDismissed || !titleActions ||
+          !(titleActions.contains(document.activeElement) || titleActions.matches(":hover"))) return;
+      tipsDismissed = true;
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    window.addEventListener("keydown", dismissDescription, true);
+    return () => { clearInterval(timer); window.removeEventListener("keydown", dismissDescription, true); };
+  });
   const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
   function age(when: number) {
     const seconds = Math.max(0, Math.floor((now - when) / 1000));
@@ -216,70 +231,79 @@
 {/snippet}
 {#snippet due(card: { due: number | null; overdue: boolean; dueComplete: boolean })}
   {#if card.due != null}
-    <span class="due num" class:overdue={card.overdue} class:done={card.dueComplete}>
+    <small class="due num" class:overdue={card.overdue} class:done={card.dueComplete}>
       <span aria-hidden="true">{card.overdue ? "⚠ " : card.dueComplete ? "✓ " : ""}</span>{interpolate(card.overdue ? t.trello.overdue : card.dueComplete ? t.trello.dueDone : t.trello.due, { date: date.format(card.due) })}
-    </span>
+    </small>
+  {:else}
+    <small class="due">{t.trello.noDue}</small>
   {/if}
 {/snippet}
 
+<header>
+  <h2 id="module-trello-title">{t.modules.trello}</h2>
+  <div class="actions" bind:this={titleActions}>
+    <span class="action-wrap" role="group" onpointerenter={() => tipsDismissed = false} onfocusin={() => tipsDismissed = false}>
+      <button class="icon" aria-label={t.trello.refresh} aria-describedby="trello-refresh-description"
+        disabled={paused || data?.refreshing || now < allowedAt} onclick={refreshNow}><span aria-hidden="true">↻</span></button>
+      <span class="tip" hidden={tipsDismissed} id="trello-refresh-description" role="tooltip">{t.trello.refreshDescription}</span>
+    </span>
+    <span class="action-wrap" role="group" onpointerenter={() => tipsDismissed = false} onfocusin={() => tipsDismissed = false}>
+      <button class="icon" aria-label={t.trello.configureTrello} aria-describedby="trello-configure-description" onclick={configure}><span aria-hidden="true">⚙</span></button>
+      <span class="tip" hidden={tipsDismissed} id="trello-configure-description" role="tooltip">{t.trello.configureDescription}</span>
+    </span>
+  </div>
+</header>
+
 <div class="trello" onfocusin={(event) => { if (restoringFocus) event.stopPropagation(); }}>
+  {#if data?.refreshing}<small role="status" class="line">{t.trello.refreshing}</small>{/if}
   {#if data?.state === "missingCredential"}
-    <div class="blank"><p>{t.trello.missingCredential}</p>{#if data.pendingKey}<p>{t.trello.pendingToken}</p>{/if}</div>
+    <small class="line alert"><span aria-hidden="true">⚠ </span>{t.trello.missingCredential}</small>
+    {#if data.pendingKey}<small class="line">{t.trello.pendingToken}</small>{/if}
   {:else if data?.state === "chooseBoard"}
-    <p class="blank">{t.trello.chooseBoard}</p>
+    <small class="line">{t.trello.chooseBoard}</small>
   {:else if !data}
-    <p class="blank">{t.trello.noReading}</p>
+    <small class="line">{t.trello.noReading}</small>
   {:else}
     {#if stale}
-      <p class="notice alert"><span aria-hidden="true">⚠ </span>{t.trello.invalidCredential}{" · "}<button class="link" onclick={configure}>{t.trello.reconnect}</button></p>
+      <small class="line alert"><span aria-hidden="true">⚠ </span>{t.trello.invalidCredential}{" · "}<button class="link" onclick={configure}>{t.trello.reconnect}</button></small>
     {/if}
     {#if data.state === "error" && !paused}
-      <p class="notice"><span aria-hidden="true">◷ </span>{data.failureSince != null ? interpolate(t.trello.failureAge, { age: age(data.failureSince) }) : t.trello.error}</p>
+      <small class="line alert"><span aria-hidden="true">⚠ </span>{data.failureSince != null ? interpolate(t.trello.failureAge, { age: age(data.failureSince) }) : t.trello.error}</small>
     {/if}
     {#if data.lastSuccessAt != null && (data.state !== "ready" || paused)}
-      <p class="notice num">{interpolate(t.trello.updatedAge, { age: age(data.lastSuccessAt) })}</p>
+      <small class="line num">{interpolate(t.trello.updatedAge, { age: age(data.lastSuccessAt) })}</small>
     {/if}
-    {#if outcome?.kind === "failed" && !detailOpen}<p role="alert" class="notice alert">{outcome.text}</p>{/if}
+    {#if outcome?.kind === "failed" && !detailOpen}<small role="alert" class="line alert">{outcome.text}</small>{/if}
     <div class="summary" data-stale={stale}>
       {#if data.board}
-        <div class="board-name"><h3>{data.board.name}</h3>
-          <span class="num">{boardCounts}</span></div>
+        <div class="board-summary"><b>{data.board.name}</b><span class="num">{boardCounts}</span></div>
       {/if}
-      {#if lists.length === 0}<p class="blank">{t.trello.noLists}</p>{:else}
-        <ul class="counts" aria-label={t.trello.countsByList}>
-          {#each lists as list (list.id)}<li><span class="list-name">{list.name}</span><b class="num">{list.cards.length}</b></li>{/each}
+      {#if lists.length === 0}<p class="empty-board">{t.trello.noLists}</p>{:else}
+        <ul class="list-counts" aria-label={t.trello.countsByList}>
+          {#each lists as list (list.id)}<li><span>{list.name}</span><b class="num">{list.cards.length}</b></li>{/each}
         </ul>
         {#if preview}
-          <button class="preview" onclick={(event) => openBoard(event, preview.card.id)}>
+          <button class="card-preview" onclick={(event) => openBoard(event, preview.card.id)}>
             <small>{interpolate(t.trello.firstCard, { list: preview.list.name })}</small>
-            <span class="title" class:secondary={!preview.card.name}>{title(preview.card)}</span>
-            {#if preview.card.labels.length || preview.card.due != null}<span class="meta">{@render labels(preview.card)}{@render due(preview.card)}</span>{/if}
+            <b class:secondary={!preview.card.name}>{title(preview.card)}</b>
+            {@render labels(preview.card)}
           </button>
-        {:else}<p class="secondary">{t.trello.noCards}</p>{/if}
-        <button class="open-board" onclick={(event) => openBoard(event)}>{t.trello.openBoard}<span aria-hidden="true"> ↗</span></button>
+        {:else}<p class="empty-board">{t.trello.noCards}</p>{/if}
+        <button class="detail-button" onclick={(event) => openBoard(event)}>{t.trello.openBoard}<span aria-hidden="true">{" ↗"}</span></button>
       {/if}
     </div>
   {/if}
-  <div class="actions">
-    <button class="action" disabled={paused || data?.refreshing || now < allowedAt} onclick={refreshNow}>
-      <span aria-hidden="true">↻ </span>{t.trello.refresh}
-    </button>
-    <button class="action" onclick={configure}>{t.trello.configureTrello}</button>
-    {#if data?.refreshing}<span role="status" class="caption">{t.trello.refreshing}</span>{/if}
-  </div>
 
   <dialog bind:this={dialog} aria-labelledby="trello-board" oncancel={(event) => { event.preventDefault(); closeBoard(); }}>
-    <header class="dialog-head">
-      <div><h2 id="trello-board">{t.trello.boardDetail}</h2>
-        {#if data?.board}<p class="secondary">{data.board.name} · {boardCounts}</p>{/if}
-      </div>
-      <button class="close" onclick={closeBoard}>{t.trello.close}</button>
+    <header><h2 id="trello-board">{t.trello.boardDetail}</h2>
+      <button class="detail-button" onclick={closeBoard}>{t.trello.close}<span aria-hidden="true">{" ×"}</span></button>
     </header>
     {#if detailOpen}
+    <div class="board-toolbar">
+      {#if data?.board}<div><h3>{data.board.name}</h3><p class="num">{boardCounts}</p></div>{/if}
+      {#if movable}<p>{t.trello.boardHint}</p>{/if}
+    </div>
     <div class="move-toolbar">
-      {#if !movable}
-        <p class="secondary">{t.trello.moveUnavailable}</p>
-      {/if}
       {#if selectedCard && selectedList}
         <div class="selection"><b>{title(selectedCard)}</b><small>{interpolate(t.trello.selectedIn, { list: nameOf(selectedList) })}</small></div>
         {#if movable}
@@ -291,10 +315,9 @@
           </label>
           <button class="primary" disabled={!destination} onclick={() => moveTo(destination)}>{t.trello.moveCard}</button>
         {/if}
-        <button class="link" onclick={() => openCard(selectedCard.url)}>{interpolate(t.trello.open, { card: title(selectedCard) })}</button>
-        <button class="plain" onclick={cancelSelection}>{t.trello.cancelSelection}</button>
-      {:else if movable}
-        <p class="secondary">{t.trello.selectHint}</p>
+        <button onclick={cancelSelection}>{t.trello.cancelSelection}</button>
+      {:else}
+        <p>{movable ? t.trello.selectHint : t.trello.moveUnavailable}</p>
       {/if}
     </div>
     {#if outcome?.kind === "failed"}
@@ -302,29 +325,32 @@
     {:else}
       <p role="status" class="move-status">{outcome?.text ?? t.trello.noChange}</p>
     {/if}
-    {#if lists.length === 0}<p class="blank">{t.trello.noLists}</p>{:else}
-      <div class="columns" role="group" aria-label={t.trello.boardLists} bind:this={columns} data-stale={stale}>
+    {#if lists.length === 0}<p class="empty">{t.trello.noLists}</p>{:else}
+      <div class="board-columns" role="group" aria-label={t.trello.boardLists} bind:this={columns} data-stale={stale}>
         {#each lists as list (list.id)}
           {@const target = movable && selectedList != null && selectedList !== list.id}
           <!-- Dropping is a pointer shortcut; "Mover para esta lista" and the toolbar are the keyboard path. -->
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <section class="column" aria-label={list.name} class:target bind:this={columnEls[list.id]}
+          <section class="board-column" aria-label={list.name} class:target bind:this={columnEls[list.id]}
             ondragover={(event) => dragOver(event, list.id)} ondrop={(event) => drop(event, list.id)}>
             <header><h4>{list.name}</h4><span class="num" aria-hidden="true">{list.cards.length}</span><span class="sr-only">{cardCount(list.cards.length)}</span></header>
             {#if target}<button class="move-here" onclick={() => moveTo(list.id)}><span aria-hidden="true">→ </span>{t.trello.moveHere}</button>{/if}
-            {#if list.cards.length === 0}<p class="empty">{t.trello.emptyList}</p>{/if}
             <ul>
               {#each list.cards as card (card.id)}
                 <li>
-                  <button class="card" class:selected={selected === card.id} aria-pressed={selected === card.id} data-card={card.id}
+                  <button class="board-card" class:selected={selected === card.id} aria-pressed={selected === card.id} data-card={card.id}
                     draggable={movable} ondragstart={(event) => dragStart(event, card.id)} ondragend={() => dragged = null}
                     onclick={() => select(card.id)} ondblclick={() => openFromCard(card)}>
-                    <span class="title" class:secondary={!card.name}>{title(card)}</span>
+                    <b class:secondary={!card.name}>{title(card)}</b>
                     {@render labels(card)}
                     {@render due(card)}
                   </button>
+                  {#if selected === card.id}
+                    <button class="open-card" aria-label={interpolate(t.trello.open, { card: title(card) })} onclick={() => openCard(card.url)}>{t.trello.openShort}<span aria-hidden="true">{" ↗"}</span></button>
+                  {/if}
                 </li>
               {/each}
+              {#if list.cards.length === 0}<li class="empty">{t.trello.emptyList}</li>{/if}
             </ul>
           </section>
         {/each}
@@ -334,75 +360,77 @@
   </dialog>
 </div>
 <style>
-  .trello { padding: 8px 12px 10px; min-width: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; font-size: 12px; }
+  header { display: flex; align-items: center; gap: 10px; justify-content: space-between; min-height: 28px; margin-bottom: 6px; }
+  h2 { font-size: 1.25em; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+  small { font-size: .88em; color: var(--muted); }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .secondary { color: var(--muted); }
-  .summary { display: flex; flex-direction: column; gap: 6px; }
-  .summary[data-stale="true"] { color: var(--muted); }
-  .board-name { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
-  .board-name h3 { font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
-  .board-name span { color: var(--muted); font-size: 11px; }
-  .counts { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px 12px; }
-  .counts li { display: flex; justify-content: space-between; gap: 6px; padding: 2px 0; border-bottom: 1px solid var(--line); min-width: 0; }
-  .list-name { min-width: 0; overflow-wrap: anywhere; color: var(--muted); }
-  .preview { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 6px 10px; background: var(--surface-2); border-left: 4px solid var(--band-amber); border-radius: 0 12px 12px 0; color: inherit; cursor: pointer; }
-  .preview small { color: var(--muted); font-size: 11px; }
-  .open-board { align-self: flex-start; color: var(--accent); text-decoration: underline; cursor: pointer; }
-  .preview:focus-visible, .open-board:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .title { overflow-wrap: anywhere; }
-  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .actions { display: flex; gap: 5px; }
+  .action-wrap { position: relative; display: inline-flex; }
+  .icon { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; font-size: 19px; line-height: 1; display: grid; place-items: center; }
+  .icon:hover:not(:disabled) { background: var(--surface-2); }
+  .icon:disabled { opacity: .45; cursor: default; }
+  .tip { position: absolute; z-index: 4; right: 0; top: 100%; min-width: 150px; background: var(--surface-2); color: var(--text); padding: 9px; border: 1px solid var(--control-line); box-shadow: 0 4px 20px #0006; font-size: 12px; font-weight: 400; visibility: hidden; }
+  .action-wrap:hover .tip, .action-wrap:focus-within .tip { visibility: visible; }
+  .trello { min-width: 0; }
+  .line { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
+  .line.alert { color: var(--warn); }
+  .link { color: var(--accent); text-decoration: underline; font-size: inherit; }
+  .summary[data-stale="true"] { --text: var(--muted); --accent: var(--muted); color: var(--muted); }
+  .board-summary { display: flex; justify-content: space-between; gap: 10px; font-size: .93em; margin: 2px 0 12px; overflow-wrap: anywhere; }
+  .board-summary b { font-weight: 600; }
+  .board-summary span { color: var(--muted); white-space: nowrap; }
+  .list-counts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .list-counts li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .list-counts span { min-width: 0; overflow-wrap: anywhere; }
+  .card-preview { text-align: left; display: grid; gap: 5px; background: var(--surface-2); width: 100%; margin-top: 8px; padding: 7px; border-left: 3px solid var(--band-amber); overflow-wrap: anywhere; color: inherit; }
+  .card-preview b { font-weight: 600; }
+  .card-preview .labels i { width: 20px; height: 3px; border-radius: 0; }
   .labels { display: flex; flex-wrap: wrap; gap: 4px; }
-  .labels i { width: 22px; height: 5px; border-radius: 3px; }
-  .due { color: var(--muted); font-size: 11px; }
-  .due.overdue { color: var(--warn); }
-  .caption { font-size: 11px; color: var(--muted); }
-  .blank { display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px dashed var(--line); font-size: 12px; color: var(--muted); text-align: center; }
-  .notice { font-size: 12px; color: var(--muted); }
-  .notice.alert { color: var(--warn); }
-  .link { color: var(--accent); text-decoration: underline; cursor: pointer; }
-  .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; }
-  .action { min-height: 28px; padding: 4px 14px; border-radius: 0 18px 18px 0; background: var(--band-steel); color: var(--on-band); font-weight: 600; }
-  .action:hover:not(:disabled) { filter: brightness(1.15); }
-  .action:disabled { opacity: 0.45; cursor: default; }
-  .action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .detail-button { color: var(--accent); border-bottom: 1px solid var(--line); padding: 7px 0; text-align: left; margin-top: 5px; }
+  .empty-board { margin-top: 8px; color: var(--muted); }
+  .icon:focus-visible, .link:focus-visible, .card-preview:focus-visible, .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
-  /* Wide board: 1040 × 610 on the 1100 × 700 target, bounded by the window. */
-  dialog { margin: auto; width: min(1040px, 96vw); height: min(610px, 92vh); max-width: 96vw; max-height: 92vh; padding: 16px 18px; color: var(--text); background: var(--surface); border: 1px solid var(--line); }
-  dialog[open] { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  /* Full board, as TrelloBoardPrototype: 1040 × 610 on the 1100 × 700 target, bounded by the window. */
+  dialog { margin: auto; width: min(1040px, 96vw); height: min(610px, 92vh); max-width: 96vw; max-height: 92vh; overflow: hidden; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); padding: 20px; font-size: 13px; }
+  dialog[open] { display: flex; flex-direction: column; }
   dialog::backdrop { background: #000a; }
-  .dialog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-  .dialog-head h2 { font-size: 15px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--band-amber-text); }
-  .dialog-head p { font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
   dialog button { cursor: pointer; }
   dialog button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .close { padding: 6px 12px; border: 1px solid var(--line); border-radius: 0 14px 14px 0; }
-  .move-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 52px; padding: 8px 12px; background: var(--surface-2); border-left: 4px solid var(--band-amber); flex: none; }
-  .selection { display: grid; gap: 2px; max-width: 240px; overflow-wrap: anywhere; }
-  .selection small { color: var(--muted); font-size: 11px; }
-  .move-toolbar label { display: flex; align-items: center; gap: 8px; }
-  select { min-height: 32px; max-width: 220px; background: var(--bg); color: var(--text); border: 1px solid var(--control-line); padding: 4px 6px; font: inherit; }
-  .primary { min-height: 32px; padding: 6px 12px; background: var(--band-cyan); color: var(--on-band); border-radius: 0 16px 16px 0; font-weight: 600; }
-  .primary:disabled { opacity: 0.5; cursor: default; }
-  .plain { min-height: 32px; padding: 6px 10px; border: 1px solid var(--line); }
-  .move-status { flex: none; min-height: 18px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
-  .move-status.failed { color: var(--warn); }
+  .board-toolbar { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin: 10px 0 12px; flex: none; }
+  h3 { font-size: 17px; font-weight: 500; overflow-wrap: anywhere; }
+  dialog p, dialog small { color: var(--muted); font-size: 12px; }
+  .board-toolbar p { margin-top: 5px; }
+  .move-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; min-height: 66px; padding: 10px 12px; background: var(--surface-2); border-left: 4px solid var(--band-amber); flex: none; }
+  .selection { display: grid; gap: 4px; max-width: 240px; overflow-wrap: anywhere; }
+  label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  select { min-height: 34px; max-width: 220px; background: var(--bg); color: var(--text); border: 1px solid var(--control-line); padding: 6px; font: inherit; }
+  .move-toolbar button { min-height: 32px; padding: 6px 10px; }
+  .primary { background: var(--band-cyan); color: var(--on-band); border-radius: 0 16px 16px 0; }
+  .primary:disabled { opacity: .55; cursor: default; }
+  .move-status { flex: none; min-height: 36px; padding: 8px 0; overflow-wrap: anywhere; }
+  dialog .move-status.failed { color: var(--warn); }
   /* Columns scroll sideways, each list scrolls on its own; no card is hidden to fit. */
-  .columns { flex: 1; min-height: 0; display: flex; gap: 12px; overflow-x: auto; align-items: stretch; padding: 3px 3px 10px; scrollbar-color: var(--control-line) var(--surface); }
-  .columns[data-stale="true"] { color: var(--muted); }
-  .column { flex: 0 0 228px; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-top: 4px solid var(--band-blue); border-radius: 14px 0 0 0; padding: 10px; }
-  .column.target { border-color: var(--accent); border-style: dashed; border-top-style: solid; }
-  .column header { display: flex; justify-content: space-between; gap: 12px; padding: 2px 2px 8px; }
-  h4 { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
-  .column header .num { color: var(--muted); }
-  .move-here { margin-bottom: 8px; padding: 6px 8px; border: 1px dashed var(--accent); color: var(--accent); text-align: left; }
-  .empty { padding: 16px 8px; border: 1px dashed var(--line); color: var(--muted); }
+  .board-columns { display: flex; gap: 12px; overflow-x: auto; min-height: 0; flex: 1; padding: 3px 3px 12px; align-items: stretch; scrollbar-color: var(--control-line) var(--surface); }
+  .board-columns[data-stale="true"] { color: var(--muted); }
+  .board-column { flex: 0 0 228px; min-width: 0; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-top: 4px solid var(--band-blue); background: var(--bg); border-radius: 14px 0 0 0; padding: 10px; }
+  .board-column.target { border-color: var(--accent); }
+  .board-column header { display: flex; justify-content: space-between; gap: 12px; padding: 3px 2px 10px; margin: 0; min-height: 0; }
+  h4 { font-size: 14px; overflow-wrap: anywhere; }
+  .board-column header span { color: var(--muted); }
+  .move-here { border: 1px dashed var(--accent); color: var(--accent); margin: 0 0 8px; min-height: 32px; padding: 6px 10px; text-align: left; }
   ul { list-style: none; }
-  .column ul { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; padding: 3px; }
-  .column li { flex-shrink: 0; }
-  .card { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px; text-align: left; color: inherit; background: var(--surface-2); border: 1px solid var(--line); border-radius: 0 12px 12px 0; user-select: none; }
-  .card[draggable="true"] { cursor: grab; }
-  .card.selected { outline: 2px solid var(--accent); outline-offset: 0; border-left: 4px solid var(--accent); }
-  .card .title { font-size: 13px; }
-  .card .labels { order: -1; }
+  .board-column ul { overflow-y: auto; min-height: 0; padding: 3px; display: flex; flex-direction: column; gap: 9px; }
+  .board-column li { flex-shrink: 0; }
+  .board-card { display: flex; flex-direction: column; gap: 9px; width: 100%; padding: 12px; text-align: left; color: inherit; background: var(--surface-2); border: 1px solid var(--line); border-radius: 0 12px 12px 0; user-select: none; }
+  .board-card[draggable="true"] { cursor: grab; }
+  .board-card.selected { outline: 2px solid var(--accent); outline-offset: 0; }
+  .board-card b { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+  /* Labels sit on top as in B, after the title in the DOM so the card is named by its title first. */
+  .board-card .labels { order: -1; }
+  .board-card .labels i { width: 26px; height: 5px; border-radius: 3px; }
+  .due.overdue { color: var(--warn); }
+  .open-card { color: var(--accent); padding: 6px 4px 0; font-size: 12px; text-align: left; }
+  .empty { color: var(--muted); padding: 20px 8px; border: 1px dashed var(--line); font-size: 12px; }
+  @media (max-width: 650px) { .board-toolbar { align-items: start; flex-direction: column; gap: 4px; } .board-column { flex-basis: 210px; } .selection { max-width: 100%; } }
 </style>

@@ -104,7 +104,8 @@ describe("Compact panel", () => {
     expect(container.querySelector(".code")).toBeNull();
     expect(within(section("Rede")).queryByText("NetworkManager e kernel")).not.toBeInTheDocument();
     expect(within(section("Rede")).getByRole("heading", { level: 2, name: "Rede" })).toBeInTheDocument();
-    expect(within(section("Trello")).getByText("sem dados ainda")).toBeInTheDocument();
+    expect(within(section("Trello")).getByRole("heading", { level: 2, name: "Trello" })).toBeInTheDocument();
+    expect(within(section("Trello")).queryByText("sem dados ainda")).not.toBeInTheDocument();
   });
 
   it("shows cached snapshots at once and updates only the module the core pushes", async () => {
@@ -112,9 +113,9 @@ describe("Compact panel", () => {
     render(Panel, { core });
     expect(await within(await screen.findByRole("region", { name: "Sistema" })).findByText("atualizado 11:32")).toBeInTheDocument();
 
-    await publish({ module: "trello", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: null });
+    await publish({ module: "trello", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: trelloFull });
 
-    expect(within(section("Trello")).getByText("atualizado 09:05")).toBeInTheDocument();
+    expect(within(section("Trello")).getByText("17 cards · 8 listas")).toBeInTheDocument();
     expect(within(section("Sistema")).getByText("atualizado 11:32")).toBeInTheDocument();
   });
 
@@ -483,7 +484,7 @@ describe("Trello module in the panel", () => {
     await userEvent.click(within(trello).getByRole("button", { name: "Abrir quadro completo" }));
     const board = screen.getByRole("dialog", { name: "Quadro Trello" });
     await userEvent.click(within(board).getByRole("button", { name: new RegExp(`^${card.name}`) }));
-    await userEvent.click(within(board).getByRole("button", { name: `Abrir ${card.name} no navegador` }));
+    await userEvent.click(within(board).getByRole("button", { name: `Abrir no Trello: ${card.name}` }));
     expect(openTrelloCard).toHaveBeenCalledWith(card.url);
     await userEvent.click(within(within(board).getByRole("region", { name: to.name })).getByRole("button", { name: "Mover para esta lista" }));
     expect(moveTrelloCard).toHaveBeenCalledWith(card.id, to.id);
