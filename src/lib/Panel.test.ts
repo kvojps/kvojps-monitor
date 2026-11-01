@@ -464,7 +464,7 @@ describe("Trello module in the panel", () => {
     expect(refreshTrello).toHaveBeenCalledOnce();
   });
 
-  it("moves and opens cards through the core", async () => {
+  it("moves and opens cards through the core from the board overlay, keeping the summary in step", async () => {
     const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: trelloFull }] });
     const moveTrelloCard = vi.fn(async () => {});
     const openTrelloCard = vi.fn();
@@ -472,11 +472,15 @@ describe("Trello module in the panel", () => {
     const trello = await screen.findByRole("region", { name: "Trello" });
     const [from, to] = trelloFull.lists;
     const card = from.cards[0];
-    await userEvent.click(within(trello).getByRole("button", { name: new RegExp(card.name) }));
-    await userEvent.click(within(trello).getByRole("button", { name: `Abrir ${card.name} no navegador` }));
+    await userEvent.click(within(trello).getByRole("button", { name: "Abrir quadro completo" }));
+    const board = screen.getByRole("dialog", { name: "Quadro Trello" });
+    await userEvent.click(within(board).getByRole("button", { name: new RegExp(`^${card.name}`) }));
+    await userEvent.click(within(board).getByRole("button", { name: `Abrir ${card.name} no navegador` }));
     expect(openTrelloCard).toHaveBeenCalledWith(card.url);
-    await userEvent.click(within(trello).getByRole("button", { name: `Mover para ${to.name}` }));
+    await userEvent.click(within(within(board).getByRole("region", { name: to.name })).getByRole("button", { name: "Mover para esta lista" }));
     expect(moveTrelloCard).toHaveBeenCalledWith(card.id, to.id);
+    const counts = within(trello).getByRole("list", { name: "Cards por lista" });
+    expect(within(counts).getByText(to.name).nextElementSibling).toHaveTextContent("1");
   });
 
   it("reverts a move when the core cannot reach Trello", async () => {
@@ -484,10 +488,26 @@ describe("Trello module in the panel", () => {
     render(Panel, { core });
     const trello = await screen.findByRole("region", { name: "Trello" });
     const [from, to] = trelloFull.lists;
-    await userEvent.click(within(trello).getByRole("button", { name: new RegExp(from.cards[0].name) }));
-    await userEvent.click(within(trello).getByRole("button", { name: `Mover para ${to.name}` }));
-    expect(await within(trello).findByRole("alert")).toHaveTextContent("Não foi possível mover");
-    expect(within(within(trello).getByRole("region", { name: from.name })).getByText(from.cards[0].name)).toBeInTheDocument();
+    await userEvent.click(within(trello).getByRole("button", { name: "Abrir quadro completo" }));
+    const board = screen.getByRole("dialog", { name: "Quadro Trello" });
+    await userEvent.click(within(board).getByRole("button", { name: new RegExp(`^${from.cards[0].name}`) }));
+    await userEvent.click(within(within(board).getByRole("region", { name: to.name })).getByRole("button", { name: "Mover para esta lista" }));
+    expect(await within(board).findByRole("alert")).toHaveTextContent("Não foi possível mover");
+    expect(within(within(board).getByRole("region", { name: from.name })).getByText(from.cards[0].name)).toBeInTheDocument();
+  });
+
+  it("closes the board with Escape before Escape hides the panel, returning focus to its trigger", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: trelloFull }] });
+    render(Panel, { core });
+    const trello = await screen.findByRole("region", { name: "Trello" });
+    const trigger = within(trello).getByRole("button", { name: "Abrir quadro completo" });
+    await userEvent.click(trigger);
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(core.closePanel).not.toHaveBeenCalled();
+    expect(trigger).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    expect(core.closePanel).toHaveBeenCalledOnce();
   });
 
   it("opens Settings from the module and returns focus to it", async () => {
@@ -504,14 +524,17 @@ describe("Trello module in the panel", () => {
     const { core, publish } = fakeCore({ snapshots: [{ module: "trello", updatedAt: 1, data: trelloFull }] });
     render(Panel, { core });
     const trello = await screen.findByRole("region", { name: "Trello" });
-    const card = within(trello).getByRole("button", { name: new RegExp(trelloFull.lists[0].cards[0].name) });
-    await userEvent.click(card);
     const scroller = screen.getByRole("main");
     scroller.scrollTop = 120;
+    await userEvent.click(within(trello).getByRole("button", { name: "Abrir quadro completo" }));
+    const board = screen.getByRole("dialog", { name: "Quadro Trello" });
+    const card = within(board).getByRole("button", { name: new RegExp(`^${trelloFull.lists[0].cards[0].name}`) });
+    await userEvent.click(card);
 
     await publish({ module: "trello", updatedAt: 2, data: { ...trelloFull, refreshing: true } });
 
-    expect(within(trello).getByRole("status")).toHaveTextContent("Atualizando…");
+    expect(within(trello).getByText("Atualizando…")).toBeInTheDocument();
+    expect(board).toHaveAttribute("open");
     expect(card).toHaveFocus();
     expect(card).toHaveAttribute("aria-pressed", "true");
     expect(scroller.scrollTop).toBe(120);
@@ -621,10 +644,12 @@ it("recovers one source without replacing another source's reading or selected c
   render(Panel, { core });
   const meter = await screen.findByRole("meter", { name: "Codex · janela de 5 h" });
   const value = meter.getAttribute("aria-valuenow");
-  const card = within(section("Trello")).getByRole("button", { name: new RegExp(trelloFull.lists[0].cards[0].name) });
-  await userEvent.click(card);
   const scroller = screen.getByRole("main");
   scroller.scrollTop = 180;
+  await userEvent.click(within(section("Trello")).getByRole("button", { name: "Abrir quadro completo" }));
+  const card = within(screen.getByRole("dialog", { name: "Quadro Trello" }))
+    .getByRole("button", { name: new RegExp(`^${trelloFull.lists[0].cards[0].name}`) });
+  await userEvent.click(card);
   expect(within(section("GitHub")).getByRole("button", { name: "Reconectar" })).toBeInTheDocument();
 
   await publish({ module: "github", updatedAt: 2, data: githubFull });

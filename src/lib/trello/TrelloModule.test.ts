@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/svelte";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import TrelloModule from "./TrelloModule.svelte";
@@ -15,41 +15,371 @@ import offlineJson from "./fixtures/offline.json";
 const full = fullJson as TrelloData;
 const stale = staleJson as TrelloData;
 const offline = offlineJson as TrelloData;
+const invalid = invalidJson as TrelloData;
 const props = (data: unknown, moveCard = vi.fn(() => new Promise<void>(() => {}))) =>
   ({ data: data as TrelloData, refresh: vi.fn(), configure: vi.fn(), openCard: vi.fn(), moveCard });
-const column = (name: string) => screen.getByRole("region", { name });
+const board = () => screen.getByRole("dialog", { name: "Quadro Trello" });
+const column = (name: string) => within(board()).getByRole("region", { name });
+const cardIn = (name: string) => within(board()).getByRole("button", { name: new RegExp(`^${name}`) });
+const counts = () => screen.getByRole("list", { name: "Cards por lista" });
+const countOf = (list: string) => within(counts()).getByText(list).nextElementSibling!.textContent;
+async function openBoard() {
+  await userEvent.click(screen.getByRole("button", { name: "Abrir quadro completo" }));
+  return board();
+}
+async function select(card: string) { await userEvent.click(cardIn(card)); }
 
-it("shows each list as a column with its cards", () => {
+it("summarizes the real board with counts per list and a card preview", () => {
   render(TrelloModule, props(full));
+  expect(screen.getByRole("heading", { name: "Quadro 1" })).toBeInTheDocument();
+  expect(screen.getByText("17 cards · 8 listas")).toBeInTheDocument();
+  expect(countOf("Lista 1")).toBe("4");
+  expect(countOf("Lista 2")).toBe("0");
+  expect(screen.getByRole("button", { name: /Card 1\.1/ })).toHaveTextContent("Primeiro card · Lista 1");
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("shows the hidden-title notice instead of a fixed title in the preview of a cached board", () => {
+  render(TrelloModule, props(stale));
+  expect(screen.getByRole("button", { name: /Primeiro card/ })).toHaveTextContent("Título disponível após atualizar");
+});
+
+it("opens the full board with every list, its count and its cards", async () => {
+  render(TrelloModule, props(full));
+  await openBoard();
   for (const list of full.lists!) {
-    const column = screen.getByRole("region", { name: list.name });
-    for (const card of list.cards) expect(within(column).getByText(card.name)).toBeInTheDocument();
+    const region = column(list.name);
+    expect(within(region).getByText(new RegExp(`^${list.cards.length} cards?$`))).toBeInTheDocument();
+    for (const card of list.cards) expect(within(region).getByText(card.name)).toBeInTheDocument();
   }
 });
 
-it("shows labels as colored dots and flags overdue due dates", () => {
+it("opens the board on the previewed card, selected", async () => {
+  render(TrelloModule, props(full));
+  await userEvent.click(screen.getByRole("button", { name: /Primeiro card/ }));
+  expect(cardIn("Card 1.1")).toHaveAttribute("aria-pressed", "true");
+  expect(cardIn("Card 1.1")).toHaveFocus();
+});
+
+it("shows labels and due states in words, not only in color", async () => {
   render(TrelloModule, props(overdueJson));
-  const card = screen.getByText("Card 1.1").closest("li")!;
-  expect(within(card).getAllByTestId("label")).toHaveLength(2);
-  expect(within(card).getByText(/Vencido/)).toHaveClass("overdue");
-  for (const name of ["Card concluído", "Card futuro"]) {
-    const later = screen.getByText(name).closest("li")!;
-    expect(within(later).getByText(/Entrega/)).not.toHaveClass("overdue");
-  }
+  await openBoard();
+  const late = cardIn("Card 1.1");
+  expect(within(late).getAllByTestId("label")).toHaveLength(2);
+  expect(within(late).getByRole("img")).toHaveAttribute("aria-label", "Etiquetas: vermelho, azul-celeste claro");
+  expect(within(late).getByText(/Vencido/)).toHaveClass("overdue");
+  expect(within(cardIn("Card concluído")).getByText(/Entrega concluída/)).not.toHaveClass("overdue");
+  expect(within(cardIn("Card futuro")).getByText(/^Entrega \d/)).not.toHaveClass("overdue");
 });
 
-it("opens a card in the browser on double click", async () => {
+it("opens a card in the browser on double click or explicit action only", async () => {
   const p = props(full);
   render(TrelloModule, p);
+  await openBoard();
   const card = full.lists![0].cards[0];
-  await fireEvent.dblClick(screen.getByText(card.name));
+  await select(card.name);
+  expect(p.openCard).not.toHaveBeenCalled();
+  await userEvent.click(within(board()).getByRole("button", { name: `Abrir ${card.name} no navegador` }));
+  await fireEvent.dblClick(cardIn(card.name));
+  expect(p.openCard).toHaveBeenCalledTimes(2);
   expect(p.openCard).toHaveBeenCalledWith(card.url);
+});
+
+it("moves a card after choosing Mover para and confirming Mover card", async () => {
+  const p = props(full);
+  render(TrelloModule, p);
+  await openBoard();
+  const [from, to] = full.lists!;
+  const card = from.cards[0];
+  await select(card.name);
+  const confirm = within(board()).getByRole("button", { name: "Mover card" });
+  expect(confirm).toBeDisabled();
+  await userEvent.selectOptions(within(board()).getByRole("combobox", { name: "Mover para" }), to.name);
+  await userEvent.click(confirm);
+  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(card.id, to.id);
+  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
+  expect(within(column(from.name)).queryByText(card.name)).not.toBeInTheDocument();
+  expect(within(board()).getByRole("status")).toHaveTextContent(`Movendo “${card.name}” para ${to.name}`);
+  expect(countOf(from.name)).toBe("3");
+  expect(countOf(to.name)).toBe("1");
+});
+
+it("offers every other list in the selector, even off-screen ones", async () => {
+  render(TrelloModule, props(full));
+  await openBoard();
+  await select(full.lists![0].cards[0].name);
+  const options = within(within(board()).getByRole("combobox", { name: "Mover para" })).getAllByRole("option");
+  expect(options.map((o) => o.textContent)).toEqual(["Escolha uma lista", ...full.lists!.slice(1).map((l) => l.name)]);
+});
+
+it("moves a card with Mover para esta lista on the destination column", async () => {
+  const p = props(full);
+  render(TrelloModule, p);
+  await openBoard();
+  const [from, , to] = full.lists!;
+  await select(from.cards[0].name);
+  expect(within(column(from.name)).queryByRole("button", { name: "Mover para esta lista" })).not.toBeInTheDocument();
+  await userEvent.click(within(column(to.name)).getByRole("button", { name: "Mover para esta lista" }));
+  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(from.cards[0].id, to.id);
+  expect(cardIn(from.cards[0].name)).toHaveFocus();
+});
+
+it("moves a card by dragging it to another list", async () => {
+  const p = props(full);
+  render(TrelloModule, p);
+  await openBoard();
+  const [from, to] = full.lists!;
+  const card = cardIn(from.cards[0].name);
+  expect(card).toHaveAttribute("draggable", "true");
+  await fireEvent.dragStart(card);
+  const sameList = new Event("dragover", { bubbles: true, cancelable: true });
+  column(from.name).dispatchEvent(sameList);
+  expect(sameList.defaultPrevented).toBe(false);
+  const over = new Event("dragover", { bubbles: true, cancelable: true });
+  column(to.name).dispatchEvent(over);
+  expect(over.defaultPrevented).toBe(true);
+  await fireEvent.drop(column(to.name));
+  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(from.cards[0].id, to.id);
+  expect(within(column(to.name)).getByText(from.cards[0].name)).toBeInTheDocument();
+});
+
+it("puts the card back, restores the summary and explains when the move fails", async () => {
+  const p = props(full, vi.fn(() => Promise.reject("failed")));
+  render(TrelloModule, p);
+  await openBoard();
+  const [from, to] = full.lists!;
+  const card = from.cards[0];
+  await select(card.name);
+  await userEvent.click(within(column(to.name)).getByRole("button", { name: "Mover para esta lista" }));
+  expect(await within(board()).findByRole("alert"))
+    .toHaveTextContent(`Não foi possível mover “${card.name}”. O card voltou para ${from.name}.`);
+  expect(within(column(from.name)).getByText(card.name)).toBeInTheDocument();
+  expect(within(column(to.name)).queryByText(card.name)).not.toBeInTheDocument();
+  expect(countOf(from.name)).toBe("4");
+  expect(cardIn(card.name)).toHaveFocus();
+});
+
+it("explains a failure in the summary when the board was already closed", async () => {
+  let fail!: () => void;
+  const p = props(full, vi.fn(() => new Promise<void>((_, reject) => fail = () => reject("failed"))));
+  render(TrelloModule, p);
+  await openBoard();
+  const [from, to] = full.lists!;
+  await select(from.cards[0].name);
+  await userEvent.click(within(column(to.name)).getByRole("button", { name: "Mover para esta lista" }));
+  await userEvent.click(within(board()).getByRole("button", { name: "Fechar" }));
+  fail();
+  expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível mover");
+  expect(countOf(from.name)).toBe("4");
+});
+
+it("cancels a selection without moving and returns focus to the card", async () => {
+  const p = props(full);
+  render(TrelloModule, p);
+  await openBoard();
+  const [from, to] = full.lists!;
+  await select(from.cards[0].name);
+  await userEvent.selectOptions(within(board()).getByRole("combobox", { name: "Mover para" }), to.name);
+  await userEvent.click(within(board()).getByRole("button", { name: "Cancelar seleção" }));
+  expect(p.moveCard).not.toHaveBeenCalled();
+  expect(within(board()).queryByRole("button", { name: "Mover para esta lista" })).not.toBeInTheDocument();
+  expect(cardIn(from.cards[0].name)).toHaveFocus();
+  await select(from.cards[0].name);
+  await select(from.cards[0].name);
+  expect(cardIn(from.cards[0].name)).toHaveAttribute("aria-pressed", "false");
+  expect(within(column(from.name)).getByText(from.cards[0].name)).toBeInTheDocument();
+});
+
+it("offers no move offline or with a refused credential, but still opens cards", async () => {
+  for (const data of [offline, invalid]) {
+    const p = props(data);
+    const { unmount } = render(TrelloModule, p);
+    await openBoard();
+    const card = data.lists![0].cards[0];
+    const name = card.name || "Título disponível após atualizar";
+    expect(within(board()).getByText("Movimentação indisponível até o Trello voltar a atualizar.")).toBeInTheDocument();
+    expect(within(board()).getAllByRole("button", { name: new RegExp(`^${name}`) })[0]).toHaveAttribute("draggable", "false");
+    await userEvent.click(within(board()).getAllByRole("button", { name: new RegExp(`^${name}`) })[0]);
+    expect(within(board()).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(within(board()).queryByRole("button", { name: "Mover para esta lista" })).not.toBeInTheDocument();
+    await userEvent.click(within(board()).getByRole("button", { name: `Abrir ${name} no navegador` }));
+    expect(p.openCard).toHaveBeenCalledWith(card.url);
+    expect(p.moveCard).not.toHaveBeenCalled();
+    unmount();
+  }
+});
+
+it("keeps a moved card in place until the core publishes the reread board", async () => {
+  let done!: () => void;
+  const p = props(full, vi.fn(() => new Promise<void>((resolve) => done = resolve)));
+  const { rerender } = render(TrelloModule, p);
+  await openBoard();
+  const [from, to] = full.lists!;
+  const card = from.cards[0];
+  await select(card.name);
+  await userEvent.click(within(column(to.name)).getByRole("button", { name: "Mover para esta lista" }));
+  done();
+  expect(await within(board()).findByText(`“${card.name}” movido para ${to.name}.`)).toBeInTheDocument();
+  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
+  const moved = structuredClone(full);
+  moved.lists![1].cards.push(moved.lists![0].cards.shift()!);
+  await rerender({ data: moved });
+  expect(within(column(to.name)).getAllByText(card.name)).toHaveLength(1);
+  expect(within(column(from.name)).queryByText(card.name)).not.toBeInTheDocument();
+  expect(countOf(to.name)).toBe("1");
+});
+
+it("shows the latest destination when a card is moved again before the core answers", async () => {
+  const replies: (() => void)[] = [];
+  const p = props(full, vi.fn(() => new Promise<void>((_, reject) => replies.push(() => reject("failed")))));
+  render(TrelloModule, p);
+  await openBoard();
+  const [from, second, third] = full.lists!;
+  await select(from.cards[0].name);
+  await userEvent.click(within(column(second.name)).getByRole("button", { name: "Mover para esta lista" }));
+  await userEvent.click(within(column(third.name)).getByRole("button", { name: "Mover para esta lista" }));
+  replies[0]();
+  await act(() => {});
+  expect(within(column(third.name)).getByText(from.cards[0].name)).toBeInTheDocument();
+  expect(within(board()).queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("selects, moves and opens a card entirely from the keyboard", async () => {
+  const user = userEvent.setup();
+  const p = props(full);
+  render(TrelloModule, p);
+  screen.getByRole("button", { name: "Abrir quadro completo" }).focus();
+  await user.keyboard("{Enter}");
+  const [from, to] = full.lists!;
+  const card = cardIn(from.cards[0].name);
+  card.focus();
+  await user.keyboard("{Enter}");
+  expect(card).toHaveAttribute("aria-pressed", "true");
+  const choose = within(board()).getByRole("combobox", { name: "Mover para" });
+  choose.focus();
+  await user.selectOptions(choose, to.name);
+  await user.tab();
+  expect(within(board()).getByRole("button", { name: "Mover card" })).toHaveFocus();
+  await user.keyboard("{Enter}");
+  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(from.cards[0].id, to.id);
+  expect(cardIn(from.cards[0].name)).toHaveFocus();
+  await user.click(within(board()).getByRole("button", { name: `Abrir ${from.cards[0].name} no navegador` }));
+  expect(p.openCard).toHaveBeenCalledWith(from.cards[0].url);
+});
+
+it("closes the board with Fechar or Escape and returns focus to its trigger", async () => {
+  render(TrelloModule, props(full));
+  const trigger = screen.getByRole("button", { name: "Abrir quadro completo" });
+  await openBoard();
+  await userEvent.click(within(board()).getByRole("button", { name: "Fechar" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  await openBoard();
+  const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  window.dispatchEvent(escape);
+  await act(() => {});
+  expect(escape.defaultPrevented).toBe(true);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+});
+
+it("leaves Escape to the Panel when the board is closed", () => {
+  render(TrelloModule, props(full));
+  const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  window.dispatchEvent(escape);
+  expect(escape.defaultPrevented).toBe(false);
+});
+
+it("keeps the selection when the board is reopened and focuses the selected card", async () => {
+  render(TrelloModule, props(full));
+  await openBoard();
+  await select("Card 3.1");
+  await userEvent.click(within(board()).getByRole("button", { name: "Fechar" }));
+  await openBoard();
+  expect(cardIn("Card 3.1")).toHaveAttribute("aria-pressed", "true");
+  expect(cardIn("Card 3.1")).toHaveFocus();
+});
+
+it("keeps the board open, the selection and the focus when a refreshed board arrives", async () => {
+  const { rerender } = render(TrelloModule, props(full));
+  await openBoard();
+  const [from, to] = full.lists!;
+  await select(from.cards[0].name);
+  const card = cardIn(from.cards[0].name);
+  await rerender({ data: { ...structuredClone(full), refreshing: true } });
+  await rerender({ data: structuredClone(full) });
+  expect(board()).toHaveAttribute("open");
+  expect(card).toHaveFocus();
+  expect(card).toHaveAttribute("aria-pressed", "true");
+  expect(within(column(to.name)).getByRole("button", { name: "Mover para esta lista" })).toBeInTheDocument();
+});
+
+it("drops the selection when the selected card leaves the board", async () => {
+  const p = props(full);
+  const { rerender } = render(TrelloModule, p);
+  await openBoard();
+  await select(full.lists![0].cards[0].name);
+  const archived = structuredClone(full);
+  archived.lists![0].cards.shift();
+  await rerender({ data: archived });
+  expect(within(board()).queryByRole("button", { name: "Mover para esta lista" })).not.toBeInTheDocument();
+  expect(within(board()).queryByRole("combobox")).not.toBeInTheDocument();
+});
+
+it("keeps each list's scroll position when a refreshed board arrives", async () => {
+  const { rerender } = render(TrelloModule, props(full));
+  await openBoard();
+  const cards = within(column(full.lists![0].name)).getByRole("list");
+  cards.scrollTop = 80;
+  await rerender({ data: structuredClone(full) });
+  expect(within(column(full.lists![0].name)).getByRole("list")).toBe(cards);
+  expect(cards.scrollTop).toBe(80);
+});
+
+it("restores the horizontal board scroll when reopened", async () => {
+  render(TrelloModule, props(full));
+  await openBoard();
+  const lists = within(board()).getByRole("group", { name: "Listas do quadro" });
+  lists.scrollLeft = 300;
+  await userEvent.click(within(board()).getByRole("button", { name: "Fechar" }));
+  await openBoard();
+  expect(within(board()).getByRole("group", { name: "Listas do quadro" }).scrollLeft).toBe(300);
+});
+
+it("marks empty lists and explains a board without lists or cards", async () => {
+  render(TrelloModule, props(full));
+  await openBoard();
+  expect(within(column("Lista 2")).getByText("Sem cards")).toBeInTheDocument();
+  cleanup();
+  render(TrelloModule, props({ ...full, lists: [] }));
+  expect(screen.getByText("Quadro sem listas")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Abrir quadro completo" })).not.toBeInTheDocument();
+  cleanup();
+  render(TrelloModule, props({ ...full, lists: full.lists!.map((l) => ({ ...l, cards: [] })) }));
+  expect(screen.getByText("Quadro sem cards")).toBeInTheDocument();
+  expect(screen.getByText("0 cards · 8 listas")).toBeInTheDocument();
+});
+
+it("shows every card of a dense list with its labels and due date", async () => {
+  const dense = structuredClone(overdueJson as TrelloData);
+  const model = dense.lists![0].cards[0];
+  dense.lists![0].cards = Array.from({ length: 40 }, (_, i) => ({ ...model, id: `dense-${i}`, name: `Card denso ${i}` }));
+  render(TrelloModule, props(dense));
+  expect(countOf(dense.lists![0].name)).toBe("40");
+  await openBoard();
+  const list = within(column(dense.lists![0].name));
+  for (let i = 0; i < 40; i++) {
+    const card = list.getByRole("button", { name: new RegExp(`Card denso ${i} `) });
+    expect(within(card).getAllByTestId("label")).toHaveLength(model.labels.length);
+    expect(within(card).getByText(/Vencido/)).toBeInTheDocument();
+  }
 });
 
 it("keeps the module visible without credentials and offers setup", async () => {
   const p = props(emptyJson);
   render(TrelloModule, p);
   expect(screen.getByText("Trello não conectado")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Abrir quadro completo" })).not.toBeInTheDocument();
   await fireEvent.click(screen.getByRole("button", { name: "Configurar Trello" }));
   expect(p.configure).toHaveBeenCalledOnce();
 });
@@ -60,9 +390,9 @@ it("asks for a board after connecting", () => {
 });
 
 it("dims the last board and offers reconnection for a refused credential", async () => {
-  const p = props(invalidJson);
+  const p = props(invalid);
   render(TrelloModule, p);
-  expect(screen.getByText("Lista 1").closest("[data-stale]")).toHaveAttribute("data-stale", "true");
+  expect(screen.getByRole("list", { name: "Cards por lista" }).closest("[data-stale]")).toHaveAttribute("data-stale", "true");
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
   expect(screen.getByText("Credencial inválida", { exact: false })).toBeInTheDocument();
   await fireEvent.click(screen.getByRole("button", { name: "Reconectar" }));
@@ -72,15 +402,16 @@ it("dims the last board and offers reconnection for a refused credential", async
 it("shows sustained failure and keeps the last board", () => {
   render(TrelloModule, props(errorJson));
   expect(screen.getByText(/Falha ao atualizar/)).toBeInTheDocument();
-  expect(screen.getByText("Lista 1")).toBeInTheDocument();
+  expect(countOf("Lista 1")).toBe("4");
 });
 
-it("shows the board restored from cache with its age and titles pending", () => {
+it("shows the board restored from cache with its age and titles pending", async () => {
   render(TrelloModule, props(stale));
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
-  expect(screen.getAllByText("Título disponível após atualizar")).toHaveLength(
-    stale.lists!.reduce((n, list) => n + list.cards.length, 0));
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
+  await openBoard();
+  expect(within(board()).getAllByText("Título disponível após atualizar")).toHaveLength(
+    stale.lists!.reduce((n, list) => n + list.cards.length, 0));
 });
 
 it("refreshes manually with a ten second cooldown", async () => {
@@ -101,7 +432,7 @@ it("keeps the board with its age and disables refresh while offline", () => {
   render(TrelloModule, props(offline));
   expect(screen.getByRole("button", { name: "Atualizar Trello" })).toBeDisabled();
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
-  expect(screen.getByText(offline.lists![0].cards[0].name)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: new RegExp(offline.lists![0].cards[0].name) })).toBeInTheDocument();
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
@@ -110,91 +441,6 @@ it("points back to Settings to paste the token after generating it", () => {
   render(TrelloModule, props({ ...emptyJson, pendingKey: "0123abcd" }));
   expect(screen.getByText("Token gerado? Cole-o nas Configurações para concluir.")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Configurar Trello" })).toBeInTheDocument();
-});
-
-it("moves a selected card to the clicked list right away", async () => {
-  const p = props(full);
-  render(TrelloModule, p);
-  const [from, to] = full.lists!;
-  const card = from.cards[0];
-  await fireEvent.click(screen.getByText(card.name));
-  await fireEvent.click(column(to.name));
-  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(card.id, to.id);
-  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
-  expect(within(column(from.name)).queryByText(card.name)).not.toBeInTheDocument();
-});
-
-it("puts the card back and explains when the move fails", async () => {
-  const p = props(full, vi.fn(() => Promise.reject("failed")));
-  render(TrelloModule, p);
-  const [from, to] = full.lists!;
-  const card = from.cards[0];
-  await fireEvent.click(screen.getByText(card.name));
-  await fireEvent.click(column(to.name));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível mover");
-  expect(within(column(from.name)).getByText(card.name)).toBeInTheDocument();
-  expect(within(column(to.name)).queryByText(card.name)).not.toBeInTheDocument();
-});
-
-it("cancels a selection by clicking the card again or its own list", async () => {
-  const p = props(full);
-  render(TrelloModule, p);
-  const [from, to] = full.lists!;
-  const card = screen.getByText(from.cards[0].name);
-  const cancelThenTarget = async (cancel: () => Promise<unknown>) => {
-    await fireEvent.click(card);
-    await cancel();
-    await fireEvent.click(column(to.name));
-  };
-  await cancelThenTarget(() => fireEvent.click(card));
-  await cancelThenTarget(() => fireEvent.click(column(from.name)));
-  expect(p.moveCard).not.toHaveBeenCalled();
-  expect(within(column(from.name)).getByText(from.cards[0].name)).toBeInTheDocument();
-});
-
-it("does not move cards while offline or with a refused credential", async () => {
-  for (const data of [offline, invalidJson]) {
-    const p = props(data);
-    const { unmount } = render(TrelloModule, p);
-    const [from, to] = (data as TrelloData).lists!;
-    await fireEvent.click(screen.getByText(from.cards[0].name));
-    await fireEvent.click(column(to.name));
-    expect(p.moveCard).not.toHaveBeenCalled();
-    unmount();
-  }
-});
-
-it("keeps a moved card in place until the core publishes the reread board", async () => {
-  let done!: () => void;
-  const p = props(full, vi.fn(() => new Promise<void>((resolve) => done = resolve)));
-  const { rerender } = render(TrelloModule, p);
-  const [from, to] = full.lists!;
-  const card = from.cards[0];
-  await fireEvent.click(screen.getByText(card.name));
-  await fireEvent.click(column(to.name));
-  done();
-  await new Promise((settle) => setTimeout(settle));
-  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
-  const moved = structuredClone(full);
-  moved.lists![1].cards.push(moved.lists![0].cards.shift()!);
-  await rerender({ data: moved });
-  expect(within(column(to.name)).getAllByText(card.name)).toHaveLength(1);
-  expect(within(column(from.name)).queryByText(card.name)).not.toBeInTheDocument();
-});
-
-it("shows the latest destination when a card is moved again before the core answers", async () => {
-  const replies: (() => void)[] = [];
-  const p = props(full, vi.fn(() => new Promise<void>((_, reject) => replies.push(() => reject("failed")))));
-  render(TrelloModule, p);
-  const [from, second, third] = full.lists!;
-  const card = from.cards[0];
-  await fireEvent.click(screen.getByText(card.name));
-  await fireEvent.click(column(second.name));
-  await fireEvent.click(screen.getByText(card.name));
-  await fireEvent.click(column(third.name));
-  replies[0]();
-  await screen.findByRole("alert");
-  expect(within(column(third.name)).getByText(card.name)).toBeInTheDocument();
 });
 
 it("explains there is no board reading yet and keeps refresh and configure", async () => {
@@ -207,113 +453,38 @@ it("explains there is no board reading yet and keeps refresh and configure", asy
   expect(p.configure).toHaveBeenCalledOnce();
 });
 
-it("keeps configure available next to the board", () => {
-  render(TrelloModule, props(full));
-  expect(screen.getByRole("button", { name: "Configurar Trello" })).toBeInTheDocument();
-});
-
-it("selects, moves and opens a card from the keyboard", async () => {
-  const user = userEvent.setup();
+it("keeps the card selected after a double click opens it", async () => {
   const p = props(full);
   render(TrelloModule, p);
-  const [from, to] = full.lists!;
-  const card = from.cards[0];
-  const button = screen.getByRole("button", { name: new RegExp(card.name) });
-  button.focus();
-  await user.keyboard("{Enter}");
-  expect(button).toHaveAttribute("aria-pressed", "true");
-  await user.click(screen.getByRole("button", { name: `Abrir ${card.name} no navegador` }));
-  expect(p.openCard).toHaveBeenCalledWith(card.url);
-  screen.getByRole("button", { name: `Mover para ${to.name}` }).focus();
-  await user.keyboard("{Enter}");
-  expect(p.moveCard).toHaveBeenCalledExactlyOnceWith(card.id, to.id);
-  expect(within(column(to.name)).getByText(card.name)).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /^Mover para/ })).not.toBeInTheDocument();
+  await openBoard();
+  const card = full.lists![0].cards[0];
+  await userEvent.dblClick(cardIn(card.name));
+  expect(p.openCard).toHaveBeenCalledExactlyOnceWith(card.url);
+  expect(cardIn(card.name)).toHaveAttribute("aria-pressed", "true");
 });
 
-it("offers no move to the list the selected card is already in", async () => {
-  render(TrelloModule, props(full));
-  const [from, to] = full.lists!;
-  await fireEvent.click(screen.getByText(from.cards[0].name));
-  expect(screen.queryByRole("button", { name: `Mover para ${from.name}` })).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: `Mover para ${to.name}` })).toBeInTheDocument();
-});
-
-it("still opens cards offline or with a refused credential, offering no move", async () => {
-  for (const data of [offline, invalidJson as TrelloData]) {
-    const p = props(data);
-    const { unmount } = render(TrelloModule, p);
-    const card = data.lists![0].cards[0];
-    const name = card.name || "Título disponível após atualizar";
-    await fireEvent.dblClick(screen.getByText(name));
-    await fireEvent.click(screen.getByText(name));
-    await fireEvent.click(screen.getByRole("button", { name: `Abrir ${name} no navegador` }));
-    expect(p.openCard).toHaveBeenNthCalledWith(2, card.url);
-    expect(screen.queryByRole("button", { name: /^Mover para/ })).not.toBeInTheDocument();
-    unmount();
-  }
-});
-
-it("keeps the selection and focus when a refreshed board arrives", async () => {
-  const { rerender } = render(TrelloModule, props(full));
-  const [from, to] = full.lists!;
-  const button = screen.getByRole("button", { name: new RegExp(from.cards[0].name) });
-  await fireEvent.click(button);
-  button.focus();
-  await rerender({ data: { ...structuredClone(full), refreshing: true } });
-  await rerender({ data: structuredClone(full) });
-  expect(button).toHaveFocus();
-  expect(button).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("button", { name: `Mover para ${to.name}` })).toBeInTheDocument();
-});
-
-it("drops the selection when the selected card leaves the board", async () => {
+it("forgets a chosen destination that a refreshed board removed", async () => {
   const p = props(full);
   const { rerender } = render(TrelloModule, p);
+  await openBoard();
   const [from, to] = full.lists!;
-  await fireEvent.click(screen.getByText(from.cards[0].name));
-  const archived = structuredClone(full);
-  archived.lists![0].cards.shift();
-  await rerender({ data: archived });
-  expect(screen.queryByRole("button", { name: /^Mover para/ })).not.toBeInTheDocument();
-  await fireEvent.click(column(to.name));
-  expect(p.moveCard).not.toHaveBeenCalled();
+  await select(from.cards[0].name);
+  await userEvent.selectOptions(within(board()).getByRole("combobox", { name: "Mover para" }), to.name);
+  const without = structuredClone(full);
+  without.lists!.splice(1, 1);
+  await rerender({ data: without });
+  expect(within(board()).getByRole("button", { name: "Mover card" })).toBeDisabled();
+  expect(within(board()).getByRole("combobox", { name: "Mover para" })).toHaveValue("");
 });
 
-it("marks empty lists and explains a board without lists", () => {
-  render(TrelloModule, props(full));
-  expect(within(column("Lista 2")).getByText("Sem cards")).toBeInTheDocument();
-  cleanup();
-  render(TrelloModule, props({ ...full, lists: [] }));
-  expect(screen.getByText("Quadro sem listas")).toBeInTheDocument();
-});
-
-it("shows every card of a dense list with its labels and due date", () => {
-  const dense = structuredClone(overdueJson as TrelloData);
-  const model = dense.lists![0].cards[0];
-  dense.lists![0].cards = Array.from({ length: 40 }, (_, i) => ({ ...model, id: `dense-${i}`, name: `Card denso ${i}` }));
-  render(TrelloModule, props(dense));
-  const list = within(column(dense.lists![0].name));
-  for (let i = 0; i < 40; i++) {
-    const card = list.getByRole("button", { name: new RegExp(`^Card denso ${i} `) });
-    expect(within(card).getAllByTestId("label")).toHaveLength(model.labels.length);
-    expect(within(card).getByText(/Vencido/)).toBeInTheDocument();
-  }
-});
-
-it("selects another card directly while moves are unavailable", async () => {
-  render(TrelloModule, props(offline));
-  const [first, , third] = offline.lists!;
-  await fireEvent.click(screen.getByText(first.cards[0].name));
-  await fireEvent.click(screen.getByText(third.cards[0].name));
-  expect(screen.getByRole("button", { name: `Abrir ${third.cards[0].name} no navegador` })).toBeInTheDocument();
-});
-
-it("keeps each list's scroll position when a refreshed board arrives", async () => {
-  const { rerender } = render(TrelloModule, props(full));
-  const cards = within(column(full.lists![0].name)).getByRole("list");
-  cards.scrollTop = 80;
-  await rerender({ data: structuredClone(full) });
-  expect(within(column(full.lists![0].name)).getByRole("list")).toBe(cards);
-  expect(cards.scrollTop).toBe(80);
+it("starts a reopened board without the previous move outcome", async () => {
+  render(TrelloModule, props(full, vi.fn(async () => {})));
+  await openBoard();
+  const [from, to] = full.lists!;
+  await select(from.cards[0].name);
+  await userEvent.click(within(column(to.name)).getByRole("button", { name: "Mover para esta lista" }));
+  expect(await within(board()).findByText(/movido para/)).toBeInTheDocument();
+  await userEvent.click(within(board()).getByRole("button", { name: "Fechar" }));
+  await openBoard();
+  expect(within(board()).getByRole("status")).toHaveTextContent("Nenhuma alteração realizada.");
 });

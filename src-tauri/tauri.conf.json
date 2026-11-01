@@ -20,6 +20,7 @@
         "decorations": false,
         "visible": true,
         "skipTaskbar": true,
+        "dragDropEnabled": false,
         "create": false
       }
     ],
