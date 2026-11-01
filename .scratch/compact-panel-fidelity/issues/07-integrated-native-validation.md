@@ -2,7 +2,7 @@
 
 Type: task
 Status: ready-for-agent
-Blocked by: 03, 04, 05, 06, 09, 10, 11, 12
+Blocked by: 03, 04, 05, 06, 09, 10, 11, 12, 13
 
 **What to build:** comprovar no app nativo, com o modo de fixtures, que o Painel inteiro está igual ao B, e fechar as pendências nativas deixadas pela implementação anterior.
 

@@ -53,6 +53,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 10. [Uso alto no estado B](issues/10-high-usage-in-state-b.md)
 11. [Preenchimento vertical do cartão IA e Agentes](issues/11-ai-agents-vertical-fill.md)
 12. [Alinhamento da distribuição vertical dos Módulos](issues/12-vertical-distribution-alignment.md)
+13. [Composição fixa sem dados](issues/13-composition-without-data.md)
 
 ## Not yet specified
 
