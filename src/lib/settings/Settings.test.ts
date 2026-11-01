@@ -100,10 +100,28 @@ describe("first run", () => {
     await userEvent.click(within(row("IA")).getByRole("button", { name: "Conectar ao Claude Code" }));
     expect(core.connectClaude).toHaveBeenCalledOnce();
 
+    expect(within(row("Agentes")).queryByRole("button")).not.toBeInTheDocument();
+
+    // Configuring a module selects its section and ends the welcome.
     await userEvent.click(within(row("GitHub")).getByRole("button", { name: "Configurar GitHub" }));
     expect(screen.getByRole("heading", { name: "GitHub" })).toHaveFocus();
     expect(indexItem("GitHub")).toHaveAttribute("aria-current", "page");
-    expect(within(row("Agentes")).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Boas-vindas" })).not.toBeInTheDocument();
+  });
+
+  it("shows the welcome alone on the right, with the index visible, until a section is chosen", async () => {
+    const { core } = fakeCore({ welcome: true, snapshots: [snapshot("github", githubMissing)] });
+    render(Panel, { core });
+
+    await screen.findByRole("region", { name: "Boas-vindas" });
+    await vi.waitFor(() => expect(screen.getByRole("heading", { name: "Boas-vindas" })).toHaveFocus());
+    expect(within(index()).getAllByRole("button").filter((b) => b.hasAttribute("aria-current"))).toEqual([]);
+    expect(screen.queryByRole("region", { name: "Geral" })).not.toBeInTheDocument();
+
+    await userEvent.click(indexItem("Aparência"));
+    expect(screen.queryByRole("region", { name: "Boas-vindas" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Aparência" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Aparência" })).toHaveFocus();
   });
 
   it("explains modules still being checked and those that need a board or a connection", async () => {
@@ -399,6 +417,24 @@ describe("index", () => {
     await userEvent.keyboard("{ArrowUp}{Enter}");
     expect(indexItem("Rede")).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { name: "Rede" })).toHaveFocus();
+  });
+
+  it.each([
+    ["disconnected AI, GitHub without gh and empty Trello", [snapshot("ai", aiOff), snapshot("github", githubMissing), snapshot("trello", trelloEmpty)], ["IA", "GitHub", "Trello"]],
+    ["Trello choosing a board", [snapshot("ai", aiConnected), snapshot("github", githubFull), snapshot("trello", trelloChooseBoard)], ["Trello"]],
+    ["every module detected", [snapshot("ai", aiConnected), snapshot("github", githubFull), snapshot("trello", trelloFull)], []],
+    ["modules still being checked", [], []],
+  ])("marks only the modules that need configuration: %s", async (_, snapshots, marked) => {
+    const { core } = fakeCore({ snapshots });
+    render(Panel, { core });
+    await openSettings();
+
+    const needsSetup = within(index()).getAllByRole("button")
+      .filter((b) => b.textContent?.includes("!"))
+      .map((b) => b.textContent?.replace("!", "").trim());
+    expect(needsSetup).toEqual(marked);
+    for (const name of marked) expect(indexItem(name)).toHaveAccessibleDescription("precisa configurar");
+    for (const name of ["Geral", "Aparência", "Agentes", "Rede"]) expect(indexItem(name)).not.toHaveAccessibleDescription();
   });
 
   it("goes back to the panel from any section", async () => {

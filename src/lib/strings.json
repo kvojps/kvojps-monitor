@@ -30,7 +30,8 @@
     "index": {
       "label": "Seções das Configurações",
       "app": "App",
-      "modules": "Módulos"
+      "modules": "Módulos",
+      "needsSetup": "precisa configurar"
     },
     "welcome": {
       "title": "Boas-vindas",

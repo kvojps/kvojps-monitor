@@ -35,11 +35,6 @@
 </section>
 
 <style>
-  .welcome {
-    padding: 20px;
-    background: var(--module-bg);
-    border-top: 5px solid var(--band-amber);
-  }
   p { margin: 8px 0 16px; color: var(--muted); }
   ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
   li {

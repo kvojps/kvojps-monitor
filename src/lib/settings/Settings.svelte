@@ -10,6 +10,7 @@
   import type { AppearanceState } from "./appearance.svelte";
   import AppearanceSettings from "./AppearanceSettings.svelte";
   import GeneralSettings from "./GeneralSettings.svelte";
+  import { moduleStatus } from "./status";
   import Welcome from "./Welcome.svelte";
 
   let { core, snapshots, welcome, appearance, back }: {
@@ -36,19 +37,28 @@
     network: t.modules.network,
   };
   const isSection = (value: string): value is Section => Object.hasOwn(TITLES, value);
+  /** Same rule as the welcome: only modules that need configuration get a mark. */
+  const needsSetup = (section: Section) =>
+    section !== "general" && section !== "appearance" && moduleStatus(section, snapshots[section]) === "needsSetup";
 
-  let selected = $state<Section>("general");
+  /** No section yet: the welcome fills the right side on the first opening. */
+  let selected = $state<Section | null>(null);
   let area: HTMLElement;
   let pane: HTMLElement;
   let nav: HTMLElement;
 
-  /** Select the section of a module, or General, and focus its title. */
+  /** Select the section of a module, or General, and focus its title; without a module the welcome stays until a section is chosen. */
   export async function focus(module?: Module) {
+    if (!module && welcome && !selected) return focusTitle(false);
     await select(module && isSection(module) ? module : "general", { scroll: !!module });
   }
 
   async function select(section: Section, { scroll = true } = {}) {
     selected = section;
+    await focusTitle(scroll);
+  }
+
+  async function focusTitle(scroll: boolean) {
     await tick();
     const title = pane.querySelector<HTMLElement>(":scope > section > h3");
     if (!title) return;
@@ -88,8 +98,11 @@
         <p class="group" id="settings-group-{g}">{group.label}</p>
         <ul aria-labelledby="settings-group-{g}">
           {#each group.sections as section (section)}
+            {@const mark = needsSetup(section)}
             <li>
-              <button aria-current={selected === section ? "page" : undefined} onclick={() => void select(section)} onkeydown={move}>{TITLES[section]}</button>
+              <button aria-current={selected === section ? "page" : undefined} aria-describedby={mark ? `settings-mark-${section}` : undefined}
+                onclick={() => void select(section)} onkeydown={move}>{TITLES[section]}{#if mark}<span class="mark" aria-hidden="true">!</span>{/if}</button>
+              {#if mark}<span id="settings-mark-{section}" hidden>{t.settings.index.needsSetup}</span>{/if}
             </li>
           {/each}
         </ul>
@@ -97,13 +110,11 @@
     </nav>
 
     <div class="content">
-      {#if welcome}
-        <Welcome {snapshots} configure={(m) => void focus(m)}
-          connectClaude={() => void (core.connectClaude?.() ?? Promise.reject()).catch(() => focus("ai"))} />
-      {/if}
-
-      <div class="pane {selected}" bind:this={pane}>
-        {#if selected === "general"}
+      <div class="pane {selected ?? 'welcome'}" bind:this={pane}>
+        {#if !selected}
+          <Welcome {snapshots} configure={(m) => void focus(m)}
+            connectClaude={() => void (core.connectClaude?.() ?? Promise.reject()).catch(() => focus("ai"))} />
+        {:else if selected === "general"}
           <GeneralSettings {core} />
         {:else if selected === "appearance"}
           <AppearanceSettings {appearance} save={(a) => core.setAppearance ? core.setAppearance(a) : Promise.reject()} />
@@ -200,6 +211,11 @@
     white-space: nowrap;
   }
   .settings nav button:hover { color: var(--text); }
+  .mark {
+    margin-left: 6px;
+    font: 600 12px var(--mono);
+    color: var(--warn);
+  }
   .settings nav button[aria-current] {
     border-left-color: var(--accent);
     background: var(--surface-2);
@@ -213,7 +229,7 @@
     border-top: 5px solid var(--card-band);
   }
   .pane :global(h3:focus) { outline: none; }
-  .general { --card-band: var(--band-amber); }
+  .general, .welcome { --card-band: var(--band-amber); }
   .appearance { --card-band: var(--band-lavender); }
   .agents { --card-band: var(--band-violet); }
   .trello { --card-band: var(--band-amber); }

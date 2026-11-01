@@ -4,10 +4,15 @@
 
 **Blocked by:** 02 (Índice + uma seção)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Primeira abertura mostra as Boas-vindas no lado direito
-- [ ] Escolher uma seção ou "Configurar X" encerra as Boas-vindas e seleciona a seção certa
-- [ ] "Conectar ao Claude Code" continua funcionando a partir das Boas-vindas
-- [ ] Marca "!" só nos Módulos que precisam configurar, com uma única regra compartilhada com as Boas-vindas
-- [ ] Testes via Painel com fixtures (IA desconectada, GitHub sem `gh`, Trello vazio e escolhendo quadro)
+- [x] Primeira abertura mostra as Boas-vindas no lado direito
+- [x] Escolher uma seção ou "Configurar X" encerra as Boas-vindas e seleciona a seção certa
+- [x] "Conectar ao Claude Code" continua funcionando a partir das Boas-vindas
+- [x] Marca "!" só nos Módulos que precisam configurar, com uma única regra compartilhada com as Boas-vindas
+- [x] Testes via Painel com fixtures (IA desconectada, GitHub sem `gh`, Trello vazio e escolhendo quadro)
+
+**Notas da implementação:**
+
+- Sem seção escolhida, o painel direito mostra só as Boas-vindas e o foco vai para o título delas; nenhum item do índice fica com `aria-current`.
+- A marca "!" usa `moduleStatus` (`settings/status.ts`), a mesma regra das Boas-vindas. O texto acessível "precisa configurar" entra como descrição (`aria-describedby`), mantendo o nome do item igual ao da seção.
