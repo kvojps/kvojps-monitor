@@ -32,7 +32,7 @@ Módulos: `ai`, `agents`, `github`, `trello`, `network`, `system`. Padrão (B): 
 - Mover card, testar velocidade, velocidade automática, conectar/desconectar Claude,
   `oauth/usage`, token do GitHub, conexão do Trello e hooks respondem em memória.
   Abrir card, quadro, release ou logs continua abrindo o navegador/arquivos reais.
-- Relógio da webview fixado em `1793448000000` (instante da fixture `claude-usage`),
+- Relógio da webview fixado em `1793401200000` (30/10/2026 20:00, publicação da fixture `claude-usage`, com as duas janelas de IA abertas como no B),
   como nas validações anteriores.
 - Preferências e entrada de autostart ficam em `$TMPDIR/kvojps-monitor-fixtures`;
   as boas-vindas são puladas.

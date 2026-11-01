@@ -29,6 +29,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 - “IA e Agentes” vira um único cartão visual; os Módulos continuam independentes em dados, estados e Âncora. Sem termo novo no glossário; “Trabalhando” registrado como termo evitado para Estado da sessão.
 
 - [Modo de fixtures nativo para desenvolvimento](issues/01-native-fixture-mode.md): feature Cargo `fixtures` (`npm run dev:fixtures`, `KVOJPS_FIXTURES` por Módulo) publica os snapshots do B pelo caminho normal, sem coletores; injeção no nível do snapshot, não em portas brutas (divergência aprovada).
+- [Topo, grade B e cartão IA e Agentes](issues/02-top-grid-and-ai-agents-card.md): moldura e cartão reescritos a partir do protótipo; ↻ do cartão atualiza só a IA (divergência aprovada); relógio das fixtures corrigido para 30/10 20:00; conferência nativa e aprovação movidas para tickets próprios.
 
 ## Tickets
 
@@ -39,6 +40,9 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 5. [Trello fiel ao B](issues/05-trello.md)
 6. [Sistema fiel ao B](issues/06-system.md)
 7. [Validação integrada nativa](issues/07-integrated-native-validation.md)
+8. [Captura nativa para agentes](issues/08-agent-native-capture.md)
+9. [Conferência nativa do topo e cartão IA e Agentes](issues/09-native-review-top-and-ai-agents.md)
+10. [Uso alto no estado B](issues/10-high-usage-in-state-b.md)
 
 ## Not yet specified
 
