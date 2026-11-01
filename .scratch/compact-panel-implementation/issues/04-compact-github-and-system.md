@@ -41,3 +41,5 @@ Implementado em 2026-10-31:
 [Evidências, capturas e limites](../validation/github-system.md). Validação nativa
 integrada e comparação dos seis resumos permanecem no ticket 07. A decisão anterior
 aceita de representar falha de Sistema como leitura antiga permanece vigente.
+
+**Reaberto em 2026-10-31 por fidelidade ao protótipo:** no app nativo, o resultado diverge do design e do conteúdo do protótipo B. A correção segue em [compact-panel-fidelity](../../compact-panel-fidelity/map.md).

@@ -25,3 +25,5 @@ Implementado em 2026-10-31: anel e legenda derivam dos snapshots, incluindo ence
 Validação automatizada: checagem Svelte/TypeScript, suíte da UI, build e suíte Rust (incluindo testes de sockets fora do sandbox). Revisão Standards: sem violações; associação explícita estado/cor aplicada após sugestão. Revisão Spec: seleção na reabertura e alcance de alvo tardio corrigidos, com cobertura de integração.
 
 Validação manual pendente no GNOME/Wayland: confinamento nativo do foco, dimensões/rolagem do diálogo e abertura pela notificação real. O jsdom simula somente o ciclo de abertura/fechamento do diálogo; não comprova comportamento nativo.
+
+**Reaberto em 2026-10-31 por fidelidade ao protótipo:** no app nativo, o resultado diverge do design e do conteúdo do protótipo B. A correção segue em [compact-panel-fidelity](../../compact-panel-fidelity/map.md).

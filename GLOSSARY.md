@@ -42,7 +42,7 @@ _Avoid_: Sessão, agente, run
 
 **Estado da sessão**:
 A situação atual de uma Sessão de agente: Em andamento (o agente trabalha), Aguardando você (precisa de aprovação ou resposta para seguir), Turno concluído (terminou e a sessão segue aberta; inclui interrupção pelo usuário), Com falha (o turno terminou em erro) ou Encerrada (o processo saiu).
-_Avoid_: Finalizada, idle, status
+_Avoid_: Finalizada, idle, status, Trabalhando
 
 **Segurança da rede**:
 A avaliação de riscos da conexão atual (criptografia, DNS, portal cativo, gateway), expressa como Sem alertas, Atenção ou Risco; nunca afirma que a rede é segura.

@@ -31,3 +31,5 @@ Implementado em 2026-10-31:
 - Revisão com a skill code-review: Standards 0 achados; Spec 0 achados.
 
 Limites: a comparação visual integrada, escala/área útil no GNOME/Wayland e medições nativas ficam no [ticket 07](07-integrated-native-validation.md). Esta etapa mantém rolagem enquanto os resumos dos tickets 02–06 são implementados; não comprova ausência de rolagem da composição final.
+
+**Reaberto em 2026-10-31 por fidelidade ao protótipo:** no app nativo, o resultado diverge do design e do conteúdo do protótipo B. A correção segue em [compact-panel-fidelity](../../compact-panel-fidelity/map.md).

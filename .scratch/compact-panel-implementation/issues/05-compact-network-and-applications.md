@@ -33,3 +33,7 @@ Implementado em 2026-10-31:
 Validação nativa no GNOME/Wayland (confinamento de foco, dimensões do diálogo) permanece no ticket 07; não houve falha de leitura de Rede modelada no snapshot além de ausência (sem leitura) e idade do teste.
 
 2026-10-31 — Divergência de B aprovada pelo usuário no ticket 07 (“Approve the move”): a linha de conexão/VPN saiu da linha de status e fica abaixo da latência da Internet, para que o Painel caiba sem rolagem em 1100 × 700. Qualidade e Segurança continuam separadas na linha de status. Ver [validação integrada](../validation/integrated.md).
+
+**Reaberto em 2026-10-31 por fidelidade ao protótipo:** no app nativo, o resultado diverge do design e do conteúdo do protótipo B. A correção segue em [compact-panel-fidelity](../../compact-panel-fidelity/map.md).
+
+**Reversão (2026-10-31):** a divergência aprovada antes (conexão/VPN abaixo da latência) volta ao B: conexão na linha de status. Ver [ticket 04 de fidelidade](../../compact-panel-fidelity/issues/04-network.md).

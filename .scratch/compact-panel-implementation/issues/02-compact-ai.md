@@ -33,3 +33,5 @@ Implementado em 2026-10-31:
 - Revisão code-review desde `c4c18cbd`: Standards 0 achados restantes; Spec 0. Corrigidos durante a revisão: alcance/dismissão das dicas e associação implícita da pausa por posição.
 
 Evidências e limites: [validação focada](../validation/README.md), com 66 cenários de navegador, capturas e relatório. Integração visual dos seis resumos, medições de desempenho e validação GNOME/Wayland permanecem no ticket 07; esta etapa não comprova ausência de rolagem do Painel completo.
+
+**Reaberto em 2026-10-31 por fidelidade ao protótipo:** no app nativo, o resultado diverge do design e do conteúdo do protótipo B. A correção segue em [compact-panel-fidelity](../../compact-panel-fidelity/map.md).

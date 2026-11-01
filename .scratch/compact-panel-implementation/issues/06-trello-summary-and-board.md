@@ -36,3 +36,7 @@ Implementado em 2026-10-31:
 - Revisão: Spec — corrigidos duplo clique desmarcando a seleção, destino obsoleto após atualização e resultado antigo persistindo. Standards — sem violações; strings duplicadas/mortas removidas e nomes esclarecidos. Pendências: o ciclo do diálogo agora se repete em Agentes, Rede e Trello (extração comum fica para refatoração); Escape com o seletor nativo aberto fecha o quadro inteiro e deve ser observado na validação nativa.
 
 Validação nativa no GNOME/Wayland (arraste real no WebKitGTK, confinamento de foco, dimensões do diálogo) permanece no ticket 07.
+
+**Reaberto em 2026-10-31 por fidelidade ao protótipo:** no app nativo, o resultado diverge do design e do conteúdo do protótipo B. A correção segue em [compact-panel-fidelity](../../compact-panel-fidelity/map.md).
+
+**Reversão (2026-10-31):** os botões textuais Atualizar/Configurar Trello voltam ao B: ícones ↻/⚙ no cabeçalho. Ver [ticket 05 de fidelidade](../../compact-panel-fidelity/issues/05-trello.md).
