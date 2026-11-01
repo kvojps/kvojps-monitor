@@ -190,7 +190,7 @@
 
 {#snippet ai()}
   <!-- Before the first snapshot the instruments explain there is no reading and keep their actions. -->
-  <AiModule data={(snapshots.ai?.data as AiData | null) ?? NO_AI_READING} refresh={() => core.refreshAi?.()} configure={() => openSettings("ai")}
+  <AiModule updated={updated("ai")} data={(snapshots.ai?.data as AiData | null) ?? NO_AI_READING} refresh={() => core.refreshAi?.()} configure={() => openSettings("ai")}
     reconnect={() => void (core.connectClaude?.() ?? Promise.reject()).catch(() => openSettings("ai"))} />
 {/snippet}
 
@@ -219,13 +219,15 @@
 {#snippet moduleSection(module: Module, body?: Snippet)}
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
     tabindex="-1" onfocusin={() => remember(module)} bind:this={sections[module]}>
-    <header class="module-head">
-      <div class="module-title">
-        <h2 id="module-{module}-title">{t.modules[module]}</h2>
-        <p class="source"><span>{t.sources[module]}</span><span aria-hidden="true">·</span><span class="num">{updated(module)}</span></p>
-      </div>
-      <span class="code num" aria-hidden="true">{code(module)}</span>
-    </header>
+    {#if module !== "ai"}
+      <header class="module-head">
+        <div class="module-title">
+          <h2 id="module-{module}-title">{t.modules[module]}</h2>
+          <p class="source"><span>{t.sources[module]}</span><span aria-hidden="true">·</span><span class="num">{updated(module)}</span></p>
+        </div>
+        <span class="code num" aria-hidden="true">{code(module)}</span>
+      </header>
+    {/if}
     {@render body?.()}
   </section>
 {/snippet}

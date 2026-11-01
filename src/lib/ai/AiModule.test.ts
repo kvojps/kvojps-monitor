@@ -63,10 +63,9 @@ it("removes a restarted window's arc and never shows it as 0%", async () => {
   expect(within(codex).getByRole("meter", { name: "Codex · semana" })).toHaveAttribute("aria-valuenow", "48");
 });
 
-it("removes a restarted weekly bar and keeps the five hour reading", () => {
-  const weeklyReset = structuredClone(usage) as AiData;
-  weeklyReset.codex.reading!.buckets[0].secondary = { usedPercent: null, durationMins: 10080, resetsAt: Date.UTC(2026, 9, 30, 17, 0), reset: true };
-  render(AiModule, { data: weeklyReset, refresh: vi.fn() });
+it("removes a restarted weekly bar and keeps the five hour reading", async () => {
+  const { default: weeklyReset } = await import("./fixtures/weekly-reset.json");
+  render(AiModule, { data: weeklyReset as AiData, refresh: vi.fn() });
   const codex = provider("Codex");
   expect(within(codex).queryByRole("meter", { name: "Codex · semana" })).not.toBeInTheDocument();
   expect(within(codex).getByText("Reiniciado às 14:00 · sem leitura nova")).toBeInTheDocument();
@@ -171,6 +170,7 @@ it("explains a missing Claude Code without a way to configure it", async () => {
 
 it("shows an expired Claude token and keeps the status line reading", async () => {
   const { default: expired } = await import("./fixtures/claude-expired.json");
+  vi.setSystemTime(STATUS_LINE_NOW);
   render(AiModule, { data: expired as AiData, refresh: vi.fn() });
   const claude = provider("Claude");
   expect(within(claude).getByRole("status")).toHaveTextContent("Token do Claude expirado · abra o Claude Code");
@@ -249,4 +249,70 @@ it("never labels a window of another duration as five hours or weekly", () => {
   render(AiModule, { data: other, refresh: vi.fn() });
   expect(within(provider("Codex")).queryByRole("meter", { name: "Codex · janela de 5 h" })).not.toBeInTheDocument();
   expect(within(provider("Codex")).queryByText("40%")).not.toBeInTheDocument();
+});
+
+it("describes compact title actions on focus and pointer without changing focus on update", async () => {
+  const { rerender } = render(AiModule, { data: usage as AiData, refresh: vi.fn() });
+  const refresh = screen.getByRole("button", { name: "Atualizar IA" });
+  expect(refresh).toHaveAccessibleDescription("Consultar os limites de uso de Claude e Codex");
+  expect(screen.getByRole("button", { name: "Configurar IA" })).toHaveAccessibleDescription("Abrir conexões e consentimentos de IA nas Configurações");
+  refresh.focus();
+  expect(refresh).toHaveFocus();
+  await rerender({ data: { ...(usage as AiData), refreshing: true } });
+  expect(refresh).toHaveFocus();
+});
+
+it("identifies offline providers while preserving cached instruments and reading time", async () => {
+  const { default: offline } = await import("./fixtures/offline.json");
+  render(AiModule, { data: offline as AiData, refresh: vi.fn() });
+  for (const name of ["Codex", "Claude"]) {
+    const region = within(provider(name));
+    expect(region.getByRole("status")).toHaveTextContent("Coleta pausada · offline ou aguardando retomada");
+    expect(region.getByRole("meter", { name: `${name} · janela de 5 h` })).toBeInTheDocument();
+    expect(region.getByText(/atualizado/)).toBeInTheDocument();
+    expect(region.getByText(/Leitura às/)).toBeInTheDocument();
+  }
+});
+
+it("distinguishes loading without a reading from a completed empty snapshot", async () => {
+  const { default: loading } = await import("./fixtures/loading.json");
+  const { rerender } = render(AiModule, { data: loading as AiData, refresh: vi.fn() });
+  expect(screen.getByRole("status")).toHaveTextContent("Atualizando…");
+  expect(screen.queryByRole("meter")).not.toBeInTheDocument();
+  await rerender({ data: { ...(loading as AiData), refreshing: false } });
+  expect(screen.queryByText("Atualizando…")).not.toBeInTheDocument();
+  expect(within(provider("Codex")).getByText(/Sem leitura/)).toBeInTheDocument();
+});
+
+it("explains a missing weekly value without claiming a restart", async () => {
+  const { default: unavailable } = await import("./fixtures/weekly-unavailable.json");
+  render(AiModule, { data: unavailable as AiData, refresh: vi.fn() });
+  expect(within(provider("Codex")).queryByRole("meter", { name: "Codex · semana" })).not.toBeInTheDocument();
+  expect(within(provider("Codex")).getByText("Sem leitura dos limites")).toBeInTheDocument();
+  expect(within(provider("Codex")).queryByText(/Reiniciado/)).not.toBeInTheDocument();
+});
+
+
+it("removes only the elapsed window while awaiting a new snapshot", async () => {
+  vi.setSystemTime(1793413799000);
+  render(AiModule, { data: usage as AiData, refresh: vi.fn() });
+  expect(within(provider("Claude")).getByRole("meter", { name: "Claude · janela de 5 h" })).toHaveAttribute("aria-valuenow", "15");
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(within(provider("Claude")).queryByRole("meter", { name: "Claude · janela de 5 h" })).not.toBeInTheDocument();
+  expect(within(provider("Claude")).getByText("Reiniciado às 23:30 · sem leitura nova")).toBeInTheDocument();
+  expect(within(provider("Claude")).getByRole("meter", { name: "Claude · semana" })).toHaveAttribute("aria-valuenow", "6");
+  expect(within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" })).toHaveAttribute("aria-valuenow", "91");
+});
+
+
+it("dismisses action descriptions with Escape before the panel handles it", async () => {
+  render(AiModule, { data: usage as AiData, refresh: vi.fn() });
+  const configure = screen.getByRole("button", { name: "Configurar IA" });
+  configure.focus();
+  const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  configure.dispatchEvent(escape);
+  await fireEvent.keyUp(configure, { key: "Escape" });
+  expect(escape.defaultPrevented).toBe(true);
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  expect(configure).toHaveFocus();
 });

@@ -43,10 +43,12 @@ async function intersect(modules: Module[]) {
 }
 
 beforeEach(() => {
+  // Keep snapshot windows valid independently of the test execution date.
+  vi.spyOn(Date, "now").mockReturnValue(1793460871000);
   FakeObserver.instances = [];
   vi.stubGlobal("IntersectionObserver", FakeObserver);
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 function fakeCore(initial: { lastAnchor?: Module; snapshots?: Snapshot[]; agentTarget?: string } = {}) {
   let listener: ((s: Snapshot) => void) | undefined;
@@ -627,4 +629,17 @@ it("recovers one source without replacing another source's reading or selected c
   expect(card).toHaveAttribute("aria-pressed", "true");
   expect(card).toHaveFocus();
   expect(scroller.scrollTop).toBe(180);
+});
+
+
+it("dismisses an AI description before Escape closes the panel", async () => {
+  const { core } = fakeCore();
+  render(Panel, { core });
+  const configure = await screen.findByRole("button", { name: "Configurar IA" });
+  configure.focus();
+  await userEvent.keyboard("{Escape}");
+  expect(core.closePanel).not.toHaveBeenCalled();
+  expect(configure).toHaveFocus();
+  await userEvent.keyboard("{Escape}");
+  expect(core.closePanel).toHaveBeenCalledOnce();
 });

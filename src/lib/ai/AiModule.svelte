@@ -1,16 +1,31 @@
 <script lang="ts">
+  import Icon from "../Icon.svelte";
   import { onMount } from "svelte";
   import type { AiData, AiReading, AiWindow } from "../core";
   import { t, interpolate } from "../strings";
 
-  let { data, refresh, configure = () => {}, reconnect = () => {} }:
-    { data: AiData; refresh: () => void; configure?: () => void; reconnect?: () => void } = $props();
+  let { data, refresh, updated = "", configure = () => {}, reconnect = () => {} }:
+    { data: AiData; refresh: () => void; updated?: string; configure?: () => void; reconnect?: () => void } = $props();
   let now = $state(Date.now());
+  let tipsDismissed = $state(false);
+  let titleActions: HTMLDivElement;
+
   /** Manual refreshes stay at least ten seconds apart. */
   let allowedAt = $state(0);
   onMount(() => {
     const timer = setInterval(() => (now = Date.now()), 1000);
-    return () => clearInterval(timer);
+    function dismissDescription(event: KeyboardEvent) {
+      if (event.key !== "Escape" || tipsDismissed || !titleActions ||
+          !(titleActions.contains(document.activeElement) || titleActions.matches(":hover"))) return;
+      tipsDismissed = true;
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    window.addEventListener("keydown", dismissDescription, true);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("keydown", dismissDescription, true);
+    };
   });
 
   const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
@@ -44,15 +59,19 @@
     return percent >= HIGH ? `${percent}% · ${t.ai.high}` : `${percent}%`;
   }
 
+  function restarted(window: AiWindow) {
+    return window.reset || (window.resetsAt !== null && window.resetsAt <= now);
+  }
+
   /** Null once the window restarted: never shown as 0%. */
   function usedPercent(window: AiWindow | null) {
-    return window && !window.reset && window.usedPercent !== null ? Math.round(window.usedPercent) : null;
+    return window && !restarted(window) && window.usedPercent !== null ? Math.round(window.usedPercent) : null;
   }
   /** When the window resets, why it has no value, or when it restarted without a new reading. */
   function status(window: AiWindow | null) {
     if (!window) return t.ai.noReading;
     if (usedPercent(window) === null) {
-      return window.resetsAt === null ? "" : interpolate(t.ai.restarted, { time: clock.format(window.resetsAt) });
+      return !restarted(window) || window.resetsAt === null ? t.ai.noReading : interpolate(t.ai.restarted, { time: clock.format(window.resetsAt) });
     }
     return window.resetsAt === null ? "" : resets(window.resetsAt);
   }
@@ -96,7 +115,7 @@
       name: t.ai.codex,
       reading: missing ? null : codex.reading,
       blank: missing ? { text: t.ai.missingCodex } : codex.reading ? null : { text: t.ai.emptyCodex },
-      notices: missing ? [] : failure(codex.failureSince, data.paused),
+      notices: missing ? [] : [...failure(codex.failureSince, data.paused), ...(data.paused ? [{ text: t.ai.paused }] : [])],
     };
   }
 
@@ -107,7 +126,7 @@
     if (claude.state === "missing") return { name, reading: null, blank: { text: t.ai.missingClaude }, notices: [] };
     const off: Notice | null = claude.statusLine === "off" && claude.usage !== "on"
       ? { text: t.ai.offClaude, action: "configure" } : null;
-    const notices: Notice[] = [];
+    const notices: Notice[] = claude.paused ? [{ text: t.ai.paused }] : [];
     if (claude.usage === "expired") notices.push({ text: t.ai.expired, alert: true });
     else if (claude.usage === "on") notices.push(...failure(claude.failureSince, claude.paused));
     if (claude.statusLine === "replaced") notices.push({ text: t.ai.replaced, alert: true, action: "reconnect" });
@@ -176,6 +195,22 @@
 {/snippet}
 
 <div class="ai">
+  <header class="heading">
+    <div><h2 id="module-ai-title">{t.modules.ai}</h2><p class="caption"><span>{t.sources.ai}</span>{#if updated} · <span>{updated}</span>{/if}</p></div>
+    <div class="actions" bind:this={titleActions}>
+      <span class="action-wrap" role="group" onpointerenter={() => tipsDismissed = false} onfocusin={() => tipsDismissed = false}>
+        <button class="action" aria-label={t.ai.refresh} aria-describedby="ai-refresh-description"
+          disabled={data.paused || data.refreshing || now < allowedAt} onclick={refreshNow}><span aria-hidden="true">↻</span></button>
+        <span class="tooltip" hidden={tipsDismissed} id="ai-refresh-description" role="tooltip">{t.ai.refreshDescription}</span>
+      </span>
+      <span class="action-wrap" role="group" onpointerenter={() => tipsDismissed = false} onfocusin={() => tipsDismissed = false}>
+        <button class="action" aria-label={t.ai.configureAi} aria-describedby="ai-configure-description" onclick={configure}><Icon name="settings" size={16} /></button>
+        <span class="tooltip" hidden={tipsDismissed} id="ai-configure-description" role="tooltip">{t.ai.configureDescription}</span>
+      </span>
+    </div>
+  </header>
+  {#if data.refreshing}<p role="status" class="caption">{t.ai.refreshing}</p>{/if}
+
   <div class="providers">
     {#each providers as provider (provider.name)}
       <section aria-label={provider.name}>
@@ -188,6 +223,7 @@
         {/if}
         {#if provider.reading}
           <p class="source num">{interpolate(t.ai.reading, { source: t.ai.sources[provider.reading.source], age: age(provider.reading.readAt) })}</p>
+          <p class="source num"><time datetime={new Date(provider.reading.readAt).toISOString()}>{interpolate(t.ai.readingTime, { time: clock.format(provider.reading.readAt) })}</time></p>
         {/if}
         {#each provider.notices as n (n.text)}
           <p role="status" class="notice" class:alert={n.alert}><span aria-hidden="true">{n.alert ? "⚠ " : "◷ "}</span>{@render notice(n)}</p>
@@ -195,22 +231,16 @@
       </section>
     {/each}
   </div>
-  <div class="actions">
-    <button class="action" disabled={data.paused || data.refreshing || now < allowedAt} onclick={refreshNow}>
-      <span aria-hidden="true">↻ </span>{t.ai.refresh}
-    </button>
-    <button class="action" onclick={configure}>{t.ai.configureAi}</button>
-    {#if data.refreshing}<span role="status" class="caption">{t.ai.refreshing}</span>{/if}
-  </div>
+
 </div>
 
 <style>
-  .ai { padding: 16px 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
-  .providers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  section { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .ai { padding: 8px 10px 10px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .providers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  section { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   h3 { font-size: 13px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; text-align: center; }
   .instrument { text-align: center; }
-  .dial { position: relative; width: min(100%, 160px); margin: 0 auto; }
+  .dial { position: relative; width: min(100%, 94px); margin: 0 auto; }
   svg { display: block; width: 100%; overflow: visible; fill: none; }
   circle { stroke-width: 5; }
   .ticks { stroke: var(--line); stroke-width: 2; stroke-dasharray: 1 4; }
@@ -218,27 +248,31 @@
   .reading { stroke: var(--accent); }
   .reading.high { stroke: var(--warn); }
   .value { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
-  strong { font-size: 38px; font-weight: 300; }
+  strong { font-size: 26px; font-weight: 300; }
   small { font-size: 14px; color: var(--muted); }
-  .value span { font: 9px var(--mono); letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .value span { font: 9px var(--mono); letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
   .caption { margin-top: 6px; font-size: 11px; color: var(--muted); }
   .weekly { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; }
   .weekly .caption { margin: 0; }
   .weekly .wide { grid-column: 1 / -1; }
   .weekly b { font-size: 12px; font-weight: 500; }
-  .bar { height: 8px; background: var(--surface-2); overflow: hidden; }
+  .bar { height: 5px; background: var(--surface-2); overflow: hidden; }
   .bar > i { display: block; height: 100%; background: var(--accent); }
   .bar.high > i { background: var(--warn); }
   .high-mark { margin-right: 4px; font-size: 0.6em; color: var(--warn); vertical-align: middle; }
-  .blank { display: grid; place-items: center; min-height: 140px; padding: 12px; border: 1px dashed var(--line); font-size: 12px; color: var(--muted); text-align: center; }
+  .blank { display: grid; place-items: center; min-height: 94px; padding: 12px; border: 1px dashed var(--line); font-size: 12px; color: var(--muted); text-align: center; }
   .notice { font-size: 12px; color: var(--muted); text-align: center; }
   .notice.alert { color: var(--warn); }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; }
-  .action { min-height: 36px; padding: 8px 15px; border-radius: 0 18px 18px 0; background: var(--band-steel); color: var(--on-band); font-weight: 600; }
-  .action:hover:not(:disabled) { filter: brightness(1.15); }
+  .heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  h2 { font-size: 17px; font-weight: 500; letter-spacing: 1px; color: var(--module-title, var(--band-cyan)); }
+  .action-wrap { position: relative; display: inline-flex; }
+  .action { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--control-line); border-radius: 50%; color: var(--accent); }
+  .action:hover:not(:disabled) { background: var(--surface-2); }
   .action:disabled { opacity: 0.45; cursor: default; }
   .action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .actions .caption { margin: 0; }
+  .tooltip { position: absolute; top: 100%; right: 0; width: 180px; max-width: 65vw; padding: 8px; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); font-size: 12px; z-index: 5; visibility: hidden; }
+  .action-wrap:hover .tooltip, .action-wrap:focus-within .tooltip { visibility: visible; }
   .link { color: var(--accent); text-decoration: underline; }
   .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .source { font-size: 11px; color: var(--muted); text-align: center; }

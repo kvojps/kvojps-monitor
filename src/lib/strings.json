@@ -292,7 +292,11 @@
     "consumed": "consumido",
     "configureAi": "Configurar IA",
     "noReading": "Sem leitura dos limites",
-    "high": "uso alto"
+    "high": "uso alto",
+    "refreshDescription": "Consultar os limites de uso de Claude e Codex",
+    "configureDescription": "Abrir conexões e consentimentos de IA nas Configurações",
+    "readingTime": "Leitura às {time}",
+    "paused": "Coleta pausada · offline ou aguardando retomada"
   },
   "agents": {
     "empty": "Nenhuma sessão de agente ativa",
