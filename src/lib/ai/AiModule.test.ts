@@ -233,12 +233,13 @@ it("opens Settings from the module", async () => {
   expect(configure).toHaveBeenCalledOnce();
 });
 
-it("names high usage in a body line, keeping the ring in the provider colour", () => {
+it("names high usage only to assistive technology, as prototype B shows no line for it", () => {
   render(AiModule, { data: usage as AiData, refresh: vi.fn() });
   const codex = within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" });
   expect(codex).toHaveAttribute("aria-valuetext", "91% · uso alto");
   expect(codex).not.toHaveTextContent("uso alto");
-  expect(within(provider("Codex")).getByRole("status")).toHaveTextContent("⚠ Uso alto na janela de 5 h");
+  expect(within(provider("Codex")).queryByRole("status")).not.toBeInTheDocument();
+  expect(screen.queryByText(/uso alto/i)).not.toBeInTheDocument();
   expect(within(provider("Codex")).getByRole("meter", { name: "Codex · semana" })).toHaveAttribute("aria-valuetext", "48%");
   expect(within(provider("Claude")).queryByRole("status")).not.toBeInTheDocument();
   expect(provider("Codex").style.getPropertyValue("--instrument")).toBe("var(--accent)");

@@ -46,10 +46,10 @@
     return interpolate(t.ai.readAt, { time: (now - when >= 86_400_000 ? dayAndClock : clock).format(when) });
   }
 
-  /** Usage from which the reading is named high; the ring keeps the provider colour. */
+  /** Usage from which the reading is read aloud as high; prototype B shows no line or colour for it. */
   const HIGH = 85;
 
-  /** The value read aloud, with the high usage state in words, not only colour. */
+  /** The value read aloud, naming high usage for assistive technology only. */
   function valueText(percent: number) {
     return percent >= HIGH ? `${percent}% · ${t.ai.high}` : `${percent}%`;
   }
@@ -221,8 +221,6 @@
       {#if provider.reading}
         <small class="source"><time datetime={new Date(provider.reading.readAt).toISOString()}>{readAt(provider.reading.readAt)}</time></small>
       {/if}
-      {#if fivePercent !== null && fivePercent >= HIGH}{@render notice({ text: t.ai.highFiveHour, alert: true })}{/if}
-      {#if weekPercent !== null && weekPercent >= HIGH}{@render notice({ text: t.ai.highWeekly, alert: true })}{/if}
       {#each provider.notices as n (n.text)}{@render notice(n)}{/each}
     </section>
   {/each}

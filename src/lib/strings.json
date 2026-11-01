@@ -325,8 +325,6 @@
     "fiveHourResets": "5 h · reinicia {time}",
     "weeklyResets": "Reinício {date}",
     "readAt": "Leitura {time}",
-    "highFiveHour": "Uso alto na janela de 5 h",
-    "highWeekly": "Uso alto na semana",
     "now": "agora"
   },
   "agents": {
