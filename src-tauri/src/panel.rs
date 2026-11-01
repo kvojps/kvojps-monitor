@@ -116,7 +116,13 @@ fn learn_margin(window: &WebviewWindow) {
         let Some(margin) = margin((asked.width, asked.height), visible) else {
             return;
         };
-        let first = window.state::<Margin>().0.lock().unwrap().get_or_insert(margin) == &margin;
+        let first = window
+            .state::<Margin>()
+            .0
+            .lock()
+            .unwrap()
+            .get_or_insert(margin)
+            == &margin;
         if first && margin != (0.0, 0.0) {
             let _ = window.set_size(work_area_size(&monitor, margin));
         }
