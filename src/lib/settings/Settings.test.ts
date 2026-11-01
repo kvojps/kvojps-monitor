@@ -10,6 +10,7 @@ import githubFull from "../github/fixtures/full.json";
 import trelloEmpty from "../trello/fixtures/empty.json";
 import trelloFull from "../trello/fixtures/full.json";
 import trelloChooseBoard from "../trello/fixtures/choose-board.json";
+import agentsMixed from "../agents/fixtures/mixed.json";
 
 /** Media queries the tests control, standing in for the webview environment. */
 const media: Record<string, { matches: boolean; listeners: ((e: { matches: boolean }) => void)[] }> = {};
@@ -68,6 +69,12 @@ function fakeCore(initial: Partial<InitialState> = {}, general: GeneralSettings 
 
 const snapshot = (module: Snapshot["module"], data: unknown): Snapshot => ({ module, updatedAt: 1, data });
 const openSettings = () => userEvent.click(screen.getByRole("button", { name: "Configurações" }));
+const index = () => screen.getByRole("navigation", { name: "Seções das Configurações" });
+const indexItem = (name: string) => within(index()).getByRole("button", { name });
+async function openSection(name: string) {
+  await openSettings();
+  await userEvent.click(indexItem(name));
+}
 
 describe("first run", () => {
   it("opens Settings with the welcome, the status of each module and its shortcuts", async () => {
@@ -94,7 +101,8 @@ describe("first run", () => {
     expect(core.connectClaude).toHaveBeenCalledOnce();
 
     await userEvent.click(within(row("GitHub")).getByRole("button", { name: "Configurar GitHub" }));
-    expect(document.getElementById("settings-github")).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "GitHub" })).toHaveFocus();
+    expect(indexItem("GitHub")).toHaveAttribute("aria-current", "page");
     expect(within(row("Agentes")).queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -220,7 +228,7 @@ describe("appearance", () => {
     await screen.findByRole("region", { name: "IA" });
     await vi.waitFor(() => expect(document.documentElement.dataset.theme).toBe("light"));
 
-    await openSettings();
+    await openSection("Aparência");
     await userEvent.click(screen.getByRole("radio", { name: "Escuro" }));
 
     expect(document.documentElement.dataset.theme).toBe("dark");
@@ -231,7 +239,7 @@ describe("appearance", () => {
     const { core } = fakeCore(appearance({ theme: "light" }));
     core.setAppearance.mockRejectedValueOnce("unwritable");
     render(Panel, { core });
-    await openSettings();
+    await openSection("Aparência");
     await userEvent.click(screen.getByRole("radio", { name: "Escuro" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível salvar a aparência");
     expect(screen.getByRole("radio", { name: "Claro" })).toBeChecked();
@@ -246,7 +254,7 @@ describe("appearance", () => {
     await systemTheme("light");
     expect(document.documentElement.dataset.theme).toBe("light");
 
-    await openSettings();
+    await openSection("Aparência");
     await userEvent.click(screen.getByRole("radio", { name: "Escuro" }));
     await systemTheme("light");
     expect(document.documentElement.dataset.theme).toBe("dark");
@@ -265,7 +273,7 @@ describe("appearance", () => {
   it("reduces motion by choice and always when the system asks", async () => {
     const { core } = fakeCore({ ...appearance({}), panelVisible: true });
     render(Panel, { core });
-    await openSettings();
+    await openSection("Aparência");
     expect(document.documentElement.dataset.decoration).toBe("running");
     expect(document.documentElement.dataset.motion).toBe("full");
 
@@ -290,7 +298,7 @@ describe("network", () => {
   it("keeps the network section before the first snapshot, with the automatic test disabled", async () => {
     const { core } = fakeCore();
     render(Panel, { core });
-    await openSettings();
+    await openSection("Rede");
 
     const network = screen.getByRole("region", { name: "Rede" });
     expect(within(network).getByRole("checkbox", { name: "Teste de velocidade automático" })).toBeDisabled();
@@ -304,8 +312,102 @@ describe("configure shortcuts", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Configurar GitHub" }));
 
-    expect(document.getElementById("settings-github")).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "GitHub" })).toHaveFocus();
+    expect(indexItem("GitHub")).toHaveAttribute("aria-current", "page");
     await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
     expect(screen.getByRole("button", { name: "Configurar GitHub" })).toHaveFocus();
+  });
+});
+
+describe("index", () => {
+
+  it("opens General from the top button and shows one section at a time", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await openSettings();
+
+    const app = within(index()).getByRole("list", { name: "App" });
+    expect(within(app).getAllByRole("button").map((b) => b.textContent)).toEqual(["Geral", "Aparência"]);
+    const modules = within(index()).getByRole("list", { name: "Módulos" });
+    expect(within(modules).getAllByRole("button").map((b) => b.textContent)).toEqual(["IA", "Agentes", "GitHub", "Trello", "Rede"]);
+    expect(within(index()).queryByRole("button", { name: "Sistema" })).not.toBeInTheDocument();
+
+    expect(indexItem("Geral")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Geral" })).toHaveFocus();
+    expect(screen.getByRole("region", { name: "Geral" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Aparência" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Rede" })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["IA", "Configurar IA"],
+    ["GitHub", "Configurar GitHub"],
+    ["Trello", "Configurar Trello"],
+  ])("opens the %s section from its configure button in the panel", async (section, button) => {
+    const { core } = fakeCore({ snapshots: [snapshot("ai", aiConnected), snapshot("github", githubFull), snapshot("trello", trelloFull)] });
+    render(Panel, { core });
+
+    await userEvent.click(await screen.findByRole("button", { name: button }));
+
+    expect(indexItem(section)).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: section })).toHaveFocus();
+    expect(screen.queryByRole("region", { name: "Geral" })).not.toBeInTheDocument();
+  });
+
+  it("opens the Agents section from the panel when Codex cannot report waiting", async () => {
+    const { core } = fakeCore({ snapshots: [snapshot("agents", agentsMixed)] });
+    render(Panel, { core });
+
+    const agents = await screen.findByRole("region", { name: "Agentes" });
+    await userEvent.click(within(agents).getByRole("button", { name: "Configurar" }));
+
+    expect(indexItem("Agentes")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Agentes" })).toHaveFocus();
+  });
+
+  it("switches sections from the index, focusing the chosen title", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await openSettings();
+
+    await userEvent.click(indexItem("Rede"));
+    expect(indexItem("Rede")).toHaveAttribute("aria-current", "page");
+    expect(indexItem("Geral")).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("heading", { name: "Rede" })).toHaveFocus();
+    expect(screen.queryByRole("region", { name: "Geral" })).not.toBeInTheDocument();
+
+    // The top button always starts again at General.
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
+    await openSettings();
+    expect(indexItem("Geral")).toHaveAttribute("aria-current", "page");
+  });
+
+  it("moves through the index with the keyboard", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await openSettings();
+
+    indexItem("Geral").focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(indexItem("Aparência")).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(indexItem("IA")).toHaveFocus();
+    await userEvent.keyboard("{End}");
+    expect(indexItem("Rede")).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(indexItem("Geral")).toHaveFocus();
+    await userEvent.keyboard("{ArrowUp}{Enter}");
+    expect(indexItem("Rede")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Rede" })).toHaveFocus();
+  });
+
+  it("goes back to the panel from any section", async () => {
+    const { core } = fakeCore({ snapshots: [snapshot("trello", trelloFull)] });
+    render(Panel, { core });
+    await openSection("Trello");
+
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
+    expect(screen.queryByRole("heading", { name: "Configurações" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Trello" })).toBeInTheDocument();
   });
 });

@@ -11,11 +11,17 @@ Ver `../spec.md`, histórias 1–6, 13, 34, 37 e 38.
 
 **Blocked by:** 01 (Peças compartilhadas e Rede como seção própria)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Índice com dois grupos e uma seção visível por vez
-- [ ] Botão do topo abre Geral; "Configurar" de IA, Agentes, GitHub e Trello no Painel abre a seção certa
-- [ ] `aria-current` no item ativo, foco no título da seção selecionada e navegação por teclado
-- [ ] Layout estreito com o índice em fileira horizontal
-- [ ] Sistema ausente do índice; "← Painel" funciona
-- [ ] Testes via Painel + Core falso + fixtures (seam do teste atual das Configurações)
+- [x] Índice com dois grupos e uma seção visível por vez
+- [x] Botão do topo abre Geral; "Configurar" de IA, Agentes, GitHub e Trello no Painel abre a seção certa
+- [x] `aria-current` no item ativo, foco no título da seção selecionada e navegação por teclado
+- [x] Layout estreito com o índice em fileira horizontal
+- [x] Sistema ausente do índice; "← Painel" funciona
+- [x] Testes via Painel + Core falso + fixtures (seam do teste atual das Configurações)
+
+**Notas da implementação:**
+
+- As Boas-vindas continuam acima da seção selecionada, como passo intermediário até o ticket 03 colocá-las sozinhas no lado direito.
+- O foco vai para o `h3` da seção (recebe `tabindex="-1"` ao ser selecionada). Setas, Home e End movem o foco entre os itens do índice; Enter ou Espaço seleciona.
+- `focus("system")` cai em Geral, já que Sistema não entra no índice.

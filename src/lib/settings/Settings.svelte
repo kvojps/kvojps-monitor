@@ -20,14 +20,57 @@
     back: () => void;
   } = $props();
 
-  let area: HTMLElement;
+  /** Sections in the index; System has nothing to configure yet. */
+  type Section = "general" | "appearance" | Exclude<Module, "system">;
+  const GROUPS: { label: string; sections: Section[] }[] = [
+    { label: t.settings.index.app, sections: ["general", "appearance"] },
+    { label: t.settings.index.modules, sections: ["ai", "agents", "github", "trello", "network"] },
+  ];
+  const TITLES: Record<Section, string> = {
+    general: t.settings.general.title,
+    appearance: t.settings.appearance.title,
+    ai: t.modules.ai,
+    agents: t.modules.agents,
+    github: t.modules.github,
+    trello: t.modules.trello,
+    network: t.modules.network,
+  };
+  const isSection = (value: string): value is Section => Object.hasOwn(TITLES, value);
 
-  /** Focus a module section, or the whole area. */
+  let selected = $state<Section>("general");
+  let area: HTMLElement;
+  let pane: HTMLElement;
+  let nav: HTMLElement;
+
+  /** Select the section of a module, or General, and focus its title. */
   export async function focus(module?: Module) {
+    await select(module && isSection(module) ? module : "general", { scroll: !!module });
+  }
+
+  async function select(section: Section, { scroll = true } = {}) {
+    selected = section;
     await tick();
-    const target = module ? area.querySelector<HTMLElement>(`#settings-${module}`) : null;
-    (target ?? area).focus({ preventScroll: !target });
-    target?.scrollIntoView({ block: "start" });
+    const title = pane.querySelector<HTMLElement>(":scope > section > h3");
+    if (!title) return;
+    title.tabIndex = -1;
+    title.focus({ preventScroll: true });
+    if (scroll) title.scrollIntoView({ block: "nearest" });
+    else area.scrollTop = 0;
+  }
+
+  /** Arrow keys, Home and End move focus between index items; the buttons select as usual. */
+  function move(event: KeyboardEvent) {
+    const items = [...nav.querySelectorAll<HTMLButtonElement>("button")];
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (current < 0) return;
+    const next = {
+      ArrowDown: current + 1, ArrowRight: current + 1,
+      ArrowUp: current - 1, ArrowLeft: current - 1,
+      Home: 0, End: items.length - 1,
+    }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    items[(next + items.length) % items.length].focus();
   }
 
   const unavailable = (code: string) => () => Promise.reject(code);
@@ -39,38 +82,53 @@
     <button class="back" onclick={back}><span aria-hidden="true">← </span>{t.panel.back}</button>
   </header>
 
-  {#if welcome}
-    <Welcome {snapshots} configure={(m) => void focus(m)}
-      connectClaude={() => void (core.connectClaude?.() ?? Promise.reject()).catch(() => focus("ai"))} />
-  {/if}
+  <div class="body">
+    <nav aria-label={t.settings.index.label} bind:this={nav}>
+      {#each GROUPS as group, g (group.label)}
+        <p class="group" id="settings-group-{g}">{group.label}</p>
+        <ul aria-labelledby="settings-group-{g}">
+          {#each group.sections as section (section)}
+            <li>
+              <button aria-current={selected === section ? "page" : undefined} onclick={() => void select(section)} onkeydown={move}>{TITLES[section]}</button>
+            </li>
+          {/each}
+        </ul>
+      {/each}
+    </nav>
 
-  <div class="cards">
-    <div class="card general"><GeneralSettings {core} /></div>
-    <div class="card appearance"><AppearanceSettings {appearance} save={(a) => core.setAppearance ? core.setAppearance(a) : Promise.reject()} /></div>
-    <div class="card ai" id="settings-ai" tabindex="-1">
-      <AiSettings data={snapshots.ai?.data as AiData | undefined}
-        connect={core.connectClaude ?? unavailable("unwritable")}
-        disconnect={core.disconnectClaude ?? unavailable("unwritable")}
-        setUsage={core.setClaudeUsage ?? unavailable("unwritable")} />
-    </div>
-    <div class="card agents" id="settings-agents" tabindex="-1">
-      <AgentSettings setHooks={core.setAgentHooks} data={snapshots.agents?.data as AgentsData | undefined}
-        save={(preferences) => core.setAgentNotifications?.(preferences)} />
-    </div>
-    <div class="card github" id="settings-github" tabindex="-1">
-      <GithubSettings data={snapshots.github?.data as GithubData | undefined}
-        save={core.saveGithubToken ?? unavailable("offline")} />
-    </div>
-    <div class="card trello" id="settings-trello" tabindex="-1">
-      <TrelloSettings data={snapshots.trello?.data as TrelloData | undefined}
-        connect={core.connectTrello ?? unavailable("offline")}
-        selectBoard={core.selectTrelloBoard ?? unavailable("offline")}
-        disconnect={core.disconnectTrello ?? unavailable("offline")}
-        openAdmin={() => core.openTrelloAdmin?.()} authorize={(key) => core.openTrelloAuthorization?.(key)} />
-    </div>
-    <div class="card network" id="settings-network" tabindex="-1">
-      <NetworkSettings data={snapshots.network?.data as NetworkData | undefined}
-        setAutomaticSpeed={(enabled) => core.setAutomaticSpeed?.(enabled)} />
+    <div class="content">
+      {#if welcome}
+        <Welcome {snapshots} configure={(m) => void focus(m)}
+          connectClaude={() => void (core.connectClaude?.() ?? Promise.reject()).catch(() => focus("ai"))} />
+      {/if}
+
+      <div class="pane {selected}" bind:this={pane}>
+        {#if selected === "general"}
+          <GeneralSettings {core} />
+        {:else if selected === "appearance"}
+          <AppearanceSettings {appearance} save={(a) => core.setAppearance ? core.setAppearance(a) : Promise.reject()} />
+        {:else if selected === "ai"}
+          <AiSettings data={snapshots.ai?.data as AiData | undefined}
+            connect={core.connectClaude ?? unavailable("unwritable")}
+            disconnect={core.disconnectClaude ?? unavailable("unwritable")}
+            setUsage={core.setClaudeUsage ?? unavailable("unwritable")} />
+        {:else if selected === "agents"}
+          <AgentSettings setHooks={core.setAgentHooks} data={snapshots.agents?.data as AgentsData | undefined}
+            save={(preferences) => core.setAgentNotifications?.(preferences)} />
+        {:else if selected === "github"}
+          <GithubSettings data={snapshots.github?.data as GithubData | undefined}
+            save={core.saveGithubToken ?? unavailable("offline")} />
+        {:else if selected === "trello"}
+          <TrelloSettings data={snapshots.trello?.data as TrelloData | undefined}
+            connect={core.connectTrello ?? unavailable("offline")}
+            selectBoard={core.selectTrelloBoard ?? unavailable("offline")}
+            disconnect={core.disconnectTrello ?? unavailable("offline")}
+            openAdmin={() => core.openTrelloAdmin?.()} authorize={(key) => core.openTrelloAuthorization?.(key)} />
+        {:else}
+          <NetworkSettings data={snapshots.network?.data as NetworkData | undefined}
+            setAutomaticSpeed={(enabled) => core.setAutomaticSpeed?.(enabled)} />
+        {/if}
+      </div>
     </div>
   </div>
 </div>
@@ -105,21 +163,56 @@
     color: var(--band-amber-text);
   }
 
-  .cards {
+  .body {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    grid-template-columns: 168px minmax(0, 1fr);
     align-items: start;
-    gap: 18px 22px;
+    gap: 22px;
   }
-  .card {
+  nav {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .settings .group {
+    margin: 10px 0 2px;
+    padding: 0 12px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .settings .group:first-child { margin-top: 0; }
+  nav ul { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+  .settings nav button {
+    width: 100%;
+    margin: 0;
+    min-height: 32px;
+    padding: 6px 12px;
+    border: none;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    background: none;
+    color: var(--muted);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .settings nav button:hover { color: var(--text); }
+  .settings nav button[aria-current] {
+    border-left-color: var(--accent);
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .content { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .pane {
     --card-band: var(--band-cyan);
-    min-width: 0;
     background: var(--module-bg);
     border-top: 5px solid var(--card-band);
-    scroll-margin-top: 12px;
   }
-  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .card:focus:not(:focus-visible) { outline: none; }
+  .pane :global(h3:focus) { outline: none; }
   .general { --card-band: var(--band-amber); }
   .appearance { --card-band: var(--band-lavender); }
   .agents { --card-band: var(--band-violet); }
@@ -189,5 +282,21 @@
 
   @media (max-width: 650px) {
     .settings { padding: 4px 4px 24px 8px; }
+    .body { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    nav {
+      position: static;
+      flex-direction: row;
+      align-items: center;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+    }
+    .settings .group { margin: 0; padding: 0 4px 0 8px; }
+    nav ul { flex-direction: row; }
+    .settings nav button {
+      width: auto;
+      border-left: none;
+      border-bottom: 3px solid transparent;
+    }
+    .settings nav button[aria-current] { border-bottom-color: var(--accent); }
   }
 </style>

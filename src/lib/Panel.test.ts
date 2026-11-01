@@ -242,6 +242,7 @@ it("sends the network automatic speed preference from Settings", async () => {
   render(Panel, { core: { ...core, setAutomaticSpeed } });
   await screen.findByRole("region", { name: "Rede" });
   await userEvent.click(settingsButton());
+  await userEvent.click(screen.getByRole("button", { name: "Rede" }));
   const toggle = screen.getByRole("checkbox", { name: "Teste de velocidade automático" });
   expect(toggle).toBeChecked();
   await userEvent.click(toggle);
@@ -255,6 +256,7 @@ it("sends a pasted GitHub token from Settings to the core", async () => {
   render(Panel, { core: { ...core, saveGithubToken } });
   await screen.findByRole("region", { name: "GitHub" });
   await userEvent.click(settingsButton());
+  await userEvent.click(screen.getByRole("button", { name: "GitHub" }));
   expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument();
   await userEvent.type(screen.getByLabelText("Token clássico (escopo repo)"), "private-token");
   const settings = screen.getByRole("region", { name: "GitHub" });
@@ -270,6 +272,7 @@ it("sends Trello key and token from Settings to the core", async () => {
   render(Panel, { core: { ...core, connectTrello } });
   await screen.findByRole("region", { name: "Trello" });
   await userEvent.click(settingsButton());
+  await userEvent.click(screen.getByRole("button", { name: "Trello" }));
   expect(core.reportVisibleModules).toHaveBeenLastCalledWith([]);
   const trello = screen.getByRole("region", { name: "Trello" });
   await userEvent.type(within(trello).getByLabelText("API key"), "0123abcd");
@@ -295,6 +298,7 @@ it("shows three enabled Agent notification switches and sends the changed prefer
   render(Panel, { core: { ...core, setAgentNotifications } });
   await screen.findByRole("region", { name: "IA" });
   await userEvent.click(settingsButton());
+  await userEvent.click(screen.getByRole("button", { name: "Agentes" }));
   for (const name of ["Aguardando", "Turno concluído", "Falha"]) expect(screen.getByRole("checkbox", { name })).toBeChecked();
   await userEvent.click(screen.getByRole("checkbox", { name: "Aguardando" }));
   expect(setAgentNotifications).toHaveBeenCalledWith({ waiting: false, done: true, failed: true });

@@ -27,6 +27,11 @@
   },
   "settings": {
     "title": "Configurações",
+    "index": {
+      "label": "Seções das Configurações",
+      "app": "App",
+      "modules": "Módulos"
+    },
     "welcome": {
       "title": "Boas-vindas",
       "intro": "Veja o que já foi detectado e configure o que faltar. Tudo pode ser alterado depois nestas Configurações.",
