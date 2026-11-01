@@ -14,7 +14,7 @@ Blocked by: None (13 resolved).
 
 ## Comments
 
-Origem: resposta do ticket 13 (2026-11-01). Protótipo de referência: `src/lib/compact-prototype/AbsentPrototype.svelte` no branch local `prototype/composition-without-data`.
+Origem: resposta do ticket 13 (2026-11-01). Protótipo de referência: `src/lib/compact-prototype/AbsentPrototype.svelte` no branch local `prototype/composition-without-data` (apagada em 2026-11-01).
 
 Implementação (2026-11-01):
 

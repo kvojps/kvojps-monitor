@@ -21,4 +21,4 @@ Validado em Ubuntu 26.04.1 / NetworkManager 1.54.3 / systemd 259, sem sudo.
 - **(f) Tráfego por processo**: sem privilégio, contadores por conexão TCP do kernel (estilo `ss -tip`) para processos do próprio usuário (testado: 55/55 conexões mapeadas). Exato (eBPF) exige `CAP_BPF`+`CAP_PERFMON` → só como serviço systemd opcional no `.deb`, com usuário dedicado; AppImage não carrega capabilities → só modo sem privilégio. nethogs exige capabilities amplas; nunca dar capability ao interpretador Python.
 - **Sinais de risco**: confiáveis para alerta — rede aberta, WEP/TKIP, portal cativo, DNS respondendo a nomes inexistentes. Só aviso contextual — MAC do gateway mudando (possível ARP spoofing), SSID parecido. Nunca declarar a rede "segura".
 
-Achados completos: branch local `research/rede-linux` (commit `533591f`), arquivo `research/rede-linux.md`.
+Achados completos: [`docs/research/rede-linux.md`](../../../docs/research/rede-linux.md) (trazido da branch `research/rede-linux`, commit `533591f`, apagada em 2026-11-01).

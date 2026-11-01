@@ -19,4 +19,4 @@ Com um token pessoal gratuito (ou o `gh` já autenticado), como obter: (a) o cal
 
 **Custos/limites**: 1 ponto por query; 5.000 pts/h. Sem ETag em GraphQL → cache local (calendário TTL ~1h, destaque 10–15 min). Token fine-grained não recomendado.
 
-Achados completos: branch local `research/github-atividade` (commit `dfd3af8`), arquivo `research/github-atividade.md`.
+Achados completos: [`docs/research/github-atividade.md`](../../../docs/research/github-atividade.md) (trazido da branch `research/github-atividade`, commit `dfd3af8`, apagada em 2026-11-01).

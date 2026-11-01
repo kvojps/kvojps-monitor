@@ -38,6 +38,6 @@ O usuário aprovou integralmente a rodada apresentada (“Concordo com tudo.”)
 - Estados de atenção e falha têm aviso textual, sem depender só da cor. Falha e ausência de dados substituem os instrumentos por explicação e ação pertinente; leitura desatualizada mantém o último snapshot explicitamente identificado. Listas densas permitem rolagem. Configurações continua separada do Painel completo.
 - Os exemplos são demonstrações identificadas, baseadas em fixtures; a lista densa é uma repetição sintética para avaliação. Não são novas medições.
 
-Fonte: branch local `prototype/cinematic-panel-composition`, arquivos em `src/lib/cinematic-prototype/`. Execute `npm run prototype:cinematic` e abra `/cinematic-prototype.html?variant=H`. Sem push; sem alteração na UI de produção.
+Fonte: branch local `prototype/cinematic-panel-composition` (apagada em 2026-11-01), arquivos em `src/lib/cinematic-prototype/`. Execute `npm run prototype:cinematic` e abra `/cinematic-prototype.html?variant=H`. Sem push; sem alteração na UI de produção.
 
 Validação técnica já executada: `npm run check`, zero erros e avisos. A aprovação é visual; consumo e fluidez ainda não foram medidos. A consolidação deve fechar os critérios de aceitação propostos (resposta em até 100 ms, alvo de 60 fps e ausência de animação oculta) e definir orçamento de CPU com baseline, sem tratá-los como resultados comprovados.

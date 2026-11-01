@@ -17,7 +17,7 @@ Como listar as Sessões de agente locais do Claude Code e do Codex e classificar
 
 **Restrições**: já existem hooks de outro app (Orca) em `~/.claude/settings.json` e `~/.codex/hooks.json` — instalar hooks de forma aditiva, sem sobrescrever; nunca registrar conteúdo de mensagens. Cada leitor atrás de um adapter (formatos do Codex e `~/.claude/sessions/*.json` não são interfaces estáveis).
 
-Achados completos: branch local `research/sessoes-de-agente` (commit `24d392e`), arquivo `research/sessoes-de-agente.md`.
+Achados completos: [`docs/research/sessoes-de-agente.md`](../../../docs/research/sessoes-de-agente.md) (trazido da branch `research/sessoes-de-agente`, commit `24d392e`, apagada em 2026-11-01).
 
 ## Comments
 

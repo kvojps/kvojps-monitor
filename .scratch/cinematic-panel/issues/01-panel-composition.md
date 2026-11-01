@@ -63,6 +63,6 @@ Composição **H — Estações de comando** aprovada pelo usuário após o ajus
 - Influência visual de Star Trek/LCARS, com geometria curva e faixas segmentadas, preto/ciano e detalhes âmbar/lavanda.
 - Dados já visíveis são suficientes para esta composição: expansores retirados. Ações permanecem nos próprios Módulos.
 
-Artefato e inventário: [Protótipo de composição do Painel](../composition-prototype.md). Fonte preservada na branch local `prototype/cinematic-panel-composition` (sem push). Execute `npm run prototype:cinematic` e abra `/cinematic-prototype.html?variant=H`.
+Artefato e inventário: [Protótipo de composição do Painel](../composition-prototype.md). Fonte estava na branch local `prototype/cinematic-panel-composition` (sem push, apagada em 2026-11-01). Execute `npm run prototype:cinematic` e abra `/cinematic-prototype.html?variant=H`.
 
 Validação técnica: `npm run check`, zero erros e avisos; renderização confirmou os seis Módulos sem expansores. Aprovação visual do usuário cobre a distribuição final. Movimento, estados alternativos, tema e critérios de fluidez seguem em [Validar linguagem visual, movimento e leitura no trabalho](02-motion-and-readability.md). A cobertura final dos comportamentos da v1 será conciliada em [Consolidar a especificação visual validada do Painel](03-visual-specification.md).

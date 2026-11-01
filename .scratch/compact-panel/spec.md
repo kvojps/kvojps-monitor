@@ -7,7 +7,7 @@ Origem: [Painel compacto sem rolagem](map.md) e [Consolidar a especificação do
 
 Este documento complementa a [especificação visual cinematográfica](../cinematic-panel/spec.md) e substitui somente as regras de apresentação delimitadas abaixo. Fontes, coleta, privacidade, credenciais, cache, notificações e regras de negócio continuam conforme a [spec da v1](../kvojps-monitor/spec.md) e o complemento vigente. Não implementar produção durante este planejamento.
 
-Referência: **B — Núcleo lateral**, entrada `compact-prototype.html?variant=B`, código em `src/lib/compact-prototype/`, branch local `prototype/compact-panel-composition`, sem push. Execute `npm run prototype:compact`. Fixtures e ações simuladas não são fontes de dados de produção. O [registro do protótipo](composition-prototype.md) contém capturas, medições e limites observados.
+Referência: **B — Núcleo lateral**, entrada `compact-prototype.html?variant=B`, código em `src/lib/compact-prototype/` na `main` (branch `prototype/compact-panel-composition` incorporada e apagada em 2026-11-01). Execute `npm run prototype:compact`. Fixtures e ações simuladas não são fontes de dados de produção. O [registro do protótipo](composition-prototype.md) contém capturas, medições e limites observados.
 
 O usuário escolheu B, aprovou a revisão do Trello com “Perfeito”, confirmou a janela de aproximadamente 1100 × 700 e aceitou os demais detalhes com “Se for como está no protótipo concordo com tudo”. Essa aprovação cobre a referência apresentada; não comprova testes nativos ou estados que ela não demonstrou.
 

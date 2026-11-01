@@ -20,7 +20,7 @@ Escolhida a **variante A: trilho lateral, um Módulo por vez**. Usuário escolhe
 - **Memória do Painel**: não medida — o protótipo é HTML, não Tauri. Vira requisito da spec: medir no primeiro esqueleto Tauri e destruir a webview ao fechar se passar de ~150 MB em repouso.
 - O conteúdo das Configurações no protótipo é provisório até [Fluxo de credenciais nas Configurações](15-fluxo-de-credenciais.md).
 
-Protótipo: branch local `prototype/painel-visual` (commit `8ca6cad`), arquivo `prototype/painel-visual/index.html`.
+Protótipo: branch local `prototype/painel-visual` (commit `8ca6cad`, apagada em 2026-11-01), arquivo `prototype/painel-visual/index.html`.
 
 ## Comments
 

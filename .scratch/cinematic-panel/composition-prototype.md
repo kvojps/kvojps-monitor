@@ -65,4 +65,4 @@ Verificação: `npm run check` sem erros ou avisos; renderização de H confirmo
 
 ## Aprovação da composição
 
-O usuário aprovou a distribuição simétrica final de H. A decisão está registrada no ticket de origem. Fonte preservada na branch local `prototype/cinematic-panel-composition`, sem push. O protótipo continua descartável; o app de produção não foi redesenhado.
+O usuário aprovou a distribuição simétrica final de H. A decisão está registrada no ticket de origem. Fonte estava na branch local `prototype/cinematic-panel-composition` (sem push, apagada em 2026-11-01). O protótipo continua descartável; o app de produção não foi redesenhado.

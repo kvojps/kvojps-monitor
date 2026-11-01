@@ -29,7 +29,7 @@ Fonte descartável: [Prototype.svelte](../../../src/lib/cinematic-prototype/Prot
 
 ## Answer
 
-O usuário escolheu explicitamente **Coreografia combinada** após comparar as alternativas no protótipo. A referência aprovada é a composição H em `cinematic-prototype.html?variant=H&motion=combined`, preservada na branch local `prototype/cinematic-panel-composition`, em `src/lib/cinematic-prototype/Prototype.svelte`.
+O usuário escolheu explicitamente **Coreografia combinada** após comparar as alternativas no protótipo. A referência aprovada é a composição H em `cinematic-prototype.html?variant=H&motion=combined`, que estava na branch local `prototype/cinematic-panel-composition` (apagada em 2026-11-01), em `src/lib/cinematic-prototype/Prototype.svelte`.
 
 Adotar, além dos anéis e brilho existentes: fluxo luminoso nas faixas superiores (ciclo de 3,5 s, com fases deslocadas), varredura decorativa nas bordas dos Módulos (7 s, defasada entre colunas), deriva de fundo nos títulos das estações (9 s) e deslocamento de 2 px dos botões de navegação ao apontador (transição de 150 ms). Faixas e bordas são decoração, sem significado de coleta ou atividade. Dados, gráficos, texto e alertas permanecem estáveis. A composição e a revisão de Rede aprovadas permanecem.
 

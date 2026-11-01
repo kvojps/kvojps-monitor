@@ -2,7 +2,7 @@
 
 Status: composição B — Núcleo lateral, quadro completo do Trello e demais detalhes apresentados aprovados pelo usuário. Estados não demonstrados permanecem sujeitos aos critérios da especificação.
 Origem: [Validar a distribuição compacta do Painel](issues/01-compact-composition.md).
-Branch local: `prototype/compact-panel-composition`, sem push.
+Código em `src/lib/compact-prototype/` na `main` (a branch `prototype/compact-panel-composition` foi incorporada e apagada em 2026-11-01).
 
 ## Executar e comparar
 

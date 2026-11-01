@@ -80,7 +80,7 @@ com cache/idade sem faixa global de erro, estados específicos e recuperações.
 
 ## Comparação com H
 
-A branch local `prototype/cinematic-panel-composition` foi extraída em
+A branch local `prototype/cinematic-panel-composition` (apagada em 2026-11-01) foi extraída em
 `/tmp/kvojps-reference-source` e servida em modo dev, com dependências locais.
 A referência só monta em `import.meta.env.DEV`: seu build estático é vazio e
 não pode servir de evidência. Capturas em `/tmp/reference-dark-{largura}.png`.

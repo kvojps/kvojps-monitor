@@ -17,4 +17,4 @@ Qual stack entrega melhor um Indicador na barra superior do GNOME (Wayland, exte
 - **Descartados**: Electron (pesado, mesmas limitações), Python+GTK4 (sem lib de tray para GTK4, AppImage difícil), só-extensão (UI limitada, roda no compositor, quebra a cada versão do GNOME).
 - **Não verificado**: memória (só qualitativo — medir no protótipo); XWayland permitir posicionamento; "pulo" visível no reposicionamento.
 
-Achados completos: branch local `research/stack-indicador` (commit `ee1f803`), arquivo `research/stack-indicador.md`.
+Achados completos: [`docs/research/stack-indicador.md`](../../../docs/research/stack-indicador.md) (trazido da branch `research/stack-indicador`, commit `ee1f803`, apagada em 2026-11-01).

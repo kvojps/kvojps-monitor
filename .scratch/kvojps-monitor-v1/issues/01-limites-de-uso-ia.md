@@ -20,4 +20,4 @@ Como obter, sem custo e a partir desta máquina, o consumo e o horário de rein�
 
 **Recomendação da pesquisa**: Codex via app-server + fallback rollouts; Claude via cache do status line, `oauth/usage` só como opt-in desligado por padrão com aviso.
 
-Achados completos: branch local `research/limites-de-uso-ia` (commit `c2e9616`), arquivo `research/limites-de-uso-ia.md`.
+Achados completos: [`docs/research/limites-de-uso-ia.md`](../../../docs/research/limites-de-uso-ia.md) (trazido da branch `research/limites-de-uso-ia`, commit `c2e9616`, apagada em 2026-11-01).

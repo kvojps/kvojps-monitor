@@ -35,7 +35,7 @@ Aprovada pelo usuário em 2026-11-01: **variante A, instrumentos que crescem** (
 - Ajuste pedido na mesma conferência: o número dentro dos anéis (IA e Agentes) cresce mais devagar. `calc(33px + (100cqi - 94px) / 4)`: o tamanho do B em 94 px, ≈54 px em 180 px (antes 35cqi, ≈63 px).
 - Linhas condicionais só encolhem o instrumento do cartão; não abrem vão.
 - Conferido no app nativo com as fixtures do B: sem rolagem em 1100 × 700 e 1000 × 700, temas escuro e claro.
-- Protótipo (atual, A instrumentos, B rodapé ancorado, C espaço repartido, D grade na altura do conteúdo, com opção de linha condicional simulada) no branch local `prototype/vertical-distribution-alignment` (commit `06ebd36`), não enviado.
+- Protótipo (atual, A instrumentos, B rodapé ancorado, C espaço repartido, D grade na altura do conteúdo, com opção de linha condicional simulada) no branch local `prototype/vertical-distribution-alignment` (commit `06ebd36`, apagada em 2026-11-01), não enviado.
 
 ### Ajustes pedidos depois da conferência (2026-11-01)
 
