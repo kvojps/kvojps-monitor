@@ -40,3 +40,39 @@ Módulos: `ai`, `agents`, `github`, `trello`, `network`, `system`. Padrão (B): 
   `--release` com a feature falha por `compile_error!`; as fixtures são lidas do
   repositório em tempo de execução, nunca embutidas no binário. Testes em
   `src-tauri/src/fixtures.rs` e `build_tests` em `src-tauri/src/lib.rs`.
+
+## Captura por agentes
+
+O GNOME recusa `org.gnome.Shell.Screenshot` a clientes comuns (“Screenshot is not
+allowed”). No modo de fixtures, a própria instância renderiza a webview com o snapshot
+do WebKitGTK e mede a rolagem; nada disso existe no build de produção (feature
+`fixtures`, `src-tauri/src/capture.rs`).
+
+Com `npm run dev:fixtures` rodando:
+
+```sh
+scripts/capture-panel.sh /caminho/absoluto/b-1100-escuro 1100x700 dark
+scripts/capture-panel.sh /caminho/absoluto/b-1000-claro 1000x700 light
+```
+
+O script repassa `--capture <prefixo> --size LxA --theme dark|light|system` à
+instância viva (instância única), espera e imprime `<prefixo>.json`; a imagem fica em
+`<prefixo>.png`. Sai com erro se a captura falhou. O tema é salvo nas preferências
+temporárias do modo de fixtures; sem `--theme`, vale o já salvo.
+
+A instância reabre o Painel, pede o tamanho lógico, corrige pela diferença medida (no
+Wayland o tao entrega 52 px a menos em cada eixo), espera o layout e 1,5 s de
+transição, mede e só então captura. O JSON traz:
+
+- `width`/`height`: área visível obtida; `opened`: tamanho com que o Painel abriu
+  sozinho, antes do ajuste.
+- `scroller`: `scrollHeight`/`clientHeight` (e largura) de `.panel .scroller`.
+- `overflowing`: todo contêiner rolável cujo conteúdo excede a caixa. **Vazio = sem
+  rolagem.**
+- `theme`, `devicePixelRatio`, `styles` (folhas de estilo injetadas pelo Vite).
+
+**Vite frio:** na primeira partida, o `vite-plugin-svelte` pode falhar ao carregar o CSS
+de alguns componentes (“failed to load virtual css module” no log); o WebKit mantém a
+falha nas reaberturas e o Painel sai sem o CSS desses Módulos (cabeçalhos quebrados,
+falsa rolagem). A captura recusa esse estado e pede para reiniciar
+`npm run dev:fixtures`.

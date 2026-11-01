@@ -4,6 +4,8 @@
 mod agents;
 mod ai;
 mod autostart;
+#[cfg(feature = "fixtures")]
+mod capture;
 mod collection;
 mod commands;
 mod desktop_theme;
@@ -44,8 +46,8 @@ pub fn copy_status_line(cache: &str) {
 pub fn run() {
     tauri::Builder::default()
         // Register first: a second launch opens the live instance panel and exits.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            panel::open(app)
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            second_launch(app, &args)
         }))
         .manage(Snapshots::default())
         .setup(|app| {
@@ -151,6 +153,21 @@ pub fn run() {
 }
 
 #[cfg(not(feature = "fixtures"))]
+fn second_launch(app: &tauri::AppHandle, _args: &[String]) {
+    panel::open(app)
+}
+
+/// In fixture mode, `--capture` asks the running instance for a panel capture.
+#[cfg(feature = "fixtures")]
+fn second_launch(app: &tauri::AppHandle, args: &[String]) {
+    match capture::request(args) {
+        None => panel::open(app),
+        Some(Ok(request)) => capture::start(app, request),
+        Some(Err(e)) => eprintln!("capture: {e}"),
+    }
+}
+
+#[cfg(not(feature = "fixtures"))]
 fn config_dir() -> Option<std::path::PathBuf> {
     dirs::config_dir()
 }
@@ -190,7 +207,22 @@ mod build_tests {
             .expect("Cargo.toml declares features");
         let features = features.split("\n[").next().unwrap();
         assert!(features.contains("default = []"));
-        assert!(features.contains("fixtures = []"));
+        let fixtures = features
+            .lines()
+            .find(|l| l.starts_with("fixtures = "))
+            .expect("fixtures feature declared");
+        // The feature only enables optional crates; nothing else depends on them.
+        assert_eq!(
+            fixtures,
+            r#"fixtures = ["dep:webkit2gtk", "dep:javascriptcore-rs", "dep:cairo-rs"]"#
+        );
+        for dependency in ["webkit2gtk", "javascriptcore-rs", "cairo-rs"] {
+            let line = manifest
+                .lines()
+                .find(|l| l.starts_with(&format!("{dependency} = ")))
+                .expect("optional dependency declared");
+            assert!(line.contains("optional = true"), "{line}");
+        }
         let config = include_str!("../tauri.conf.json");
         assert!(!config.contains("fixtures"));
         assert!(

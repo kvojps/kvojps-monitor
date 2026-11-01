@@ -13,8 +13,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
 default = []
-# Development only: the native panel shows prototype B's fixtures (see fixtures.rs).
-fixtures = []
+# Development only: the native panel shows prototype B's fixtures (see fixtures.rs)
+# and agents can capture it (see capture.rs). The optional crates are already
+# in the tree through wry; the feature only names them.
+fixtures = ["dep:webkit2gtk", "dep:javascriptcore-rs", "dep:cairo-rs"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -36,6 +38,10 @@ zbus = { version = "5", default-features = false, features = ["tokio", "blocking
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 reqwest = { version = "0.13", features = ["blocking", "json"] }
 rusqlite = "0.38"
+# Fixture mode only: snapshot of the panel webview.
+webkit2gtk = { version = "=2.0.2", features = ["v2_40"], optional = true }
+javascriptcore-rs = { version = "=1.1.2", optional = true }
+cairo-rs = { version = "0.18", features = ["png"], optional = true }
 
 [dev-dependencies]
 tempfile = "3"

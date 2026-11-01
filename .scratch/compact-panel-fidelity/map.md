@@ -34,6 +34,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 - [Rede fiel ao B](issues/04-network.md): resumo e detalhe de aplicativos reescritos do protótipo; linha de status com dados reais; estados condicionais como linhas `small` abaixo dela; aprovado no app nativo.
 - [Trello fiel ao B](issues/05-trello.md): resumo e quadro completo reescritos do protótipo; ↻/⚙ por ícone; estados condicionais como linhas `small` no topo do corpo; aprovado no app nativo.
 - [Sistema fiel ao B](issues/06-system.md): resumo reescrito do protótipo; GB só sob a RAM, bateria em texto; cabeçalho de fonte/horário removido do Painel; estados condicionais como linhas `small` no topo do corpo; aprovado no app nativo.
+- [Captura nativa para agentes](issues/08-agent-native-capture.md): `scripts/capture-panel.sh` pede à instância viva (só feature `fixtures`) snapshot da webview + JSON de rolagem; B sem rolagem em 1100/1000 × 700, escuro e claro; Vite frio pode tirar o CSS de Módulos (captura recusa); Painel abre em 1048 × 648 no Wayland (vai para a validação integrada).
 
 ## Tickets
 

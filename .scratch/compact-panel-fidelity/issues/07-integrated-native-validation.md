@@ -15,3 +15,5 @@ Blocked by: 03, 04, 05, 06, 09, 10
 ## Comments
 
 Origem: [mapa de fidelidade](../map.md), decisões Q8, Q11, Q12 da entrevista de 2026-10-31.
+
+Achado da [Captura nativa para agentes](08-agent-native-capture.md) (2026-11-01): em 1920 × 1080, escala 1, o Painel abre com área visível de 1048 × 648, não 1100 × 700 (o tao no Wayland desconta 52 px por eixo). Conferir nas dimensões lógicas e decidir se `panel.rs` compensa. Capturas: `scripts/capture-panel.sh`.

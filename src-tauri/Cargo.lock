@@ -2234,8 +2234,10 @@ dependencies = [
 name = "kvojps-monitor"
 version = "0.1.0"
 dependencies = [
+ "cairo-rs",
  "chrono",
  "dirs 6.0.0",
+ "javascriptcore-rs",
  "keyring",
  "ksni",
  "libc",
@@ -2250,6 +2252,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tempfile",
  "tokio",
+ "webkit2gtk",
  "zbus 5.19.0",
 ]
 
