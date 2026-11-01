@@ -9,7 +9,7 @@
   import TrelloModule from "./trello/TrelloModule.svelte";
   import { AppearanceState } from "./settings/appearance.svelte";
   import Settings from "./settings/Settings.svelte";
-  import { interpolate, t } from "./strings";
+  import { t } from "./strings";
 
   let { core }: { core: Core } = $props();
 
@@ -116,12 +116,6 @@
   const supportingModules: Module[] = ["github", "network", "trello", "system"];
   const agentsData = $derived((snapshots.agents?.data as AgentsData | undefined) ?? null);
 
-  const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  function updated(module: Module) {
-    const at = snapshots[module]?.updatedAt ?? null;
-    return at === null ? t.header.noData : interpolate(t.header.updated, { time: time.format(at) });
-  }
-
   onMount(() => {
     let observer: IntersectionObserver | undefined;
     if (typeof IntersectionObserver === "function") {
@@ -222,14 +216,6 @@
   <section id="module-{module}" data-module={module} class="module {module}" class:card={!inCard}
     aria-label={inCard ? t.modules[module] : undefined} aria-labelledby={inCard ? undefined : `module-${module}-title`}
     tabindex="-1" onfocusin={(event) => remember(module, event)} bind:this={sections[module]}>
-    {#if !inCard && module === "system"}
-      <header class="module-head">
-        <div class="module-title">
-          <h2 id="module-{module}-title">{t.modules[module]}</h2>
-          <p class="source"><span>{t.sources[module]}</span><span aria-hidden="true">·</span><span class="num">{updated(module)}</span></p>
-        </div>
-      </header>
-    {/if}
     {@render body?.()}
   </section>
 {/snippet}
@@ -297,46 +283,18 @@
   .card {
     --module-band: var(--band-cyan);
     min-width: 0;
+    padding: 8px 14px;
     background: var(--module-bg);
     border-top: 4px solid var(--module-band);
   }
-  .card.intelligence { --module-band: var(--band-lavender); padding: 8px 14px; }
-  .card.github { --module-band: var(--band-steel); padding: 8px 14px; }
+  .card.intelligence { --module-band: var(--band-lavender); }
+  .card.github { --module-band: var(--band-steel); }
   .card.system { --module-band: var(--band-lavender); }
-  .card.trello { --module-band: var(--band-amber); padding: 8px 14px; }
-  .card.network { --module-band: var(--band-blue); padding: 8px 14px; }
+  .card.trello { --module-band: var(--band-amber); }
+  .card.network { --module-band: var(--band-blue); }
   .module { min-width: 0; display: flex; flex-direction: column; scroll-margin-top: 4px; overflow-wrap: anywhere; }
   .module.agents { flex: 1; }
   .module:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .module-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 0 10px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .module-title {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .module-head h2 {
-    font-size: 16px;
-    font-weight: 500;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--module-title, var(--module-band));
-  }
-  .source {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--muted);
-  }
 
   @media (max-width: 950px) {
     .composition { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence intelligence" "github network" "trello system"; }

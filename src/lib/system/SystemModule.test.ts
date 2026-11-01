@@ -26,35 +26,46 @@ function renderLater(snapshot: Snapshot, elapsed: number) {
 }
 
 describe("System module", () => {
-  it("highlights CPU and temperature and shows RAM, swap, disk and battery from a notebook", () => {
+  it("shows B's instruments from a notebook: CPU, temperature, RAM, swap, root disk and battery", () => {
     renderSnapshot(notebook as Snapshot);
 
+    expect(screen.getByRole("heading", { level: 2, name: "Sistema" })).toBeInTheDocument();
     expect(group("CPU")).toHaveTextContent("2%");
-    expect(group("Temperatura")).toHaveTextContent("47 °C");
+    expect(group("Temperatura")).toHaveTextContent("47,4°C");
+    expect(screen.getAllByRole("meter").map((m) => m.getAttribute("aria-label"))).toEqual(["RAM", "Swap", "Disco /"]);
     expect(meter("RAM")).toHaveAttribute("aria-valuenow", "39");
-    expect(meter("RAM")).toHaveAttribute("aria-valuetext", "5,7 / 15 GB · 39%");
-    expect(screen.getByText("5,7 / 15 GB")).toBeInTheDocument();
-    expect(meter("Swap")).toHaveAttribute("aria-valuetext", "0,4 / 4,0 GB · 9%");
-    // The percentage agrees with the visible pair; the core still decides the warning.
-    expect(meter("Disco /")).toHaveAttribute("aria-valuetext", "70 / 147 GB · 48%");
-    expect(meter("Bateria")).toHaveAttribute("aria-valuenow", "100");
-    expect(meter("Bateria")).toHaveAttribute("aria-valuetext", "100% · carregada");
-    expect(group("Bateria")).toHaveTextContent("100%");
-    expect(group("Bateria")).toHaveTextContent("carregada");
+    expect(meter("RAM")).toHaveAttribute("aria-valuetext", "39% · 5,7 / 14,5 GB");
+    expect(meter("Swap")).toHaveAttribute("aria-valuetext", "9% · 0,4 / 4,0 GB");
+    // The percentage agrees with the pair; the core still decides the warning.
+    expect(meter("Disco /")).toHaveAttribute("aria-valuetext", "48% · 70,4 / 146,6 GB");
+    expect(screen.getByText("39%")).toBeInTheDocument();
+    expect(screen.getByText("9%")).toBeInTheDocument();
+    expect(screen.getByText("48%")).toBeInTheDocument();
+    expect(screen.getByText("Bateria 100% · Carregada")).toHaveClass("battery");
   });
 
-  it("leaves out the CPU history and free space dismissed from the selection", () => {
+  it("shows GB used/total only under RAM, as B does", () => {
     renderSnapshot(notebook as Snapshot);
 
+    expect(screen.getByText("5,7 / 14,5 GB")).toBeInTheDocument();
+    expect(screen.queryByText(/0,4 \/ 4,0 GB|70,4 \/ 146,6 GB/)).not.toBeInTheDocument();
+  });
+
+  it("shows nothing beyond B in the normal state", () => {
+    renderLater(notebook as Snapshot, 3_000);
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    expect(screen.queryByText(/livres/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("meter", { name: "Bateria" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Kernel|UPower|atualizado|livres|⚠|Sem /)).not.toBeInTheDocument();
   });
 
   it("says a desktop has no battery instead of showing a charge", () => {
     renderSnapshot(desktop as Snapshot);
 
-    expect(group("Bateria")).toHaveTextContent("Sem bateria detectada");
-    expect(screen.queryByRole("meter", { name: "Bateria" })).not.toBeInTheDocument();
+    expect(screen.getByText("Sem bateria detectada")).toHaveClass("line");
+    expect(screen.queryByText(/^Bateria/)).not.toBeInTheDocument();
     expect(group("CPU")).toHaveTextContent("2%");
   });
 
@@ -70,30 +81,23 @@ describe("System module", () => {
 
     expect(group("Temperatura")).toHaveTextContent("Sem sensor");
     expect(screen.queryByRole("meter", { name: "Swap" })).not.toBeInTheDocument();
-    expect(screen.getByText("Sem swap configurada")).toBeInTheDocument();
-    expect(group("Bateria")).toHaveTextContent("Sem bateria detectada");
+    expect(screen.getByText("Sem swap configurada")).toHaveClass("line");
+    expect(screen.getByText("Sem bateria detectada")).toHaveClass("line");
     expect(meter("RAM")).toBeInTheDocument();
   });
 
-  it("identifies temperature, disk and battery alerts by text, not only color", () => {
+  it("identifies temperature, disk and battery alerts as body lines, not only color", () => {
     renderSnapshot(warning as Snapshot);
 
-    expect(group("Temperatura")).toHaveTextContent("92 °C");
-    expect(group("Temperatura")).toHaveTextContent("Temperatura alta");
-    expect(group("Bateria")).toHaveTextContent("12%");
-    expect(group("Bateria")).toHaveTextContent("Bateria baixa");
-    expect(group("Bateria")).toHaveTextContent("na bateria");
-    expect(group("Bateria")).not.toHaveTextContent(/restantes|min/);
+    expect(group("Temperatura")).toHaveTextContent("92,1°C");
+    expect(screen.getByText("Temperatura alta")).toHaveClass("line", "alert");
+    expect(screen.getByText("Bateria baixa")).toHaveClass("line", "alert");
+    const battery = screen.getByText("Bateria 12% · Na bateria");
+    expect(battery).toHaveClass("warning");
+    expect(battery).not.toHaveTextContent(/restantes|min/);
     // A warning disk other than the root one keeps its alert without listing every disk.
-    expect(screen.getAllByRole("meter").map((m) => m.getAttribute("aria-label"))).toEqual(["RAM", "Swap", "Disco /", "Bateria"]);
+    expect(screen.getAllByRole("meter").map((m) => m.getAttribute("aria-label"))).toEqual(["RAM", "Swap", "Disco /"]);
     expect(screen.getByRole("alert")).toHaveTextContent("Pouco espaço em /mnt/data");
-  });
-
-  it("shows no alert on a normal reading", () => {
-    renderSnapshot(notebook as Snapshot);
-
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Temperatura alta|Bateria baixa|Pouco espaço/)).not.toBeInTheDocument();
   });
 
   it("flags the root disk itself when it is almost full", () => {
@@ -115,7 +119,8 @@ describe("System module", () => {
   it("explains there is no reading before the first system snapshot", () => {
     render(SystemModule, { data: null, updatedAt: null });
 
-    expect(screen.getByText("Sem leitura do sistema ainda")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Sistema" })).toBeInTheDocument();
+    expect(screen.getByText("Sem leitura do sistema ainda")).toHaveClass("line");
     expect(screen.queryByRole("meter")).not.toBeInTheDocument();
   });
 

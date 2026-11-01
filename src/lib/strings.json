@@ -25,14 +25,6 @@
     "network": "Rede",
     "system": "Sistema"
   },
-  "sources": {
-    "ai": "Codex e Claude Code",
-    "agents": "Claude Code e Codex",
-    "github": "GitHub",
-    "trello": "Trello",
-    "network": "NetworkManager e kernel",
-    "system": "Kernel e UPower"
-  },
   "settings": {
     "title": "Configurações",
     "welcome": {
@@ -82,12 +74,12 @@
     "swap": "Swap",
     "battery": "Bateria",
     "statesBattery": {
-      "charging": "carregando",
-      "discharging": "na bateria",
-      "full": "carregada",
-      "empty": "vazia",
-      "pluggedIn": "na tomada",
-      "unknown": "estado desconhecido"
+      "charging": "Carregando",
+      "discharging": "Na bateria",
+      "full": "Carregada",
+      "empty": "Vazia",
+      "pluggedIn": "Na tomada",
+      "unknown": "Estado desconhecido"
     },
     "disk": "Disco {mount}",
     "noReading": "Sem leitura do sistema ainda",

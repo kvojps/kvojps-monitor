@@ -106,17 +106,19 @@ describe("Compact panel", () => {
     expect(within(section("Rede")).getByRole("heading", { level: 2, name: "Rede" })).toBeInTheDocument();
     expect(within(section("Trello")).getByRole("heading", { level: 2, name: "Trello" })).toBeInTheDocument();
     expect(within(section("Trello")).queryByText("sem dados ainda")).not.toBeInTheDocument();
+    expect(within(section("Sistema")).getByRole("heading", { level: 2, name: "Sistema" })).toBeInTheDocument();
+    expect(within(section("Sistema")).queryByText(/Kernel e UPower|atualizado/)).not.toBeInTheDocument();
   });
 
   it("shows cached snapshots at once and updates only the module the core pushes", async () => {
     const { core, publish } = fakeCore({ snapshots: [notebook as Snapshot] });
     render(Panel, { core });
-    expect(await within(await screen.findByRole("region", { name: "Sistema" })).findByText("atualizado 11:32")).toBeInTheDocument();
+    expect(await within(await screen.findByRole("region", { name: "Sistema" })).findByRole("group", { name: "CPU" })).toHaveTextContent("2%");
 
     await publish({ module: "trello", updatedAt: new Date(2026, 9, 30, 9, 5).getTime(), data: trelloFull });
 
     expect(within(section("Trello")).getByText("17 cards · 8 listas")).toBeInTheDocument();
-    expect(within(section("Sistema")).getByText("atualizado 11:32")).toBeInTheDocument();
+    expect(within(section("Sistema")).getByRole("group", { name: "CPU" })).toHaveTextContent("2%");
   });
 
   it("keeps keyboard focus when a snapshot arrives", async () => {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Memory, SystemData } from "../core";
+  import type { SystemData } from "../core";
   import { interpolate, t } from "../strings";
   import { pair } from "./format";
 
@@ -25,132 +25,110 @@
   /** When the reading is old, the moment it was taken; null while fresh. */
   const staleSince = $derived(updatedAt !== null && now - updatedAt > STALE_AFTER ? updatedAt : null);
 
-  /** `note` explains a related absence right below the bar. */
-  type Resource = { name: string; used: number; total: number; percent: number; warning: boolean; note?: string };
-
+  const celsius = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const percent = (used: number, total: number) => (total > 0 ? Math.round((used / total) * 100) : 0);
-  const memory = (name: string, m: Memory): Resource =>
-    ({ name, used: m.used, total: m.total, percent: percent(m.used, m.total), warning: false });
+
+  /** `note` is the GB pair B shows only under RAM; every meter keeps it in its accessible value. */
+  type Meter = { name: string; used: number; total: number; warning: boolean; note: boolean };
 
   /** The root disk represents the machine; the others only appear when they warn. */
   const disk = $derived(data?.disks.find((d) => d.mount === "/") ?? data?.disks[0] ?? null);
-  const resources = $derived.by(() => {
+  const meters = $derived.by(() => {
     if (!data) return [];
-    const list: Resource[] = [{ ...memory(t.system.ram, data.ram), note: data.swap ? undefined : t.system.noSwap }];
-    if (data.swap) list.push(memory(t.system.swap, data.swap));
-    if (disk) {
-      list.push({ name: interpolate(t.system.disk, { mount: disk.mount }), used: disk.used, total: disk.total,
-        percent: percent(disk.used, disk.total), warning: disk.warning });
-    }
+    const list: Meter[] = [{ name: t.system.ram, ...data.ram, warning: false, note: true }];
+    if (data.swap) list.push({ name: t.system.swap, ...data.swap, warning: false, note: false });
+    if (disk) list.push({ name: interpolate(t.system.disk, { mount: disk.mount }), used: disk.used, total: disk.total, warning: disk.warning, note: false });
     return list;
   });
   const fullDisks = $derived(data?.disks.filter((d) => d.warning) ?? []);
-  const valueText = (r: Resource) => `${pair(r.used, r.total)} · ${r.percent}%`;
 </script>
 
-{#if !data}
-  <div class="system"><p class="blank">{t.system.noReading}</p></div>
-{:else}
-  {@const cpu = data.cpu}
-  {@const battery = data.battery}
-  <div class="system">
+<div class="system">
+  <header><h2 id="module-system-title">{t.modules.system}</h2></header>
+  {#if !data}
+    <small class="line">{t.system.noReading}</small>
+  {:else}
+    {@const cpu = data.cpu}
+    {@const battery = data.battery}
     {#if staleSince !== null}
-      <p class="notice" role="status"><span aria-hidden="true">◷ </span>{interpolate(t.system.stale, { age: age(staleSince) })}</p>
+      <small class="line alert" role="status"><span aria-hidden="true">⚠&nbsp;</span>{interpolate(t.system.stale, { age: age(staleSince) })}</small>
     {/if}
-
-    <div class="readings">
-      <div class="top">
-        <div class="cpu" role="group" aria-labelledby="system-cpu">
-          {#if cpu.usage === null}
-            <strong class="absent">{t.system.measuring}</strong>
-          {:else}
-            <strong class="num">{Math.round(cpu.usage)}<span class="unit">%</span></strong>
-          {/if}
-          <span class="caption" id="system-cpu">{t.system.cpu}</span>
-        </div>
-        <div class="temperature" role="group" aria-labelledby="system-temperature">
-          {#if cpu.temperature}
-            <strong class="num" class:warning={cpu.temperature.warning}>{Math.round(cpu.temperature.celsius)} °C</strong>
-            {#if cpu.temperature.warning}
-              <span class="alert-text"><span aria-hidden="true">⚠ </span>{t.system.hot}</span>
-            {/if}
-          {:else}
-            <strong class="absent">{t.system.noSensor}</strong>
-          {/if}
-          <span class="caption" id="system-temperature">{t.system.temperature}</span>
-        </div>
+    {#if cpu.temperature?.warning}
+      <small class="line alert"><span aria-hidden="true">⚠&nbsp;</span>{t.system.hot}</small>
+    {/if}
+    {#if fullDisks.length > 0}
+      <div role="alert">
+        {#each fullDisks as d (d.mount)}
+          <small class="line alert"><span aria-hidden="true">⚠&nbsp;</span>{interpolate(t.system.diskFull, { mount: d.mount })}</small>
+        {/each}
       </div>
+    {/if}
+    {#if battery?.warning}
+      <small class="line alert"><span aria-hidden="true">⚠&nbsp;</span>{t.system.lowBattery}</small>
+    {/if}
+    {#if !data.swap}<small class="line">{t.system.noSwap}</small>{/if}
+    {#if !battery}<small class="line">{t.system.noBattery}</small>{/if}
 
-      {#each resources as r (r.name)}
-        <div class="resource">
-          <div class="line"><span>{r.name}</span><b class="num">{pair(r.used, r.total)}</b></div>
-          <div class="bar" class:warning={r.warning} role="meter" aria-label={r.name} aria-valuemin={0} aria-valuemax={100}
-            aria-valuenow={r.percent} aria-valuetext={valueText(r)}>
-            <i style:width="{r.percent}%"></i>
-          </div>
-        </div>
-        {#if r.note}
-          <p class="note">{r.note}</p>
+    <div class="system-top">
+      <div role="group" aria-labelledby="system-cpu">
+        {#if cpu.usage === null}
+          <strong class="absent">{t.system.measuring}</strong>
+        {:else}
+          <strong class="num">{Math.round(cpu.usage)}<small>%</small></strong>
         {/if}
-      {/each}
-
-      {#if fullDisks.length > 0}
-        <ul class="alerts" role="alert">
-          {#each fullDisks as d (d.mount)}
-            <li><span aria-hidden="true">⚠ </span>{interpolate(t.system.diskFull, { mount: d.mount })}</li>
-          {/each}
-        </ul>
-      {/if}
-
-      <div class="battery" role="group" aria-labelledby="system-battery">
-        <div class="line">
-          <span id="system-battery">{t.system.battery}</span>
-          {#if battery}
-            <b class="num" class:warning={battery.warning}>{Math.round(battery.percentage)}%</b>
-            {#if battery.warning}
-              <span class="alert-text"><span aria-hidden="true">⚠ </span>{t.system.lowBattery}</span>
-            {/if}
-            <span class="state">{t.system.statesBattery[battery.state]}</span>
-          {:else}
-            <span class="absent-line">{t.system.noBattery}</span>
-          {/if}
-        </div>
-        {#if battery}
-          <div class="bar" class:warning={battery.warning} role="meter" aria-label={t.system.battery}
-            aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(battery.percentage)}
-            aria-valuetext="{Math.round(battery.percentage)}% · {t.system.statesBattery[battery.state]}">
-            <i style:width="{battery.percentage}%"></i>
-          </div>
+        <small id="system-cpu">{t.system.cpu}</small>
+      </div>
+      <div class="temperature" role="group" aria-labelledby="system-temperature">
+        {#if cpu.temperature}
+          <strong class="num" class:warning={cpu.temperature.warning}>{celsius.format(cpu.temperature.celsius)}<small>°C</small></strong>
+        {:else}
+          <strong class="absent">{t.system.noSensor}</strong>
         {/if}
+        <small id="system-temperature">{t.system.temperature}</small>
       </div>
     </div>
-  </div>
-{/if}
+
+    {#each meters as m (m.name)}
+      {@const value = percent(m.used, m.total)}
+      <div class="meter">
+        <div class="meter-label"><span>{m.name}</span><b class="num" class:warning={m.warning}>{value}%</b></div>
+        <div class="track" class:warning={m.warning} role="meter" aria-label={m.name} aria-valuemin={0} aria-valuemax={100}
+          aria-valuenow={value} aria-valuetext="{value}% · {pair(m.used, m.total)}">
+          <i style:width="{value}%"></i>
+        </div>
+        {#if m.note}<small class="num">{pair(m.used, m.total)}</small>{/if}
+      </div>
+    {/each}
+
+    {#if battery}
+      <p class="battery num" class:warning={battery.warning}>
+        <span aria-hidden="true">▰ </span>{t.system.battery} {Math.round(battery.percentage)}% · {t.system.statesBattery[battery.state]}
+      </p>
+    {/if}
+  {/if}
+</div>
 
 <style>
-  .system { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; padding: 8px 12px 12px; font-size: 12px; }
-  .blank { display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
-  .notice { font-size: 11px; color: var(--warn); }
-  .readings { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-  .top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
-  .cpu, .temperature { display: flex; flex-direction: column; gap: 4px; }
-  .temperature { align-items: flex-end; text-align: right; }
-  .cpu strong { font-size: 34px; font-weight: 300; line-height: 1.05; letter-spacing: -1px; }
-  .unit { margin-left: 4px; font-size: 15px; letter-spacing: 0; color: var(--muted); }
-  .temperature strong { font-size: 25px; font-weight: 400; color: var(--accent); }
-  .cpu strong.absent, .temperature strong.absent { font-size: 18px; font-weight: 400; letter-spacing: 0; color: var(--muted); }
-  .caption { font: 10px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-  .line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; color: var(--muted); }
-  .line b { font-weight: 400; color: var(--text); }
-  .bar { height: 5px; background: var(--surface-2); overflow: hidden; }
-  .bar > i { display: block; height: 100%; background: var(--accent); }
-  .note, .absent-line { font-size: 11px; color: var(--muted); }
-  .note { margin-top: -6px; }
-  .alerts { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--warn); }
-  .alert-text { font-size: 11px; color: var(--warn); }
-  .temperature strong.warning, .line b.warning { color: var(--warn); }
-  .bar.warning > i { background: var(--warn); }
-  .battery { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
-  .battery .line { justify-content: flex-start; }
-  .battery .state, .battery .absent-line { margin-left: auto; }
+  .system { min-width: 0; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 10px; justify-content: space-between; min-height: 28px; margin-bottom: 6px; }
+  h2 { font-size: 1.25em; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+  small { font-size: .88em; color: var(--muted); }
+  .line { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
+  .line.alert { color: var(--warn); }
+  .system-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .system-top > div > small { display: block; }
+  .temperature { text-align: right; }
+  strong { display: block; font-size: 2.8em; font-weight: 400; line-height: 1.15; }
+  strong small { font-size: .35em; margin-left: 3px; }
+  .temperature strong { font-size: 2.3em; }
+  strong.absent, .temperature strong.absent { font-size: 1.1em; line-height: 2.9; color: var(--muted); }
+  strong.warning, b.warning { color: var(--warn); }
+  .meter { margin-top: 8px; }
+  .meter-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .meter > small { display: block; margin-top: 4px; }
+  .track { height: 5px; background: var(--line); border-radius: 5px; }
+  .track i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+  .track.warning i { background: var(--warn); }
+  .battery { margin-top: 12px; color: var(--ok); }
+  .battery.warning { color: var(--warn); }
 </style>
