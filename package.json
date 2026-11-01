@@ -9,6 +9,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "tauri": "tauri",
+    "dev:fixtures": "tauri dev --features fixtures",
     "prototype:compact": "vite --host 127.0.0.1 --port 1421 --open /compact-prototype.html"
   },
   "devDependencies": {

@@ -36,6 +36,10 @@ pub fn open(app: &AppHandle) {
         Ok(builder) => builder,
         Err(e) => return eprintln!("panel: failed to create window: {e}"),
     };
+    #[cfg(feature = "fixtures")]
+    {
+        builder = builder.initialization_script(crate::fixtures::CLOCK_SCRIPT);
+    }
     // Start with the primary monitor size; fit() corrects it once the compositor
     // has chosen the monitor.
     if let Some(monitor) = app.primary_monitor().ok().flatten() {

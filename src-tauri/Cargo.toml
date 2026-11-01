@@ -11,6 +11,11 @@ rust-version = "1.90"
 name = "kvojps_monitor_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+default = []
+# Development only: the native panel shows prototype B's fixtures (see fixtures.rs).
+fixtures = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

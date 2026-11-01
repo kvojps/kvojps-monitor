@@ -1,9 +1,14 @@
+// Fixture mode bypasses every collector; the default build still lints them.
+#![cfg_attr(feature = "fixtures", allow(dead_code))]
+
 mod agents;
 mod ai;
 mod autostart;
 mod collection;
 mod commands;
 mod desktop_theme;
+#[cfg(feature = "fixtures")]
+mod fixtures;
 mod general;
 mod github;
 mod icon;
@@ -44,8 +49,10 @@ pub fn run() {
         }))
         .manage(Snapshots::default())
         .setup(|app| {
-            let dir_config = dirs::config_dir().ok_or("configuration directory unavailable")?;
+            let dir_config = config_dir().ok_or("configuration directory unavailable")?;
             let mut state = AppState::load(dir_config.join("kvojps-monitor"));
+            #[cfg(feature = "fixtures")]
+            state.complete_welcome();
 
             let execution = Execution {
                 executable: std::env::current_exe()?,
@@ -68,8 +75,7 @@ pub fn run() {
                 execution,
             });
             desktop_theme::start(app.handle());
-            collection::start(app.handle());
-            releases::start(app.handle());
+            start_sources(app.handle());
 
             let indicator = Indicator {
                 app: app.handle().clone(),
@@ -144,7 +150,54 @@ pub fn run() {
         });
 }
 
+#[cfg(not(feature = "fixtures"))]
+fn config_dir() -> Option<std::path::PathBuf> {
+    dirs::config_dir()
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn start_sources(app: &tauri::AppHandle) {
+    collection::start(app);
+    releases::start(app);
+}
+
+/// Fixture mode keeps preferences and autostart out of the user's configuration.
+#[cfg(feature = "fixtures")]
+fn config_dir() -> Option<std::path::PathBuf> {
+    Some(fixtures::config_dir())
+}
+
+#[cfg(feature = "fixtures")]
+fn start_sources(app: &tauri::AppHandle) {
+    fixtures::start(app);
+}
+
 /// Best-effort hook subprocess entry point, before GUI/single-instance setup.
 pub fn run_hook(provider: &str, event: &str) {
     agents::hooks::run(provider, event);
+}
+
+#[cfg(test)]
+mod build_tests {
+    /// Production builds never contain fixture mode: the feature is off by default,
+    /// no build command enables it, and fixtures.rs refuses release builds.
+    #[test]
+    fn production_build_excludes_fixture_mode() {
+        let manifest = include_str!("../Cargo.toml");
+        let features = manifest
+            .split("[features]")
+            .nth(1)
+            .expect("Cargo.toml declares features");
+        let features = features.split("\n[").next().unwrap();
+        assert!(features.contains("default = []"));
+        assert!(features.contains("fixtures = []"));
+        let config = include_str!("../tauri.conf.json");
+        assert!(!config.contains("fixtures"));
+        assert!(
+            include_str!("fixtures.rs").contains("#[cfg(not(debug_assertions))]\ncompile_error!")
+        );
+        let scripts = include_str!("../../package.json");
+        assert!(scripts.contains("\"dev:fixtures\": \"tauri dev --features fixtures\""));
+        assert!(scripts.contains("\"build\": \"vite build\""));
+    }
 }

@@ -69,5 +69,11 @@ jobs:
         working-directory: src-tauri
         run: cargo test --locked
 
+      - name: fixture mode (development only)
+        working-directory: src-tauri
+        run: |
+          cargo clippy --all-targets --locked --features fixtures -- -D warnings
+          cargo test --locked --features fixtures --lib fixtures
+
       - name: Tauri build without bundling
         run: npm run tauri -- build --no-bundle

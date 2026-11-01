@@ -28,6 +28,8 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 - Divergências antes aprovadas voltam ao B: conexão na linha de status da Rede ([ticket 05 anterior](../compact-panel-implementation/issues/05-compact-network-and-applications.md)) e ícones ↻/⚙ no cabeçalho do Trello ([ticket 06 anterior](../compact-panel-implementation/issues/06-trello-summary-and-board.md)).
 - “IA e Agentes” vira um único cartão visual; os Módulos continuam independentes em dados, estados e Âncora. Sem termo novo no glossário; “Trabalhando” registrado como termo evitado para Estado da sessão.
 
+- [Modo de fixtures nativo para desenvolvimento](issues/01-native-fixture-mode.md): feature Cargo `fixtures` (`npm run dev:fixtures`, `KVOJPS_FIXTURES` por Módulo) publica os snapshots do B pelo caminho normal, sem coletores; injeção no nível do snapshot, não em portas brutas (divergência aprovada).
+
 ## Tickets
 
 1. [Modo de fixtures nativo para desenvolvimento](issues/01-native-fixture-mode.md)
@@ -40,7 +42,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 
 ## Not yet specified
 
-Nenhuma decisão aberta. A mecânica exata do modo de fixtures (flag de build ou variável no `tauri dev`) fica a cargo do ticket 01, dentro das restrições ali descritas.
+Nenhuma decisão aberta.
 
 ## Out of scope
 
