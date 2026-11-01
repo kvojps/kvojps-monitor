@@ -96,7 +96,16 @@ const METRICS_SCRIPT: &str = r#"(() => {
     return (scrolls(style.overflowY) && e.scrollHeight > e.clientHeight + 1) || (scrolls(style.overflowX) && e.scrollWidth > e.clientWidth + 1);
   }).map((e) => ({ element: name(e), ...box(e) }));
   const scroller = document.querySelector(".panel .scroller");
+  // Free height left at the bottom of the "IA e Agentes" card (0 = filled).
+  const card = document.querySelector(".card.intelligence");
+  const last = card && card.lastElementChild;
+  const intelligenceFree = card && last
+    ? Math.round(card.getBoundingClientRect().bottom - parseFloat(getComputedStyle(card).paddingBottom) - last.getBoundingClientRect().bottom)
+    : null;
+  const dial = card ? getComputedStyle(card).getPropertyValue("--dial") : null;
   return JSON.stringify({
+    intelligenceFree,
+    dial,
     ready: !!document.querySelector(".panel .composition") && document.fonts.status === "loaded",
     width: innerWidth,
     height: innerHeight,
@@ -182,7 +191,11 @@ fn capture(app: &AppHandle, request: &Request) -> Result<Value, String> {
     // window margins on Wayland), so ask again with the measured difference.
     let mut asked = (f64::from(request.width), f64::from(request.height));
     let mut metrics = opened.clone();
-    for _ in 0..3 {
+    // An already open panel at the requested size is captured as it is, so the
+    // capture shows the panel's own opening instead of the resizes below.
+    let (width, height) = viewport(&opened);
+    let fits = (width - asked.0).abs() <= 1.0 && (height - asked.1).abs() <= 1.0;
+    for _ in 0..if fits { 0 } else { 3 } {
         window
             .set_size(LogicalSize::new(asked.0, asked.1))
             .map_err(|e| format!("resize: {e}"))?;

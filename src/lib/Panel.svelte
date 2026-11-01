@@ -121,13 +121,24 @@
   /** The free height of the "IA e Agentes" card goes to its dials: no empty strip between or after the blocks. */
   function fitInstruments() {
     intelligence.style.setProperty("--dial", `${BASE_DIAL}px`);
+    intelligence.style.setProperty("--rest", "0px");
     const style = getComputedStyle(intelligence);
     const inner = intelligence.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-    const used = Array.from(intelligence.children).reduce((sum, child) => {
+    const free = () => inner - Array.from(intelligence.children).reduce((sum, child) => {
       const box = getComputedStyle(child);
       return sum + child.getBoundingClientRect().height + parseFloat(box.marginTop) + parseFloat(box.marginBottom);
     }, 0);
-    intelligence.style.setProperty("--dial", `${dialSize(inner - used)}px`);
+    intelligence.style.setProperty("--dial", `${dialSize(free())}px`);
+    // Dials at their largest: what is left goes to the Agents block only (its legend, or
+    // its absent area), so no height counts twice. The legend may start shorter than its
+    // ring, so measure again until nothing is left.
+    let rest = 0;
+    for (let pass = 0; pass < 3; pass++) {
+      const left = free();
+      if (left < 1) break;
+      rest += left;
+      intelligence.style.setProperty("--rest", `${rest}px`);
+    }
   }
 
   onMount(() => {
