@@ -356,6 +356,7 @@
     "lastState": "Última situação: {state}",
     "lastRead": "última leitura às {time}",
     "waitingCount": "{count} aguardando você",
+    "noneWaiting": "Nenhuma sessão aguardando você",
     "sessions": "{count} sessões · inclui encerradas",
     "oneSession": "1 sessão · inclui encerradas",
     "seeSessions": "Ver sessões ↗"

@@ -148,6 +148,12 @@
       <span><span aria-hidden="true">{"⚠ "}</span>{interpolate(t.agents.waitingCount, { count: String(waiting) })}</span>
       <span class="see">{t.agents.seeSessions}</span>
     </button>
+  {:else if data && !data.failed && !data.codexWaitingUnavailable}
+    <!-- Keeps the notice space: an empty card bottom read as missing content. Only when the reading supports the claim. -->
+    <button class="waiting calm" onclick={() => open()}>
+      <span><span aria-hidden="true">{"✓ "}</span>{t.agents.noneWaiting}</span>
+      <span class="see">{t.agents.seeSessions}</span>
+    </button>
   {/if}
 
   <dialog bind:this={dialog} aria-label={t.agents.list} oncancel={(event) => { event.preventDefault(); close(); }}>
@@ -185,8 +191,8 @@
   /* --dial grows with the free height of the card (Panel); the legend spreads with it. */
   .session-dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; display: block; container-type: inline-size; }
   .session-dial svg { width: 100%; height: 100%; display: block; }
-  /* The B size at 94 px, growing at a quarter of the dial so big rings keep a light number. */
-  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(33px + (100cqi - 94px) / 4); }
+  /* Near the B size at 94 px, growing at a sixth of the dial so big rings keep a light number. */
+  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(31px + (100cqi - 94px) / 6); }
   .base { fill: none; stroke: var(--line); stroke-width: 8; }
   .orbit { fill: none; stroke: var(--control-line); stroke-width: 1; stroke-dasharray: 24 12 6 30; transform-origin: center; }
   .legend-list { align-self: center; min-width: 0; }
@@ -198,6 +204,8 @@
   .legend-item:hover .session-tip, .legend-item:focus-within .session-tip { display: block; }
   .waiting { color: var(--warn); border: 1px solid var(--warn); display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; width: 100%; margin: 25px 0 4px; text-align: left; }
   .waiting .see { font-size: .9em; }
+  .waiting.calm { color: var(--muted); border-color: var(--line); }
+  .waiting.calm .see { color: var(--accent); }
   .session-dial:focus-visible, .legend:focus-visible, .waiting:focus-visible, .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
   dialog { margin: auto; width: min(680px, 90vw); max-height: 80vh; overflow: auto; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); padding: 20px; font-size: 13px; }

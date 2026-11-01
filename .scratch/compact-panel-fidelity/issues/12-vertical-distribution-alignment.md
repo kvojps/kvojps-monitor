@@ -36,3 +36,8 @@ Aprovada pelo usuário em 2026-11-01: **variante A, instrumentos que crescem** (
 - Linhas condicionais só encolhem o instrumento do cartão; não abrem vão.
 - Conferido no app nativo com as fixtures do B: sem rolagem em 1100 × 700 e 1000 × 700, temas escuro e claro.
 - Protótipo (atual, A instrumentos, B rodapé ancorado, C espaço repartido, D grade na altura do conteúdo, com opção de linha condicional simulada) no branch local `prototype/vertical-distribution-alignment` (commit `06ebd36`), não enviado.
+
+### Ajustes pedidos depois da conferência (2026-11-01)
+
+- Número dos anéis menor ainda: `calc(31px + (100cqi - 94px) / 6)`, ≈40 px num anel de 150 px, ≈45 px em 180 px.
+- **Divergência aprovada do B** (pedido do usuário: “quando não tiver aquela notificação [...] deixar o espaço [...] tipo Tudo certo por aqui”): sem sessão aguardando, o espaço do aviso fica com uma caixa neutra “✓ Nenhuma sessão aguardando você · Ver sessões ↗” (borda e texto discretos). É a opção 2 do [Preenchimento vertical](11-ai-agents-vertical-fill.md), antes descartada. Texto factual em vez de “Tudo certo”, porque pode haver sessão Com falha. Só aparece quando a leitura sustenta a afirmação: some sem leitura, com falha da coleta ou com aguardando indisponível no Codex.

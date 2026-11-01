@@ -19,8 +19,25 @@ it("shows an explicit empty ring when no sessions are active and no waiting aler
   expect(screen.getByText("Nenhuma sessão de agente ativa")).toBeInTheDocument();
   expect(ring()).toHaveTextContent("0");
   expect(ring().querySelectorAll("circle[stroke-dasharray]")).toHaveLength(0);
-  expect(screen.queryByText(/aguardando você/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/⚠ \d+ aguardando você/)).not.toBeInTheDocument();
   expect(screen.queryByRole("list", { name: "Sessões de agente" })).not.toBeInTheDocument();
+});
+
+it("keeps the notice space with a neutral line when no session waits for you", async () => {
+  render(AgentsModule, { data: { ...states, sessions: states.sessions.filter((s) => s.state !== "waiting") } as AgentsData });
+  const calm = screen.getByRole("button", { name: /Nenhuma sessão aguardando você/ });
+  expect(calm).toHaveTextContent("✓ Nenhuma sessão aguardando você");
+  expect(calm).toHaveTextContent("Ver sessões ↗");
+  await userEvent.click(calm);
+  expect(list()).toBeVisible();
+});
+
+it("claims no waiting session only when the reading supports it", () => {
+  const { unmount } = render(AgentsModule, { data: null });
+  expect(screen.queryByText("Nenhuma sessão aguardando você")).not.toBeInTheDocument();
+  unmount();
+  render(AgentsModule, { data: { ...states, failed: true, sessions: [] } as AgentsData });
+  expect(screen.queryByText("Nenhuma sessão aguardando você")).not.toBeInTheDocument();
 });
 
 it("distinguishes an unavailable reading from zero sessions", () => {

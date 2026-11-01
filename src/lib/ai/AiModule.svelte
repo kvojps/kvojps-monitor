@@ -246,8 +246,8 @@
   /* --dial grows with the free height of the card (Panel); never wider than the column. */
   .dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; container-type: inline-size; }
   .dial svg { width: 100%; height: 100%; display: block; }
-  /* The B size at 94 px, growing at a quarter of the dial so big rings keep a light number. */
-  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(33px + (100cqi - 94px) / 4); gap: 2px; }
+  /* Near the B size at 94 px, growing at a sixth of the dial so big rings keep a light number. */
+  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(31px + (100cqi - 94px) / 6); gap: 2px; }
   .reading small { font-size: .4em; }
   .base { fill: none; stroke: var(--line); stroke-width: 8; }
   .arc { fill: none; stroke: var(--instrument); stroke-width: 8; }
