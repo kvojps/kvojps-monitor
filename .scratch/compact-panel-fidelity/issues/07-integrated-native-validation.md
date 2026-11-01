@@ -1,16 +1,16 @@
 # 07: Validação integrada nativa
 
 Type: task
-Status: claimed
+Status: resolved
 Blocked by: 03, 04, 05, 06, 09, 10, 11, 12, 13, 14
 
 **What to build:** comprovar no app nativo, com o modo de fixtures, que o Painel inteiro está igual ao B, e fechar as pendências nativas deixadas pela implementação anterior.
 
-- [ ] Captura nativa do Painel inteiro em 1100 × 700 e 1000 × 700, temas escuro e claro, lado a lado com `compact-B.png` e `compact-B-light-long.png`; sem rolagem com as fixtures do B. Fallback (950/650 px, texto ampliado, nomes longos) sem cortar conteúdo nem esconder alertas.
-- [ ] Matriz de estados por fixture nos dois temas, conferindo que as linhas condicionais seguem o vocabulário do B e que o estado normal não tem nada além do B.
-- [ ] Pendências nativas da [validação anterior](../../compact-panel-implementation/validation/integrated.md#pendências-nativas): dimensões lógicas/escala, área útil, abertura pelo Indicador, ocultação por Escape/perda de foco, instância única, arraste real no WebKitGTK, Escape com seletor nativo aberto, notificação direcionada, resposta ≤ 100 ms e 60 fps, A/B de CPU e pausa com Painel oculto.
-- [ ] Guardrails de privacidade executados no seam de portas; build de produção sem modo de fixtures.
-- [ ] **Aceite visual integral do usuário** registrado aqui e no mapa.
+- [x] Captura nativa do Painel inteiro em 1100 × 700 e 1000 × 700, temas escuro e claro, lado a lado com `compact-B.png` e `compact-B-light-long.png`; sem rolagem com as fixtures do B. Fallback (950/650 px, texto ampliado, nomes longos) sem cortar conteúdo nem esconder alertas.
+- [x] Matriz de estados por fixture nos dois temas, conferindo que as linhas condicionais seguem o vocabulário do B e que o estado normal não tem nada além do B.
+- [ ] (não executadas; encerrado por decisão do usuário) Pendências nativas da [validação anterior](../../compact-panel-implementation/validation/integrated.md#pendências-nativas): dimensões lógicas/escala, área útil, abertura pelo Indicador, ocultação por Escape/perda de foco, instância única, arraste real no WebKitGTK, Escape com seletor nativo aberto, notificação direcionada, resposta ≤ 100 ms e 60 fps, A/B de CPU e pausa com Painel oculto.
+- [x] Guardrails de privacidade executados no seam de portas; build de produção sem modo de fixtures.
+- [x] **Aceite visual integral do usuário** registrado aqui e no mapa.
 
 ## Comments
 
@@ -31,3 +31,12 @@ Achado da [Captura nativa para agentes](08-agent-native-capture.md) (2026-11-01)
   - **Deadlock:** the GTK callback held the margin lock while it called Tauri/GTK, which can re-enter the same callback, so the main thread hung intermittently (captures without an answer). Fixed: the lock is never held across those calls.
   - **Band in the IA e Agentes card:** the leftover past the anéis' cap now goes to the Agents legend (see [Preenchimento vertical do cartão IA e Agentes](11-ai-agents-vertical-fill.md)).
   - **Capture:** it no longer resizes a Panel that's already at the requested size, so it shows the natural opening. It also reports `intelligenceFree` and `dial`.
+
+## Answer
+
+Resolvido em 2026-11-01 com o **aceite visual integral do usuário**: “Pode marcar como resolvido, visualmente está ok.”
+
+- **B no app nativo:** sem rolagem em 1100 × 700 e 1000 × 700, nos temas escuro e claro. O fallback de 950 × 650 rola sem cortar nada. A matriz de 20 combinações cobre todas as fixtures nos dois temas. Uma única rolagem de 9 px, com três alertas de Sistema, foi aceita.
+- **1048 × 648 compensado:** o Painel abre com área visível de 1100 × 700 no Wayland (`ca46024`). A sobra do cartão IA e Agentes vai para a legenda de Agentes (`3530970`; divergência aprovada e registrada em [Preenchimento vertical do cartão IA e Agentes](11-ai-agents-vertical-fill.md)).
+- **Guardrails de privacidade** no seam de portas e **build de produção sem modo de fixtures** conferidos (274 testes Rust, 271 de UI).
+- **Não executado:** as pendências nativas de interação e desempenho, a saber Indicador (menu, duplo clique, clique do meio), Escape e perda de foco, instância única, arraste real, Escape com o seletor nativo, notificação direcionada, resposta ≤ 100 ms e 60 fps, A/B de CPU e pausa com Painel oculto. O usuário encerrou o ticket sem rodar o wizard (`native-validation.sh`, descartável, no scratchpad da sessão). Essas pendências ficam como lacuna de evidência, não como item aprovado.

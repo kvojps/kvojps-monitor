@@ -1,7 +1,7 @@
 # Mapa: Fidelidade do Painel compacto ao protótipo B
 
 Label: wayfinder:map
-Status: open
+Status: resolved
 
 ## Destination
 
@@ -41,6 +41,7 @@ O Painel compacto de produção, visto no app nativo (Tauri/WebKitGTK no GNOME/W
 - [Uso alto no estado B](issues/10-high-usage-in-state-b.md): a linha “⚠ Uso alto” sai em qualquer porcentagem (resíduo cinematográfico, não é exigência da v1); só o `aria-valuetext` diz “uso alto” a partir de 85 %.
 - [Composição fixa sem dados](issues/13-composition-without-data.md): variante C, área única no corpo com motivo e ação quando falta a leitura inteira (por fonte no cartão IA e Agentes); antigo segue com dado apagado e linha `small`; faltas parciais só no item; protótipo no branch local.
 - [Composição fixa sem dados na produção](issues/14-composition-without-data-in-production.md): variante C nos seis Módulos com `AbsentArea`; antigo apagado, faltas parciais no item; aplicativos “sem medição” e caixa de Agentes “na última leitura” após falha (divergências aprovadas); aprovado no app nativo.
+- [Validação integrada nativa](issues/07-integrated-native-validation.md): B aceito visualmente pelo usuário no app nativo; sem rolagem em 1100/1000 × 700 e matriz de estados conferida; Painel compensado para 1100 × 700 no Wayland, com a sobra do cartão IA e Agentes na legenda de Agentes; pendências nativas de interação e desempenho não executadas (encerrado por decisão do usuário).
 
 ## Tickets
 
