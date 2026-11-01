@@ -3,11 +3,11 @@
 </script>
 
 <script lang="ts">
-  /** First line of a settings section: a dot colored by tone and the state in words. */
+  /** First line of a settings section: a dot colored by tone and the state in words, announced when it changes. */
   let { tone, text }: { tone: Tone; text: string } = $props();
 </script>
 
-<p class="status-line {tone}"><span class="dot" aria-hidden="true"></span>{text}</p>
+<p class="status-line {tone}" role="status"><span class="dot" aria-hidden="true"></span>{text}</p>
 
 <style>
   .status-line {

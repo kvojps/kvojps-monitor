@@ -249,6 +249,11 @@
   .settings :global(.welcome h3) { color: var(--band-amber-text); }
   .settings :global(h4) { margin: 18px 0 6px; font-size: 13px; font-weight: 600; color: var(--text); }
   .settings :global(h3 + h4) { margin-top: 0; }
+  /* A section split into blocks, one per provider: flat, separated by a rule. */
+  .settings :global(section section) { padding: 0; }
+  .settings :global(section section > h4) { margin-top: 0; }
+  .settings :global(section section + section) { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .settings :global(h5) { margin: 16px 0 4px; font-size: 13px; font-weight: 600; color: var(--text); }
   .settings :global(p) { margin: 8px 0; }
   .settings :global(label) { display: block; margin: 12px 0 6px; color: var(--muted); }
   /* Sections not yet on the shared Switch piece. */

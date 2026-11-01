@@ -304,6 +304,7 @@
       "connect": "Conectar ao Claude Code",
       "disconnect": "Desconectar",
       "connected": "Conectado ao Claude Code pela status line",
+      "off": "Status line não conectada",
       "replaced": "Status line desconectada: outra ferramenta trocou a status line do Claude Code.",
       "explanation": "O app instala uma status line no Claude Code que continua rodando a sua status line atual e copia só os limites de uso. Desconectar restaura a original.",
       "usage": {
