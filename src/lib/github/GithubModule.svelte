@@ -1,16 +1,30 @@
 <script lang="ts">
+  import Icon from "../Icon.svelte";
   import { onMount } from "svelte";
   import type { GithubData } from "../core";
   import { t, interpolate } from "../strings";
 
-  let { data, refresh, configure = () => {} }:
-    { data: GithubData | null; refresh: () => void; configure?: () => void } = $props();
+  let { data, refresh, updated = "", configure = () => {} }:
+    { data: GithubData | null; refresh: () => void; updated?: string; configure?: () => void } = $props();
+  let tipsDismissed = $state(false);
+  let titleActions: HTMLDivElement;
   let now = $state(Date.now());
   /** Manual refreshes stay at least ten seconds apart. */
   let allowedAt = $state(0);
   onMount(() => {
     const timer = setInterval(() => (now = Date.now()), 1000);
-    return () => clearInterval(timer);
+    function dismissDescription(event: KeyboardEvent) {
+      if (event.key !== "Escape" || tipsDismissed || !titleActions ||
+          !(titleActions.contains(document.activeElement) || titleActions.matches(":hover"))) return;
+      tipsDismissed = true;
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    window.addEventListener("keydown", dismissDescription, true);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("keydown", dismissDescription, true);
+    };
   });
 
   const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
@@ -84,6 +98,22 @@
 </script>
 
 <div class="github">
+  <header class="heading">
+    <div><h2 id="module-github-title">{t.modules.github}</h2><p class="caption">{t.sources.github}{#if updated} · {updated}{/if}</p></div>
+    <div class="actions" bind:this={titleActions}>
+      <span class="action-wrap" role="group" onpointerenter={() => tipsDismissed = false} onfocusin={() => tipsDismissed = false}>
+        <button class="action" aria-label={t.github.refresh} aria-describedby="github-refresh-description"
+          disabled={paused || data?.refreshing || now < allowedAt} onclick={refreshNow}><span aria-hidden="true">↻</span></button>
+        <span class="tooltip" hidden={tipsDismissed} id="github-refresh-description" role="tooltip">{t.github.refreshDescription}</span>
+      </span>
+      <span class="action-wrap" role="group" onpointerenter={() => tipsDismissed = false} onfocusin={() => tipsDismissed = false}>
+        <button class="action" aria-label={t.github.configureGithub} aria-describedby="github-configure-description" onclick={configure}><Icon name="settings" size={16} /></button>
+        <span class="tooltip" hidden={tipsDismissed} id="github-configure-description" role="tooltip">{t.github.configureDescription}</span>
+      </span>
+    </div>
+  </header>
+  {#if data?.refreshing}<p role="status" class="caption">{t.github.refreshing}</p>{/if}
+  {#if paused}<p class="notice" role="status">{t.github.paused}</p>{/if}
   {#if missing}
     <p class="blank">{t.github.missingSource}</p>
   {:else}
@@ -116,10 +146,10 @@
                   {/each}
                 {/each}
               </div>
-              <p class="caption num">{eight.total === 0 ? t.github.weeksNone : interpolate(t.github.weeks, { total: count.format(eight.total) })}</p>
             </div>
           {/if}
         </div>
+        {#if eight}<p class="caption num">{eight.total === 0 ? t.github.weeksNone : interpolate(t.github.weeks, { total: count.format(eight.total) })}</p>{/if}
         <p class="caption">{interpolate(t.github.private, { total: count.format(activity.restricted) })}</p>
         {#if fourteen}
           <ul class="bars" aria-label={t.github.daysList}>
@@ -151,31 +181,25 @@
       {/if}
     </div>
   {/if}
-  <div class="actions">
-    <button class="action" disabled={paused || data?.refreshing || now < allowedAt} onclick={refreshNow}>
-      <span aria-hidden="true">↻ </span>{t.github.refresh}
-    </button>
-    <button class="action" onclick={configure}>{t.github.configureGithub}</button>
-    {#if data?.refreshing}<span role="status" class="caption">{t.github.refreshing}</span>{/if}
-  </div>
+
 </div>
 
 <style>
-  .github { padding: 16px 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+  .github { padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .readings[data-stale="true"] { --text: var(--muted); --accent: var(--muted); color: var(--muted); }
-  .readings { display: flex; flex-direction: column; gap: 12px; flex: 1; }
-  .lead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-  .annual { display: flex; flex-direction: column; gap: 2px; }
+  .readings { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .lead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .annual { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   strong { font-size: 36px; font-weight: 300; line-height: 1.1; }
   .annual span { font: 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
-  .weeks { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-  .heatmap { display: grid; grid-template-rows: repeat(7, 8px); grid-auto-columns: 8px; gap: 3px; }
+  .weeks { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .heatmap { display: grid; grid-template-rows: repeat(7, 7px); grid-auto-columns: 7px; gap: 3px; }
   .heatmap span { background: color-mix(in srgb, var(--accent) calc(var(--intensity) * 100%), transparent); border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); }
-  .bars { display: flex; align-items: flex-end; gap: 5px; height: 90px; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--line); }
+  .bars { display: flex; align-items: flex-end; gap: 5px; height: 26px; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--line); }
   .bars li { flex: 1; height: 100%; display: flex; align-items: flex-end; }
   .bars i { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; }
   .caption { font-size: 11px; color: var(--muted); }
-  .repo { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); min-width: 0; }
+  .repo { display: flex; flex-direction: column; gap: 4px; margin-top: 3px; padding-top: 8px; border-top: 1px solid var(--line); min-width: 0; }
   h3 { font: 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
   .repo p { font-size: 12px; }
   .repo .name { font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
@@ -185,8 +209,15 @@
   .notice.alert { color: var(--warn); }
   .link { color: var(--accent); text-decoration: underline; }
   .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .action { min-height: 36px; padding: 8px 15px; border-radius: 0 18px 18px 0; background: var(--band-steel); color: var(--on-band); font-weight: 600; }
+  .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .heading h2 { font-size: 14px; font-weight: 600; }
+  .heading .caption { margin-top: 3px; }
+  .heading > div:first-child { min-width: 0; }
+  .action-wrap { position: relative; display: inline-flex; }
+  .tooltip { position: absolute; top: 100%; right: 0; width: 180px; max-width: 65vw; padding: 8px; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); font-size: 12px; z-index: 5; visibility: hidden; }
+  .action-wrap:hover .tooltip, .action-wrap:focus-within .tooltip { visibility: visible; }
+  .actions { display: flex; align-items: center; gap: 6px; }
+  .action { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--control-line); border-radius: 6px; color: var(--text); background: var(--surface-2); }
   .action:hover:not(:disabled) { filter: brightness(1.15); }
   .action:disabled { opacity: 0.45; cursor: default; }
   .action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

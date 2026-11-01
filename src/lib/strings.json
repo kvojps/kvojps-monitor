@@ -151,6 +151,9 @@
   },
   "github": {
     "refresh": "Atualizar GitHub",
+    "refreshDescription": "Consultar novamente a atividade do GitHub",
+    "paused": "Coleta pausada · offline ou aguardando retomada",
+    "configureDescription": "Abrir as configurações de conexão do GitHub",
     "refreshing": "Atualizando…",
     "login": "Rodar `gh auth login`",
     "instruction": "No terminal, execute gh auth login e depois atualize este Módulo.",

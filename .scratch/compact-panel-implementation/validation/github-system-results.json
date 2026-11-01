@@ -1,0 +1,1484 @@
+[
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1000,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 640.6875,
+      "y": 86,
+      "githubHeight": 333,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 650,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 601,
+      "y": 372,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=empty",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 280,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=error",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 212,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=failure",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=full",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=invalid-credential",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=missing-gh",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 190,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=offline",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=own-token",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=stale",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 342,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&system=desktop",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 264.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&system=missing",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 248.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&system=no-sensor",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&system=starting",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 265
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&system=warning",
+    "textScale": 1,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 303
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1100,
+    "query": "&github=full&system=notebook",
+    "textScale": 1.25,
+    "overflows": [],
+    "min": 8.879905597130936,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 373,
+      "systemHeight": 307.625
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1000,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 640.6875,
+      "y": 86,
+      "githubHeight": 333,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 650,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 601,
+      "y": 372,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=empty",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 280,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=error",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 212,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=failure",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=full",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=invalid-credential",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=missing-gh",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 190,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=offline",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=own-token",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=stale",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 342,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&system=desktop",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 264.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&system=missing",
+    "textScale": 1,
+    "overflows": [],
+    "min": 6.539002568255292,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 248.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&system=no-sensor",
+    "textScale": 1,
+    "overflows": [],
+    "min": 6.539002568255292,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&system=starting",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 265
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&system=warning",
+    "textScale": 1,
+    "overflows": [],
+    "min": 6.018852541121142,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 303
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "light",
+    "width": 1100,
+    "query": "&github=full&system=notebook",
+    "textScale": 1.25,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 373,
+      "systemHeight": 307.625
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1000,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 640.6875,
+      "y": 86,
+      "githubHeight": 333,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 650,
+    "query": "&github=full&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 601,
+      "y": 372,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=empty",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 280,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=error",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 212,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=failure",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=full",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=invalid-credential",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=missing-gh",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 190,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=offline",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 364,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=own-token",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=stale",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 342,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&system=desktop",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 264.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&system=missing",
+    "textScale": 1,
+    "overflows": [],
+    "min": 6.539002568255292,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 248.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&system=no-sensor",
+    "textScale": 1,
+    "overflows": [],
+    "min": 6.539002568255292,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&system=notebook",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 269.6875
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&system=starting",
+    "textScale": 1,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 265
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&system=warning",
+    "textScale": 1,
+    "overflows": [],
+    "min": 6.018852541121142,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 320,
+      "systemHeight": 303
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  },
+  {
+    "theme": "system",
+    "width": 1100,
+    "query": "&github=full&system=notebook",
+    "textScale": 1.25,
+    "overflows": [],
+    "min": 5.394953804499074,
+    "failures": [],
+    "ready": true,
+    "interactions": {
+      "focusDescription": true,
+      "motion": true,
+      "x": 709.4375,
+      "y": 86,
+      "githubHeight": 373,
+      "systemHeight": 307.625
+    },
+    "pointerDescription": true,
+    "hoverable": true,
+    "dismissed": true,
+    "motionModes": {
+      "full": true,
+      "paused": true,
+      "reduced": true
+    }
+  }
+]

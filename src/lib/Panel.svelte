@@ -201,7 +201,7 @@
 {/snippet}
 
 {#snippet github()}
-  <GithubModule data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={() => openSettings("github")} />
+  <GithubModule updated={updated("github")} data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={() => openSettings("github")} />
 {/snippet}
 
 {#snippet trello()}
@@ -221,7 +221,7 @@
 {#snippet moduleSection(module: Module, body?: Snippet)}
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
     tabindex="-1" onfocusin={(event) => remember(module, event)} bind:this={sections[module]}>
-    {#if module !== "ai"}
+    {#if module !== "ai" && module !== "github"}
       <header class="module-head">
         <div class="module-title">
           <h2 id="module-{module}-title">{t.modules[module]}</h2>

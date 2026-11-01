@@ -646,6 +646,18 @@ it("dismisses an AI description before Escape closes the panel", async () => {
   expect(core.closePanel).toHaveBeenCalledOnce();
 });
 
+it("dismisses a GitHub description before Escape closes the panel", async () => {
+  const { core } = fakeCore();
+  render(Panel, { core });
+  const configure = await screen.findByRole("button", { name: "Configurar GitHub" });
+  configure.focus();
+  await userEvent.keyboard("{Escape}");
+  expect(core.closePanel).not.toHaveBeenCalled();
+  expect(configure).toHaveFocus();
+  await userEvent.keyboard("{Escape}");
+  expect(core.closePanel).toHaveBeenCalledOnce();
+});
+
 it("preserves notification selection when reopening from the panel ring", async () => {
   const { core } = fakeCore({ agentTarget: waitingAgents.sessions[0].id,
     snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });

@@ -192,4 +192,19 @@ it("keeps offline cached data and age without an error banner", async () => {
   expect(screen.getByText(/Atualizado/)).toBeInTheDocument();
   expect(screen.queryByText(/Falha ao atualizar/)).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Atualizar GitHub" })).toBeDisabled();
+  expect(screen.getByRole("status")).toHaveTextContent("Coleta pausada · offline ou aguardando retomada");
+});
+
+
+it("describes compact title actions and lets Escape dismiss their descriptions", async () => {
+  render(GithubModule, { data: data(full), refresh: vi.fn() });
+  const configure = screen.getByRole("button", { name: "Configurar GitHub" });
+  expect(configure).toHaveAccessibleDescription("Abrir as configurações de conexão do GitHub");
+  expect(screen.getByRole("button", { name: "Atualizar GitHub" })).toHaveAccessibleDescription("Consultar novamente a atividade do GitHub");
+  configure.focus();
+  const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  configure.dispatchEvent(escape);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(document.getElementById(configure.getAttribute("aria-describedby")!)).toHaveAttribute("hidden");
+  expect(escape.defaultPrevented).toBe(true);
 });

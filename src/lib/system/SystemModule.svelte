@@ -128,21 +128,21 @@
 {/if}
 
 <style>
-  .system { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 0; padding: 16px 16px 18px; font-size: 12px; }
+  .system { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; padding: 8px 12px 12px; font-size: 12px; }
   .blank { display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
   .notice { font-size: 11px; color: var(--warn); }
-  .readings { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+  .readings { display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
   .cpu, .temperature { display: flex; flex-direction: column; gap: 4px; }
   .temperature { align-items: flex-end; text-align: right; }
-  .cpu strong { font-size: 46px; font-weight: 300; line-height: 1.05; letter-spacing: -1px; }
+  .cpu strong { font-size: 34px; font-weight: 300; line-height: 1.05; letter-spacing: -1px; }
   .unit { margin-left: 4px; font-size: 15px; letter-spacing: 0; color: var(--muted); }
   .temperature strong { font-size: 25px; font-weight: 400; color: var(--accent); }
   .cpu strong.absent, .temperature strong.absent { font-size: 18px; font-weight: 400; letter-spacing: 0; color: var(--muted); }
   .caption { font: 10px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-  .line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; color: var(--muted); }
+  .line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; color: var(--muted); }
   .line b { font-weight: 400; color: var(--text); }
-  .bar { height: 9px; background: var(--surface-2); overflow: hidden; }
+  .bar { height: 5px; background: var(--surface-2); overflow: hidden; }
   .bar > i { display: block; height: 100%; background: var(--accent); }
   .note, .absent-line { font-size: 11px; color: var(--muted); }
   .note { margin-top: -6px; }
@@ -150,7 +150,7 @@
   .alert-text { font-size: 11px; color: var(--warn); }
   .temperature strong.warning, .line b.warning { color: var(--warn); }
   .bar.warning > i { background: var(--warn); }
-  .battery { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
+  .battery { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
   .battery .line { justify-content: flex-start; }
   .battery .state, .battery .absent-line { margin-left: auto; }
 </style>
