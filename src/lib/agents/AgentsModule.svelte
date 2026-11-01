@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import type { AgentsData, AgentSession } from "../core";
   import { interpolate, t } from "../strings";
 
   /** `notified` is the session a notification pointed to; it is not the last anchor. */
-  let { data, notified = null }: { data: AgentsData | null; notified?: string | null } = $props();
+  let { data, notified = null, notificationRequest = 0 }: { data: AgentsData | null; notified?: string | null; notificationRequest?: number } = $props();
 
   /** Same allowlist as the core notifications: free-form waiting detail can carry user content. */
   const TOOLS = new Set(["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch", "Agent"]);
@@ -18,24 +18,68 @@
 
   let list = $state<HTMLElement>();
 
-  /** A targeted session that closed since the notification still has to be reached. */
-  const shown = $derived.by(() => {
-    if (!data) return [];
-    const closed = data.closed.find((s) => s.id === notified);
-    return closed ? [...data.sessions, closed] : data.sessions;
-  });
-  const count = (state: AgentSession["state"]) => data?.sessions.filter((s) => s.state === state).length ?? 0;
+  let dialog: HTMLDialogElement;
+  let detailOpen = $state(false);
+  let restoringFocus = false;
+  let opener: HTMLElement | null = null;
+  let ring = $state<HTMLButtonElement>();
+  let selected = $state<string | null>(null);
+  const shown = $derived(data ? [...data.sessions, ...data.closed] : []);
+  const states = [...LIVE_STATES, "closed"] as const;
+  const colors: Record<AgentSession["state"], string> = {
+    working: "var(--accent)", waiting: "var(--warn)", done: "var(--ok)",
+    failed: "var(--bad)", closed: "var(--muted)",
+  };
+  const count = (state: AgentSession["state"]) => shown.filter((s) => s.state === state).length;
   const waiting = $derived(count("waiting"));
+  const gradient = $derived.by(() => {
+    let offset = 0;
+    return states.map((state) => {
+      const start = offset;
+      offset += shown.length ? count(state) / shown.length * 100 : 0;
+      return `${colors[state]} ${start}% ${offset}%`;
+    }).join(", ");
+  });
 
+  async function open(id: string | null = selected) {
+    selected = id;
+    if (!dialog.open) {
+      opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : ring ?? null;
+      dialog.showModal();
+      detailOpen = true;
+    }
+    await tick();
+    Array.from(list?.children ?? []).find((row) => (row as HTMLElement).dataset.sessionId === id)
+      ?.scrollIntoView?.({ block: "nearest" });
+  }
+  function close() {
+    restoringFocus = true;
+    dialog.close();
+    detailOpen = false;
+    opener?.focus({ preventScroll: true });
+    restoringFocus = false;
+  }
+  function keyboard(event: KeyboardEvent) {
+    if (event.key === "Escape" && dialog?.open) {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+    }
+  }
   $effect(() => {
-    const session = notified;
-    if (!session || !shown.length) return;
+    notificationRequest;
+    const id = notified;
+    if (id) untrack(() => void open(id));
+  });
+  const targetAvailable = $derived(!!notified && shown.some((session) => session.id === notified));
+  $effect(() => {
+    const id = notified;
+    if (!detailOpen || !targetAvailable) return;
     void tick().then(() => {
-      Array.from(list?.children ?? []).find((row) => (row as HTMLElement).dataset.sessionId === session)
+      Array.from(list?.children ?? []).find((row) => (row as HTMLElement).dataset.sessionId === id)
         ?.scrollIntoView?.({ block: "nearest" });
     });
   });
-
   const provider = (session: AgentSession) => session.provider === "codex" ? "codex" : "claude";
   const providerName = (session: AgentSession) => provider(session) === "codex" ? t.agents.codex : t.agents.provider;
 
@@ -57,13 +101,15 @@
   }
 </script>
 
-<div class="agents">
+<svelte:window onkeydowncapture={keyboard} />
+
+<div class="agents" onfocusin={(event) => { if (restoringFocus) event.stopPropagation(); }}>
   {#if !data}
     <p class="blank">{t.agents.noReading}</p>
   {:else}
     <div class="banner" class:pending={waiting > 0} role="group" aria-label={t.agents.intervention}>
       <span class="attention">{#if waiting > 0}<span aria-hidden="true">● </span>{t.agents.states.waiting}{:else}{t.agents.noIntervention}{/if}</span>
-      <strong class="num">{String(waiting).padStart(2, "0")}</strong>
+      <button disabled={!waiting} onclick={() => open(shown.find((s) => s.state === "waiting")?.id ?? null)}><strong class="num">{String(waiting).padStart(2, "0")}</strong>{#if waiting}<span class="sr-only">{t.agents.states.waiting}</span>{/if}</button>
     </div>
 
     {#if data.codexWaitingUnavailable}<p class="notice">{t.agents.codexWaitingUnavailable}</p>{/if}
@@ -71,17 +117,36 @@
       <p class="notice alert">{[t.agents.failure, data.lastSuccessAt != null && interpolate(t.agents.lastRead, { time: time.format(data.lastSuccessAt) })].filter(Boolean).join(" · ")}</p>
     {/if}
 
-    {#if shown.length === 0}
-      <p class="blank">{t.agents.empty}</p>
-    {:else}
+    <div class="compact-summary">
+      <button class="ring" bind:this={ring} aria-label={t.agents.list} onclick={() => open()} style:background={shown.length ? `conic-gradient(${gradient})` : "var(--surface-2)"}>
+        <span><strong>{count("working")}</strong><small>{t.agents.states.working}</small></span>
+      </button>
+      <dl class="flow" aria-label={t.agents.summary}>
+        {#each states as state}
+          <div><dt><button style:color={colors[state]} onclick={() => open(shown.find((s) => s.state === state)?.id ?? null)} aria-describedby={"agent-legend-" + state}>{state === "closed" ? t.agents.closed : t.agents.states[state]}</button>
+            <span class="legend-projects" id={"agent-legend-" + state}>{shown.filter((s) => s.state === state).map((s) => `${s.project} · ${s.name ?? t.agents.unnamed}`).join(", ") || "—"}</span>
+          </dt><dd>{count(state)}</dd></div>
+        {/each}
+      </dl>
+    </div>
+    {#if shown.length === 0}<p class="blank">{t.agents.empty}</p>{/if}
+  {/if}
+  <dialog bind:this={dialog} aria-label={t.agents.list} oncancel={(event) => { event.preventDefault(); close(); }}>
+    <header><h2>{t.agents.list}</h2><button onclick={close}>{t.agents.close}</button></header>
+    {#if notified && !shown.some((s) => s.id === notified)}<p role="status">{t.agents.targetUnavailable}</p>{/if}
+    {#if detailOpen}
+      {#if !data}<p class="blank">{t.agents.noReading}</p>{:else if shown.length === 0}<p class="blank">{t.agents.empty}</p>{/if}
+    {/if}
+    {#if data}
       <ul class="sessions" aria-label={t.agents.list} bind:this={list}>
         {#each shown as session (session.id)}
           {@const waitReason = reason(session)}
-          <li data-session-id={session.id} data-state={session.state} aria-current={notified === session.id ? "true" : undefined}>
+          <li data-session-id={session.id} data-state={session.state} aria-current={selected === session.id ? "true" : undefined}>
             <span class="code num" aria-hidden="true">{t.agents.providerCodes[provider(session)]}</span>
             <div class="body">
               <h3>{session.name ?? t.agents.unnamed}</h3>
               <p class="origin">{session.project} · {providerName(session)}</p>
+              {#if session.branch}<p>{session.branch}</p>{/if}
               <p class="status"><span class="state">{t.agents.states[session.state]}</span>{#if waitReason}<span>{waitReason}</span>{/if}</p>
               {#if notified === session.id}<p class="tag">{t.agents.notified}</p>{/if}
             </div>
@@ -90,17 +155,25 @@
         {/each}
       </ul>
     {/if}
-
-    <dl class="flow" aria-label={t.agents.summary}>
-      {#each LIVE_STATES as state (state)}
-        <div><dt>{t.agents.states[state]}</dt><dd class="num">{count(state)}</dd></div>
-      {/each}
-      <div><dt>{t.agents.closed}</dt><dd class="num">{data.closed.length}</dd></div>
-    </dl>
-  {/if}
+  </dialog>
 </div>
 
 <style>
+  button { cursor: pointer; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .compact-summary { display: flex; align-items: center; gap: 20px; }
+  .ring { flex: none; width: 140px; height: 140px; border-radius: 50%; padding: 12px; border: 0; }
+  .ring > span { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; border-radius: 50%; background: var(--surface); }
+  .ring strong { font-size: 32px; }
+  .ring small { font-size: 10px; }
+  .flow { flex: 1; min-width: 0; }
+  dt { position: relative; }
+  .legend-projects { display: none; position: absolute; z-index: 2; background: var(--surface); padding: 8px; border: 1px solid var(--line); width: 220px; overflow-wrap: anywhere; }
+  dt:hover .legend-projects, dt:focus-within .legend-projects { display: block; }
+  dialog { margin: auto; width: min(680px, 90vw); max-height: 80vh; overflow: auto; padding: 20px; color: var(--text); background: var(--surface); border: 1px solid var(--line); }
+  dialog::backdrop { background: #000a; }
+  dialog header { display: flex; justify-content: space-between; gap: 16px; }
+
   .agents { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 18px; min-width: 0; flex: 1; }
   .banner {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;

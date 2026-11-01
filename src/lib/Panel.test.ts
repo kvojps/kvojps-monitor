@@ -377,6 +377,7 @@ describe("Agents module in the panel", () => {
     render(Panel, { core });
     const agents = await screen.findByRole("region", { name: "Agentes" });
     expect(within(agents).getByRole("group", { name: "Intervenção" })).toHaveTextContent("01");
+    await userEvent.click(within(agents).getByRole("button", { name: "Sessões de agente" }));
     expect(within(within(agents).getByRole("list", { name: "Sessões de agente" })).getByText("Minha sessão")).toBeInTheDocument();
   });
 
@@ -397,6 +398,7 @@ describe("Agents module in the panel", () => {
       snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
     render(Panel, { core });
     await screen.findByRole("listitem", { current: true });
+    await userEvent.keyboard("{Escape}");
     section("Agentes").focus();
     await userEvent.keyboard("{Enter}");
     expect(section("Agentes")).toHaveFocus();
@@ -640,6 +642,21 @@ it("dismisses an AI description before Escape closes the panel", async () => {
   await userEvent.keyboard("{Escape}");
   expect(core.closePanel).not.toHaveBeenCalled();
   expect(configure).toHaveFocus();
+  await userEvent.keyboard("{Escape}");
+  expect(core.closePanel).toHaveBeenCalledOnce();
+});
+
+it("preserves notification selection when reopening from the panel ring", async () => {
+  const { core } = fakeCore({ agentTarget: waitingAgents.sessions[0].id,
+    snapshots: [{ module: "agents", updatedAt: 1000, data: waitingAgents }] });
+  render(Panel, { core });
+  await screen.findByRole("listitem", { current: true });
+  await userEvent.keyboard("{Escape}");
+  expect(core.chooseAnchor).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole("button", { name: "Sessões de agente" }));
+  expect(screen.getByRole("listitem", { current: true })).toHaveTextContent("Minha sessão");
+  await userEvent.keyboard("{Escape}");
+  expect(core.closePanel).not.toHaveBeenCalled();
   await userEvent.keyboard("{Escape}");
   expect(core.closePanel).toHaveBeenCalledOnce();
 });

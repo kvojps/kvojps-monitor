@@ -299,6 +299,8 @@
     "paused": "Coleta pausada · offline ou aguardando retomada"
   },
   "agents": {
+    "close": "Fechar",
+    "targetUnavailable": "Sessão da notificação indisponível",
     "empty": "Nenhuma sessão de agente ativa",
     "closed": "Encerradas",
     "unnamed": "Sem nome",

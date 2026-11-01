@@ -16,6 +16,7 @@
   let area = $state<"panel" | "settings">("panel");
   /** Last anchor chosen through module interaction; independent from what is visible. */
   let anchor = $state<Module | null>(null);
+  let agentRequest = $state(0);
   let agentTarget = $state<string | null>(null);
   let snapshots = $state<Partial<Record<Module, Snapshot>>>({});
 
@@ -75,7 +76,8 @@
     syncVisibility();
   }
 
-  function remember(module: Module) {
+  function remember(module: Module, event: FocusEvent) {
+    if ((event.target as HTMLElement).closest("dialog")) return;
     agentTarget = null;
     anchor = module;
     if (area === "panel") core.chooseAnchor(module);
@@ -102,7 +104,7 @@
 
   async function target(session: string) {
     agentTarget = session;
-    anchor = "agents";
+    agentRequest += 1;
     await showPanel();
     await tick();
     reveal("agents", false);
@@ -158,9 +160,9 @@
       appearance.desktop ??= initial.systemTheme ?? null;
       appearanceRestored = true;
       agentTarget ??= initial.agentTarget ?? null;
-      anchor ??= agentTarget ? "agents" : initial.lastAnchor;
+      anchor ??= initial.lastAnchor;
       await tick();
-      if (area === "panel") reveal(anchor, false);
+      if (area === "panel") reveal(agentTarget ? "agents" : anchor, false);
       syncVisibility();
       if (initial.welcome && !agentTarget) {
         welcome = true;
@@ -181,7 +183,7 @@
   });
 
   function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape") core.closePanel();
+    if (e.key === "Escape" && !e.defaultPrevented) core.closePanel();
   }
 </script>
 
@@ -195,7 +197,7 @@
 {/snippet}
 
 {#snippet agents()}
-  <AgentsModule data={agentsData} notified={agentTarget} />
+  <AgentsModule data={agentsData} notified={agentTarget} notificationRequest={agentRequest} />
 {/snippet}
 
 {#snippet github()}
@@ -218,7 +220,7 @@
 
 {#snippet moduleSection(module: Module, body?: Snippet)}
   <section id="module-{module}" data-module={module} class="module {module}" aria-labelledby="module-{module}-title"
-    tabindex="-1" onfocusin={() => remember(module)} bind:this={sections[module]}>
+    tabindex="-1" onfocusin={(event) => remember(module, event)} bind:this={sections[module]}>
     {#if module !== "ai"}
       <header class="module-head">
         <div class="module-title">
