@@ -2,6 +2,8 @@
   import type { Appearance, Theme } from "../core";
   import { t } from "../strings";
   import type { AppearanceState } from "./appearance.svelte";
+  import FieldError from "./FieldError.svelte";
+  import Switch from "./Switch.svelte";
 
   let { appearance, save }: { appearance: AppearanceState; save: (a: Appearance) => Promise<void> } = $props();
   const themes: Theme[] = ["dark", "light", "system"];
@@ -40,14 +42,10 @@
       {/each}
     </div>
   </fieldset>
-  <label class="switch">
-    <input type="checkbox" disabled={pending} checked={appearance.preference.reduceMotion}
-      aria-describedby={appearance.systemReduced ? "system-reduced" : undefined}
-      onchange={(e) => update({ reduceMotion: e.currentTarget.checked })} />
-    {t.settings.appearance.reduceMotion}
-  </label>
-  {#if appearance.systemReduced}<p id="system-reduced" class="hint">{t.settings.appearance.systemReduced}</p>{/if}
-  {#if failed}<p id="appearance-error" class="error" role="alert">{t.settings.appearance.saveFailed}</p>{/if}
+  <Switch label={t.settings.appearance.reduceMotion} checked={appearance.preference.reduceMotion} disabled={pending}
+    hint={appearance.systemReduced ? t.settings.appearance.systemReduced : undefined}
+    onchange={(reduceMotion) => update({ reduceMotion })} />
+  {#if failed}<FieldError id="appearance-error" message={t.settings.appearance.saveFailed} />{/if}
 </section>
 
 <style>
@@ -66,5 +64,4 @@
     cursor: pointer;
   }
   .choice:has(:checked) { border-color: var(--accent); }
-  .hint { color: var(--muted); }
 </style>

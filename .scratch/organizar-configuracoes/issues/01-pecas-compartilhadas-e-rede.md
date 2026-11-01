@@ -4,9 +4,14 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Peças de linha de estado, interruptor e erro disponíveis e usadas pela seção Rede
-- [ ] Rede aparece sem snapshot, com o interruptor desabilitado; com snapshot, o interruptor reflete e altera o teste automático como hoje
-- [ ] Nenhuma seção existente perde comportamento (os testes atuais continuam passando)
-- [ ] Testes de UI por fixture para Rede com e sem snapshot
+- [x] Peças de linha de estado, interruptor e erro disponíveis e usadas pela seção Rede
+- [x] Rede aparece sem snapshot, com o interruptor desabilitado; com snapshot, o interruptor reflete e altera o teste automático como hoje
+- [x] Nenhuma seção existente perde comportamento (os testes atuais continuam passando)
+- [x] Testes de UI por fixture para Rede com e sem snapshot
+
+**Notas da implementação:**
+
+- Geral e Aparência já passaram a usar `Switch` e `FieldError`, o que permitiu remover a regra global `label.switch` e `.error`. A regra global `label:has(> input[type="checkbox"])` e a cor de `[role="alert"]` ficam até IA, Agentes, GitHub e Trello migrarem (tickets 04–07).
+- O interruptor da Rede continua sem caminho de erro: `setAutomaticSpeed` não devolve resultado e a spec não muda o núcleo. Ele mostra a escolha na hora, como antes, e o próximo snapshot confirma.

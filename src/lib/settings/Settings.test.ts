@@ -286,6 +286,17 @@ describe("appearance", () => {
   });
 });
 
+describe("network", () => {
+  it("keeps the network section before the first snapshot, with the automatic test disabled", async () => {
+    const { core } = fakeCore();
+    render(Panel, { core });
+    await openSettings();
+
+    const network = screen.getByRole("region", { name: "Rede" });
+    expect(within(network).getByRole("checkbox", { name: "Teste de velocidade automático" })).toBeDisabled();
+  });
+});
+
 describe("configure shortcuts", () => {
   it("opens Settings at the section of the module asking for configuration", async () => {
     const { core } = fakeCore({ snapshots: [snapshot("github", githubMissing)] });

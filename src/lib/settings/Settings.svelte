@@ -4,6 +4,7 @@
   import AgentSettings from "../agents/AgentSettings.svelte";
   import AiSettings from "../ai/AiSettings.svelte";
   import GithubSettings from "../github/GithubSettings.svelte";
+  import NetworkSettings from "../network/NetworkSettings.svelte";
   import TrelloSettings from "../trello/TrelloSettings.svelte";
   import { t } from "../strings";
   import type { AppearanceState } from "./appearance.svelte";
@@ -67,18 +68,10 @@
         disconnect={core.disconnectTrello ?? unavailable("offline")}
         openAdmin={() => core.openTrelloAdmin?.()} authorize={(key) => core.openTrelloAuthorization?.(key)} />
     </div>
-    {#if snapshots.network}
-      <div class="card network" id="settings-network" tabindex="-1">
-        <section aria-label={t.modules.network}>
-          <h3>{t.modules.network}</h3>
-          <label class="switch">
-            <input type="checkbox" checked={(snapshots.network.data as NetworkData).automaticSpeed}
-              onchange={(event) => core.setAutomaticSpeed?.(event.currentTarget.checked)} />
-            {t.network.automaticSpeed}
-          </label>
-        </section>
-      </div>
-    {/if}
+    <div class="card network" id="settings-network" tabindex="-1">
+      <NetworkSettings data={snapshots.network?.data as NetworkData | undefined}
+        setAutomaticSpeed={(enabled) => core.setAutomaticSpeed?.(enabled)} />
+    </div>
   </div>
 </div>
 
@@ -149,7 +142,7 @@
   .settings :global(h3 + h4) { margin-top: 0; }
   .settings :global(p) { margin: 8px 0; }
   .settings :global(label) { display: block; margin: 12px 0 6px; color: var(--muted); }
-  .settings :global(label.switch),
+  /* Sections not yet on the shared Switch piece. */
   .settings :global(label:has(> input[type="checkbox"])) {
     display: flex;
     align-items: center;
@@ -187,8 +180,7 @@
   .settings :global(button:hover:not(:disabled)) { border-color: var(--accent); }
   .settings :global(button:disabled) { opacity: 0.5; cursor: default; }
   .settings :global(:is(button, input):focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .settings :global([role="alert"]),
-  .settings :global(.error) { color: var(--bad); }
+  .settings :global([role="alert"]) { color: var(--bad); }
   .settings :global(form [role="status"]),
   .settings :global(p[role="status"]) { color: var(--ok); }
   .settings :global(.warning) { margin: 8px 0; padding: 12px; border: 1px solid var(--warn); }
