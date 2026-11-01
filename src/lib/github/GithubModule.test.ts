@@ -30,11 +30,17 @@ function withoutActivity(fixture: GithubData): GithubData {
   return { ...fixture, calendar, featured: null };
 }
 
-it("identifies the total as the calendar year's, with anonymous private contributions", () => {
+it("shows the B summary: annual total, eight weeks, 14 days and featured repository", () => {
+  const { container } = render(GithubModule, { data: data(full), refresh: vi.fn() });
+  expect(screen.getByRole("heading", { name: "GitHub" })).toBeInTheDocument();
+  expect(container).toHaveTextContent(
+    /^GitHub ↻ Consultar novamente a atividade do GitHub ⚙ Abrir as configurações de conexão do GitHub 1\.608\s*contribuições no ano\s*Últimas 8 semanas\s*Atividade · últimos 14 dias\s*Repo em destaque · 27 commits \/ 7 dias\s*exemplo\/repo-1\s*Atualiza documentação$/);
+});
+
+it("shows nothing beyond B in the normal state", () => {
   render(GithubModule, { data: data(full), refresh: vi.fn() });
-  expect(screen.getByText("1.608")).toBeInTheDocument();
-  expect(screen.getByText("contribuições em 2026")).toBeInTheDocument();
-  expect(screen.getByText("inclui 1.247 privadas (anônimas)")).toBeInTheDocument();
+  expect(screen.queryByText(/privadas|pico|Atualizado|Falha|Fonte|atualizado/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
 });
 
 it("summarises the last eight weeks as a map, without the full year calendar", () => {
@@ -43,7 +49,7 @@ it("summarises the last eight weeks as a map, without the full year calendar", (
   expect(map).toHaveAccessibleName("Últimas 8 semanas: 1.219 contribuições de 06/09 a 31/10, máximo de 63 em um dia");
   // 8 weeks of 7 days, never the 53 weeks of the snapshot.
   expect(map.querySelectorAll("[data-date]")).toHaveLength(56);
-  expect(screen.getByText("Últimas 8 semanas · 1.219")).toBeInTheDocument();
+  expect(screen.getByText("Últimas 8 semanas")).toBeInTheDocument();
 });
 
 it("names each of the last 14 days' bars with its date and value", () => {
@@ -54,7 +60,7 @@ it("names each of the last 14 days' bars with its date and value", () => {
   expect(days[0]).toHaveAccessibleName("18/10: 29 contribuições");
   expect(days[3]).toHaveAccessibleName("21/10: 35 contribuições");
   expect(days[13]).toHaveAccessibleName("31/10: 0 contribuições");
-  expect(screen.getByText("Últimos 14 dias · 290 · pico de 35 em 21/10")).toBeInTheDocument();
+  expect(screen.getByText("Atividade · últimos 14 dias")).toBeInTheDocument();
 });
 
 it("leaves out calendar days after today", () => {
@@ -71,7 +77,7 @@ it("shows the featured repository with commits in 7 days and the last commit tit
   render(GithubModule, { data: data(full), refresh: vi.fn() });
   const repo = screen.getByRole("region", { name: "Repo em destaque" });
   expect(within(repo).getByText("exemplo/repo-1")).toBeInTheDocument();
-  expect(within(repo).getByText("27 commits em 7 dias")).toBeInTheDocument();
+  expect(within(repo).getByText("Repo em destaque · 27 commits / 7 dias")).toBeInTheDocument();
   expect(within(repo).getByText("Atualiza documentação")).toBeInTheDocument();
 });
 
@@ -80,8 +86,7 @@ it("omits the commit title restored from the disk cache, which never stores it",
   restored.featured!.title = "";
   render(GithubModule, { data: restored, refresh: vi.fn() });
   const repo = screen.getByRole("region", { name: "Repo em destaque" });
-  expect(within(repo).getByText("27 commits em 7 dias")).toBeInTheDocument();
-  expect(repo).toHaveTextContent(/^Repo em destaque\s*exemplo\/repo-1\s*27 commits em 7 dias$/);
+  expect(repo).toHaveTextContent(/^Repo em destaque · 27 commits \/ 7 dias\s*exemplo\/repo-1$/);
 });
 
 it("explains an empty contribution window", () => {
@@ -91,9 +96,9 @@ it("explains an empty contribution window", () => {
 
 it("shows zero activity as zero, with no demonstration numbers", () => {
   render(GithubModule, { data: withoutActivity(data(full)), refresh: vi.fn() });
-  expect(screen.getByText("contribuições em 2026")).toBeInTheDocument();
+  expect(screen.getByText("0")).toBeInTheDocument();
   expect(screen.getByRole("img", { name: /^Últimas 8 semanas/ })).toHaveAccessibleName("Últimas 8 semanas: sem contribuições de 06/09 a 31/10");
-  expect(screen.getByText("Últimos 14 dias · sem contribuições")).toBeInTheDocument();
+  expect(within(screen.getByRole("list")).getAllByRole("listitem")[0]).toHaveAccessibleName("18/10: 0 contribuições");
   expect(screen.getByText("Sem commits nos últimos 7 dias")).toBeInTheDocument();
 });
 
@@ -142,7 +147,7 @@ it("keeps the annual total when the calendar has no days up to today yet", () =>
   const early = structuredClone(full) as GithubData;
   early.calendar!.contributionCalendar.weeks = early.calendar!.contributionCalendar.weeks.slice(-1);
   render(GithubModule, { data: early, refresh: vi.fn() });
-  expect(screen.getByText("contribuições em 2025")).toBeInTheDocument();
+  expect(screen.getByText("contribuições no ano")).toBeInTheDocument();
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
   expect(screen.queryByText("Sem leitura da atividade do GitHub ainda")).not.toBeInTheDocument();
 });
@@ -154,7 +159,7 @@ it("uses the singular for a single contribution or commit", () => {
   render(GithubModule, { data: one, refresh: vi.fn() });
   const days = within(screen.getByRole("list", { name: "Contribuições por dia nos últimos 14 dias" })).getAllByRole("listitem");
   expect(days.at(-1)).toHaveAccessibleName("31/10: 1 contribuição");
-  expect(screen.getByText("1 commit em 7 dias")).toBeInTheDocument();
+  expect(screen.getByText("Repo em destaque · 1 commit / 7 dias")).toBeInTheDocument();
 });
 
 it("dims cached data and offers reconnection for refused credentials", async () => {

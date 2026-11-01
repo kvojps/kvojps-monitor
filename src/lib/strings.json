@@ -162,7 +162,6 @@
     "login": "Rodar `gh auth login`",
     "instruction": "No terminal, execute gh auth login e depois atualize este Módulo.",
     "empty": "Sem commits nos últimos 7 dias",
-    "private": "inclui {total} privadas (anônimas)",
     "error": "Não foi possível atualizar o GitHub",
     "featured": "Repo em destaque",
     "invalidCredential": "Credencial do GitHub inválida",
@@ -185,21 +184,19 @@
     "reconnect": "Reconectar",
     "missingSource": "GitHub não conectado · rode gh auth login no terminal ou cole um token",
     "noReading": "Sem leitura da atividade do GitHub ainda",
-    "annual": "contribuições em {year}",
-    "weeks": "Últimas 8 semanas · {total}",
-    "weeksNone": "Últimas 8 semanas · sem contribuições",
+    "annual": "contribuições no ano",
+    "weeks": "Últimas 8 semanas",
     "weeksMap": "Últimas 8 semanas: {total} contribuições de {from} a {to}, máximo de {peak} em um dia",
     "weeksMapNone": "Últimas 8 semanas: sem contribuições de {from} a {to}",
-    "days": "Últimos 14 dias · {total} · pico de {peak} em {day}",
-    "daysNone": "Últimos 14 dias · sem contribuições",
+    "days": "Atividade · últimos 14 dias",
     "daysList": "Contribuições por dia nos últimos 14 dias",
     "day": {
       "one": "{day}: {count} contribuição",
       "other": "{day}: {count} contribuições"
     },
-    "commits": {
-      "one": "{commits} commit em 7 dias",
-      "other": "{commits} commits em 7 dias"
+    "featuredCommits": {
+      "one": "Repo em destaque · {commits} commit / 7 dias",
+      "other": "Repo em destaque · {commits} commits / 7 dias"
     }
   },
   "trello": {

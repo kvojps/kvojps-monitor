@@ -199,7 +199,7 @@
 {/snippet}
 
 {#snippet github()}
-  <GithubModule updated={updated("github")} data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={() => openSettings("github")} />
+  <GithubModule data={(snapshots.github?.data as GithubData | undefined) ?? null} refresh={() => core.refreshGithub?.()} configure={() => openSettings("github")} />
 {/snippet}
 
 {#snippet trello()}
@@ -301,7 +301,7 @@
     border-top: 4px solid var(--module-band);
   }
   .card.intelligence { --module-band: var(--band-lavender); padding: 8px 14px; }
-  .card.github { --module-band: var(--band-steel); }
+  .card.github { --module-band: var(--band-steel); padding: 8px 14px; }
   .card.system { --module-band: var(--band-lavender); }
   .card.trello { --module-band: var(--band-amber); }
   .card.network { --module-band: var(--band-blue); }
