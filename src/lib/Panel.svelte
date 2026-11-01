@@ -275,7 +275,7 @@
   .toolbar button { padding: 8px 16px; border-radius: 0 20px 20px 0; background: var(--band-blue); color: var(--on-band); }
   .toolbar button[aria-current] { background: var(--band-amber); }
   .workspace { position: relative; flex: 1; min-height: 0; }
-  .scroller { height: 100%; overflow: auto; padding: 4px 4px 16px; }
+  .scroller { height: 100%; overflow: auto; padding: 4px 4px 8px; }
   .scroller.covered { visibility: hidden; }
   .composition { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence github network" "intelligence trello system"; gap: 12px; align-items: start; }
   .intelligence { grid-area: intelligence; display: flex; flex-direction: column; gap: 12px; min-width: 0; border-left: 6px solid var(--band-violet); padding-left: 8px; }
@@ -306,17 +306,17 @@
     justify-content: space-between;
     gap: 12px;
     margin: 0 10px;
-    padding: 8px 0;
+    padding: 6px 0;
     border-bottom: 1px solid var(--line);
   }
   .module-title {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
     min-width: 0;
   }
   .module-head h2 {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 500;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -334,7 +334,7 @@
     display: grid;
     place-items: center;
     width: 38px;
-    height: 26px;
+    height: 24px;
     border-radius: 20px;
     background: var(--module-band);
     color: var(--on-band);

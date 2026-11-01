@@ -334,22 +334,22 @@
   </dialog>
 </div>
 <style>
-  .trello { padding: 12px 14px 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; flex: 1; font-size: 12px; }
+  .trello { padding: 8px 12px 10px; min-width: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; font-size: 12px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .secondary { color: var(--muted); }
-  .summary { display: flex; flex-direction: column; gap: 8px; }
+  .summary { display: flex; flex-direction: column; gap: 6px; }
   .summary[data-stale="true"] { color: var(--muted); }
   .board-name { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
   .board-name h3 { font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
   .board-name span { color: var(--muted); font-size: 11px; }
   .counts { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px 12px; }
   .counts li { display: flex; justify-content: space-between; gap: 6px; padding: 2px 0; border-bottom: 1px solid var(--line); min-width: 0; }
-  .list-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
-  .preview { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 8px 10px; background: var(--surface-2); border-left: 4px solid var(--band-amber); border-radius: 0 12px 12px 0; color: inherit; cursor: pointer; }
+  .list-name { min-width: 0; overflow-wrap: anywhere; color: var(--muted); }
+  .preview { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 6px 10px; background: var(--surface-2); border-left: 4px solid var(--band-amber); border-radius: 0 12px 12px 0; color: inherit; cursor: pointer; }
   .preview small { color: var(--muted); font-size: 11px; }
   .open-board { align-self: flex-start; color: var(--accent); text-decoration: underline; cursor: pointer; }
   .preview:focus-visible, .open-board:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .title { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .title { overflow-wrap: anywhere; }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
   .labels { display: flex; flex-wrap: wrap; gap: 4px; }
   .labels i { width: 22px; height: 5px; border-radius: 3px; }
@@ -362,7 +362,7 @@
   .link { color: var(--accent); text-decoration: underline; cursor: pointer; }
   .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; }
-  .action { min-height: 36px; padding: 8px 15px; border-radius: 0 18px 18px 0; background: var(--band-steel); color: var(--on-band); font-weight: 600; }
+  .action { min-height: 28px; padding: 4px 14px; border-radius: 0 18px 18px 0; background: var(--band-steel); color: var(--on-band); font-weight: 600; }
   .action:hover:not(:disabled) { filter: brightness(1.15); }
   .action:disabled { opacity: 0.45; cursor: default; }
   .action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -372,7 +372,7 @@
   dialog[open] { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
   dialog::backdrop { background: #000a; }
   .dialog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-  .dialog-head h2 { font-size: 15px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--band-amber); }
+  .dialog-head h2 { font-size: 15px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--band-amber-text); }
   .dialog-head p { font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
   dialog button { cursor: pointer; }
   dialog button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

@@ -1,0 +1,3868 @@
+{
+  "meta": {
+    "date": "2026-11-01T02:14:31.907Z",
+    "browser": "Chrome/156.0.8078.47"
+  },
+  "layout": [
+    {
+      "case": "default",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 1000,
+      "mainScroll": 69,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 950,
+      "mainScroll": 521,
+      "columns": 2,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 650,
+      "mainScroll": 1097,
+      "columns": 1,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 244,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 1000,
+      "mainScroll": 279,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "long-names",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 189,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "dense",
+      "theme": "dark",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 1000,
+      "mainScroll": 69,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 950,
+      "mainScroll": 521,
+      "columns": 2,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 650,
+      "mainScroll": 1097,
+      "columns": 1,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 244,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 1000,
+      "mainScroll": 279,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "long-names",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 189,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "dense",
+      "theme": "light",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 1000,
+      "mainScroll": 69,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 950,
+      "mainScroll": 521,
+      "columns": 2,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 650,
+      "mainScroll": 1097,
+      "columns": 1,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 244,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 1000,
+      "mainScroll": 279,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "long-names",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 189,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "dense",
+      "theme": "system",
+      "prefersDark": false,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 1000,
+      "mainScroll": 69,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 950,
+      "mainScroll": 521,
+      "columns": 2,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "default",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 650,
+      "mainScroll": 1097,
+      "columns": 1,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 1100,
+      "mainScroll": 244,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "text-125",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 1000,
+      "mainScroll": 279,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "long-names",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 1100,
+      "mainScroll": 189,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "dense",
+      "theme": "system",
+      "prefersDark": true,
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "monitor-1.25",
+      "theme": "dark",
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "monitor-1.5",
+      "theme": "dark",
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "monitor-2",
+      "theme": "dark",
+      "width": 1100,
+      "mainScroll": 0,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false
+    },
+    {
+      "case": "work-area-1100x560",
+      "theme": "dark",
+      "width": 1100,
+      "height": 560,
+      "mainScroll": 138,
+      "columns": 3,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false,
+      "lastModuleReachable": true
+    },
+    {
+      "case": "work-area-900x600",
+      "theme": "dark",
+      "width": 900,
+      "height": 600,
+      "mainScroll": 634,
+      "columns": 2,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false,
+      "lastModuleReachable": true
+    },
+    {
+      "case": "work-area-760x500",
+      "theme": "dark",
+      "width": 760,
+      "height": 500,
+      "mainScroll": 734,
+      "columns": 2,
+      "contrast": {
+        "min": 6.15,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "horizontal": false,
+      "lastModuleReachable": true
+    }
+  ],
+  "states": [
+    {
+      "module": "ai",
+      "fixture": "claude-connected",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-connected",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-empty",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-empty",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-expired",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-expired",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.02,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-failure",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-failure",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-missing",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-missing",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-off",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-off",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-replaced",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-replaced",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-usage",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "claude-usage",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "empty",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻ CLAUDE Sem leitura dos limites"
+    },
+    {
+      "module": "ai",
+      "fixture": "empty",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻ CLAUDE Sem leitura dos limites"
+    },
+    {
+      "module": "ai",
+      "fixture": "failure",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 rollout · atualizado agora Le"
+    },
+    {
+      "module": "ai",
+      "fixture": "failure",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 rollout · atualizado agora Le"
+    },
+    {
+      "module": "ai",
+      "fixture": "full",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "full",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "loading",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ Atualizando… CODEX Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻ CLAUDE Sem leitura dos limi"
+    },
+    {
+      "module": "ai",
+      "fixture": "loading",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ Atualizando… CODEX Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻ CLAUDE Sem leitura dos limi"
+    },
+    {
+      "module": "ai",
+      "fixture": "missing",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX Codex não encontrado · instale e faça login no CLI CLAUDE Sem leitura dos limites"
+    },
+    {
+      "module": "ai",
+      "fixture": "missing",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX Codex não encontrado · instale e faça login no CLI CLAUDE Sem leitura dos limites"
+    },
+    {
+      "module": "ai",
+      "fixture": "offline",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "offline",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "reset",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX — Janela de 5 h Reiniciado às 14:22 · sem leitura nova Semana 48% reinicia qua. 14:43 app-server · atualizado a"
+    },
+    {
+      "module": "ai",
+      "fixture": "reset",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX — Janela de 5 h Reiniciado às 14:22 · sem leitura nova Semana 48% reinicia qua. 14:43 app-server · atualizado a"
+    },
+    {
+      "module": "ai",
+      "fixture": "stale",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 rollout · atualizado agora Le"
+    },
+    {
+      "module": "ai",
+      "fixture": "stale",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana 48% reinicia qua. 14:43 rollout · atualizado agora Le"
+    },
+    {
+      "module": "ai",
+      "fixture": "weekly-reset",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana Reiniciado às 14:00 · sem leitura nova app-server · a"
+    },
+    {
+      "module": "ai",
+      "fixture": "weekly-reset",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana Reiniciado às 14:00 · sem leitura nova app-server · a"
+    },
+    {
+      "module": "ai",
+      "fixture": "weekly-unavailable",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana Sem leitura dos limites app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "weekly-unavailable",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· atualizado 09:33 ↻ CODEX ⚠91% USO ALTO Janela de 5 h reinicia em 5 h 23 min Semana Sem leitura dos limites app-server · atualizado agora"
+    },
+    {
+      "module": "ai",
+      "fixture": "none",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 13.2,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· sem dados ainda ↻ CODEX Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻ CLAUDE Sem leitura dos limites"
+    },
+    {
+      "module": "ai",
+      "fixture": "none",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 5.39,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "IA Codex e Claude Code· sem dados ainda ↻ CODEX Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻ CLAUDE Sem leitura dos limites"
+    },
+    {
+      "module": "agents",
+      "fixture": "closed",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 7.18,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 NENHUMA INTERVENÇÃO PENDENTE 00 0 Em andamento Em andamento 0 Aguardando você 0 Turno concluído 0 Com falha 0 "
+    },
+    {
+      "module": "agents",
+      "fixture": "closed",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 NENHUMA INTERVENÇÃO PENDENTE 00 0 Em andamento Em andamento 0 Aguardando você 0 Turno concluído 0 Com falha 0 "
+    },
+    {
+      "module": "agents",
+      "fixture": "empty",
+      "theme": "dark",
+      "mainScroll": 43,
+      "contrast": {
+        "min": 7.18,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 NENHUMA INTERVENÇÃO PENDENTE 00 0 Em andamento Em andamento 0 Aguardando você 0 Turno concluído 0 Com falha 0 "
+    },
+    {
+      "module": "agents",
+      "fixture": "empty",
+      "theme": "light",
+      "mainScroll": 43,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 NENHUMA INTERVENÇÃO PENDENTE 00 0 Em andamento Em andamento 0 Aguardando você 0 Turno concluído 0 Com falha 0 "
+    },
+    {
+      "module": "agents",
+      "fixture": "mixed",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 7.18,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 NENHUMA INTERVENÇÃO PENDENTE 00 Aguardando indisponível sem Detecção instantânea 2 Em andamento Em andamento 2"
+    },
+    {
+      "module": "agents",
+      "fixture": "mixed",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 NENHUMA INTERVENÇÃO PENDENTE 00 Aguardando indisponível sem Detecção instantânea 2 Em andamento Em andamento 2"
+    },
+    {
+      "module": "agents",
+      "fixture": "states",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 7.18,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 ●AGUARDANDO VOCÊ 01 Aguardando você 1 Em andamento Em andamento 1 Aguardando você 1 Turno concluído 1 Com falh"
+    },
+    {
+      "module": "agents",
+      "fixture": "states",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 ●AGUARDANDO VOCÊ 01 Aguardando você 1 Em andamento Em andamento 1 Aguardando você 1 Turno concluído 1 Com falh"
+    },
+    {
+      "module": "agents",
+      "fixture": "waiting",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 7.18,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 ●AGUARDANDO VOCÊ 01 Aguardando você 0 Em andamento Em andamento 0 Aguardando você 1 Turno concluído 0 Com falh"
+    },
+    {
+      "module": "agents",
+      "fixture": "waiting",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · atualizado 09:33 02 ●AGUARDANDO VOCÊ 01 Aguardando você 0 Em andamento Em andamento 0 Aguardando você 1 Turno concluído 0 Com falh"
+    },
+    {
+      "module": "agents",
+      "fixture": "none",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.2,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · sem dados ainda 02 Sem leitura das sessões de agente ainda"
+    },
+    {
+      "module": "agents",
+      "fixture": "none",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "AGENTES Claude Code e Codex · sem dados ainda 02 Sem leitura das sessões de agente ainda"
+    },
+    {
+      "module": "github",
+      "fixture": "empty",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias · 290 · pico de 35 em 2"
+    },
+    {
+      "module": "github",
+      "fixture": "empty",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias · 290 · pico de 35 em 2"
+    },
+    {
+      "module": "github",
+      "fixture": "error",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ ◷Falha ao atualizar este minuto Sem leitura da atividade do GitHub ainda"
+    },
+    {
+      "module": "github",
+      "fixture": "error",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ ◷Falha ao atualizar este minuto Sem leitura da atividade do GitHub ainda"
+    },
+    {
+      "module": "github",
+      "fixture": "failure",
+      "theme": "dark",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ ◷Falha ao atualizar este minuto Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 priv"
+    },
+    {
+      "module": "github",
+      "fixture": "failure",
+      "theme": "light",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ ◷Falha ao atualizar este minuto Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 priv"
+    },
+    {
+      "module": "github",
+      "fixture": "full",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias · 290 · pico de 35 em 2"
+    },
+    {
+      "module": "github",
+      "fixture": "full",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias · 290 · pico de 35 em 2"
+    },
+    {
+      "module": "github",
+      "fixture": "invalid-credential",
+      "theme": "dark",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ ⚠Credencial do GitHub inválida · Reconectar Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclu"
+    },
+    {
+      "module": "github",
+      "fixture": "invalid-credential",
+      "theme": "light",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ ⚠Credencial do GitHub inválida · Reconectar Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclu"
+    },
+    {
+      "module": "github",
+      "fixture": "missing-gh",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ GitHub não conectado · rode gh auth login no terminal ou cole um token"
+    },
+    {
+      "module": "github",
+      "fixture": "missing-gh",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ GitHub não conectado · rode gh auth login no terminal ou cole um token"
+    },
+    {
+      "module": "github",
+      "fixture": "offline",
+      "theme": "dark",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ Coleta pausada · offline ou aguardando retomada Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 i"
+    },
+    {
+      "module": "github",
+      "fixture": "offline",
+      "theme": "light",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ Coleta pausada · offline ou aguardando retomada Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 i"
+    },
+    {
+      "module": "github",
+      "fixture": "own-token",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias · 290 · pico de 35 em 2"
+    },
+    {
+      "module": "github",
+      "fixture": "own-token",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias · 290 · pico de 35 em 2"
+    },
+    {
+      "module": "github",
+      "fixture": "stale",
+      "theme": "dark",
+      "mainScroll": 20,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias "
+    },
+    {
+      "module": "github",
+      "fixture": "stale",
+      "theme": "light",
+      "mainScroll": 20,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· atualizado 09:33 ↻ Atualizado este minuto 1.608 CONTRIBUIÇÕES EM 2026 Últimas 8 semanas · 1.219 inclui 1.247 privadas (anônimas) Últimos 14 dias "
+    },
+    {
+      "module": "github",
+      "fixture": "none",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 9.61,
+        "failures": []
+      },
+      "graphics": {
+        "min": 15.04,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· sem dados ainda ↻ Sem leitura da atividade do GitHub ainda"
+    },
+    {
+      "module": "github",
+      "fixture": "none",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 10.99,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "GitHub GitHub· sem dados ainda ↻ Sem leitura da atividade do GitHub ainda"
+    },
+    {
+      "module": "network",
+      "fixture": "disconnected",
+      "theme": "dark",
+      "mainScroll": 5,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ⊘ Sem conexão SEGURANÇA DA REDE ⊘ Sem conexão ⊘ Sem conexão LATÊNCIA DA INTERNET Sem teste "
+    },
+    {
+      "module": "network",
+      "fixture": "disconnected",
+      "theme": "light",
+      "mainScroll": 5,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ⊘ Sem conexão SEGURANÇA DA REDE ⊘ Sem conexão ⊘ Sem conexão LATÊNCIA DA INTERNET Sem teste "
+    },
+    {
+      "module": "network",
+      "fixture": "full",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ◐ Regular SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa ↓ "
+    },
+    {
+      "module": "network",
+      "fixture": "full",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ◐ Regular SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa ↓ "
+    },
+    {
+      "module": "network",
+      "fixture": "good",
+      "theme": "dark",
+      "mainScroll": 49,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "good",
+      "theme": "light",
+      "mainScroll": 49,
+      "contrast": {
+        "min": 5.34,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "poor",
+      "theme": "dark",
+      "mainScroll": 49,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✕ Ruim SEGURANÇA DA REDE ✓ Sem alertas 301 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem "
+    },
+    {
+      "module": "network",
+      "fixture": "poor",
+      "theme": "light",
+      "mainScroll": 49,
+      "contrast": {
+        "min": 5.03,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✕ Ruim SEGURANÇA DA REDE ✓ Sem alertas 301 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem "
+    },
+    {
+      "module": "network",
+      "fixture": "processes-empty",
+      "theme": "dark",
+      "mainScroll": 77,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "processes-empty",
+      "theme": "light",
+      "mainScroll": 77,
+      "contrast": {
+        "min": 5.34,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "processes",
+      "theme": "dark",
+      "mainScroll": 65,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "processes",
+      "theme": "light",
+      "mainScroll": 65,
+      "contrast": {
+        "min": 5.34,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "risk",
+      "theme": "dark",
+      "mainScroll": 69,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✕ Risco ⚠ Rede aberta sem OWE 20 ms LATÊNCIA DA INTERNET Sem fio VP"
+    },
+    {
+      "module": "network",
+      "fixture": "risk",
+      "theme": "light",
+      "mainScroll": 69,
+      "contrast": {
+        "min": 5.03,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✕ Risco ⚠ Rede aberta sem OWE 20 ms LATÊNCIA DA INTERNET Sem fio VP"
+    },
+    {
+      "module": "network",
+      "fixture": "speed-failed",
+      "theme": "dark",
+      "mainScroll": 48,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "speed-failed",
+      "theme": "light",
+      "mainScroll": 48,
+      "contrast": {
+        "min": 5.34,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "speed-offline",
+      "theme": "dark",
+      "mainScroll": 27,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ⊘ Sem conexão SEGURANÇA DA REDE ⊘ Sem conexão ⊘ Sem conexão LATÊNCIA DA INTERNET ↓ 8 ↑ 3 MB"
+    },
+    {
+      "module": "network",
+      "fixture": "speed-offline",
+      "theme": "light",
+      "mainScroll": 27,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ⊘ Sem conexão SEGURANÇA DA REDE ⊘ Sem conexão ⊘ Sem conexão LATÊNCIA DA INTERNET ↓ 8 ↑ 3 MB"
+    },
+    {
+      "module": "network",
+      "fixture": "speed-running",
+      "theme": "dark",
+      "mainScroll": 25,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "speed-running",
+      "theme": "light",
+      "mainScroll": 25,
+      "contrast": {
+        "min": 5.34,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa Sem te"
+    },
+    {
+      "module": "network",
+      "fixture": "speed",
+      "theme": "dark",
+      "mainScroll": 12,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ◐ Regular SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa ↓ "
+    },
+    {
+      "module": "network",
+      "fixture": "speed",
+      "theme": "light",
+      "mainScroll": 12,
+      "contrast": {
+        "min": 4.89,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ◐ Regular SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Sem fio VPN inativa ↓ "
+    },
+    {
+      "module": "network",
+      "fixture": "vpn",
+      "theme": "dark",
+      "mainScroll": 49,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Cabeada VPN ativa Sem test"
+    },
+    {
+      "module": "network",
+      "fixture": "vpn",
+      "theme": "light",
+      "mainScroll": 49,
+      "contrast": {
+        "min": 5.34,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ✓ Sem alertas 20 ms LATÊNCIA DA INTERNET Cabeada VPN ativa Sem test"
+    },
+    {
+      "module": "network",
+      "fixture": "warning",
+      "theme": "dark",
+      "mainScroll": 69,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ⚠ Atenção ⚠ Portal cativo detectado 20 ms LATÊNCIA DA INTERNET Sem "
+    },
+    {
+      "module": "network",
+      "fixture": "warning",
+      "theme": "light",
+      "mainScroll": 69,
+      "contrast": {
+        "min": 5.34,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · atualizado 11:32 05 QUALIDADE DA REDE ✓ Boa SEGURANÇA DA REDE ⚠ Atenção ⚠ Portal cativo detectado 20 ms LATÊNCIA DA INTERNET Sem "
+    },
+    {
+      "module": "network",
+      "fixture": "none",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.17,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · sem dados ainda 05 Sem leitura da rede ainda"
+    },
+    {
+      "module": "network",
+      "fixture": "none",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "REDE NetworkManager e kernel · sem dados ainda 05 Sem leitura da rede ainda"
+    },
+    {
+      "module": "trello",
+      "fixture": "choose-board",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.4,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Escolha um quadro nas Configurações ↻Atualizar Trello Configurar Trello"
+    },
+    {
+      "module": "trello",
+      "fixture": "choose-board",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Escolha um quadro nas Configurações ↻Atualizar Trello Configurar Trello"
+    },
+    {
+      "module": "trello",
+      "fixture": "empty",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.4,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Trello não conectado ↻Atualizar Trello Configurar Trello"
+    },
+    {
+      "module": "trello",
+      "fixture": "empty",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Trello não conectado ↻Atualizar Trello Configurar Trello"
+    },
+    {
+      "module": "trello",
+      "fixture": "error",
+      "theme": "dark",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 8.29,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 ◷Falha ao atualizar este minuto Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 "
+    },
+    {
+      "module": "trello",
+      "fixture": "error",
+      "theme": "light",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 ◷Falha ao atualizar este minuto Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 "
+    },
+    {
+      "module": "trello",
+      "fixture": "full",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.29,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 2 Primeiro card ·"
+    },
+    {
+      "module": "trello",
+      "fixture": "full",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 2 Primeiro card ·"
+    },
+    {
+      "module": "trello",
+      "fixture": "invalid-credential",
+      "theme": "dark",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 8.29,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 ⚠Credencial inválida · Reconectar Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 "
+    },
+    {
+      "module": "trello",
+      "fixture": "invalid-credential",
+      "theme": "light",
+      "mainScroll": 42,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 ⚠Credencial inválida · Reconectar Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 "
+    },
+    {
+      "module": "trello",
+      "fixture": "offline",
+      "theme": "dark",
+      "mainScroll": 20,
+      "contrast": {
+        "min": 8.29,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Li"
+    },
+    {
+      "module": "trello",
+      "fixture": "offline",
+      "theme": "light",
+      "mainScroll": 20,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Li"
+    },
+    {
+      "module": "trello",
+      "fixture": "overdue",
+      "theme": "dark",
+      "mainScroll": 6,
+      "contrast": {
+        "min": 8.29,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Quadro 1 19 cards · 8 listas Lista 1 6 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 2 Primeiro card ·"
+    },
+    {
+      "module": "trello",
+      "fixture": "overdue",
+      "theme": "light",
+      "mainScroll": 6,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Quadro 1 19 cards · 8 listas Lista 1 6 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 2 Primeiro card ·"
+    },
+    {
+      "module": "trello",
+      "fixture": "stale",
+      "theme": "dark",
+      "mainScroll": 20,
+      "contrast": {
+        "min": 8.29,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Li"
+    },
+    {
+      "module": "trello",
+      "fixture": "stale",
+      "theme": "light",
+      "mainScroll": 20,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · atualizado 09:33 04 Atualizado este minuto Quadro 1 17 cards · 8 listas Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Li"
+    },
+    {
+      "module": "trello",
+      "fixture": "none",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.4,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · sem dados ainda 04 Sem leitura do quadro do Trello ainda ↻Atualizar Trello Configurar Trello"
+    },
+    {
+      "module": "trello",
+      "fixture": "none",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "TRELLO Trello · sem dados ainda 04 Sem leitura do quadro do Trello ainda ↻Atualizar Trello Configurar Trello"
+    },
+    {
+      "module": "system",
+      "fixture": "desktop",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.88,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU 47 °C TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria Sem bateria detectada"
+    },
+    {
+      "module": "system",
+      "fixture": "desktop",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU 47 °C TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria Sem bateria detectada"
+    },
+    {
+      "module": "system",
+      "fixture": "missing",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.88,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU Sem sensor TEMPERATURA RAM 5,7 / 15 GB Sem swap configurada Disco / 70 / 147 GB Bateria Sem bateria detecta"
+    },
+    {
+      "module": "system",
+      "fixture": "missing",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU Sem sensor TEMPERATURA RAM 5,7 / 15 GB Sem swap configurada Disco / 70 / 147 GB Bateria Sem bateria detecta"
+    },
+    {
+      "module": "system",
+      "fixture": "no-sensor",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.88,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU Sem sensor TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria 100% carregada"
+    },
+    {
+      "module": "system",
+      "fixture": "no-sensor",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU Sem sensor TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria 100% carregada"
+    },
+    {
+      "module": "system",
+      "fixture": "notebook",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.88,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU 47 °C TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria 100% carregada"
+    },
+    {
+      "module": "system",
+      "fixture": "notebook",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU 47 °C TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria 100% carregada"
+    },
+    {
+      "module": "system",
+      "fixture": "starting",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.88,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 Medindo… CPU 47 °C TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria 100% carregada"
+    },
+    {
+      "module": "system",
+      "fixture": "starting",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 5.39,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 Medindo… CPU 47 °C TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB Bateria 100% carregada"
+    },
+    {
+      "module": "system",
+      "fixture": "warning",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.88,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU 92 °C ⚠Temperatura alta TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB ⚠Pouco espaço em "
+    },
+    {
+      "module": "system",
+      "fixture": "warning",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.02,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · atualizado 11:32 06 2% CPU 92 °C ⚠Temperatura alta TEMPERATURA RAM 5,7 / 15 GB Swap 0,4 / 4,0 GB Disco / 70 / 147 GB ⚠Pouco espaço em "
+    },
+    {
+      "module": "system",
+      "fixture": "none",
+      "theme": "dark",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 8.88,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · sem dados ainda 06 Sem leitura do sistema ainda"
+    },
+    {
+      "module": "system",
+      "fixture": "none",
+      "theme": "light",
+      "mainScroll": 0,
+      "contrast": {
+        "min": 6.54,
+        "failures": []
+      },
+      "graphics": {
+        "min": 100,
+        "failures": []
+      },
+      "clipping": [],
+      "escapes": [],
+      "text": "SISTEMA Kernel e UPower · sem dados ainda 06 Sem leitura do sistema ainda"
+    }
+  ],
+  "keyboard": [
+    {
+      "theme": "dark",
+      "reached": 18,
+      "focusable": 18,
+      "order": [
+        "toolbar",
+        "ai",
+        "agents",
+        "github",
+        "network",
+        "trello"
+      ],
+      "unnamed": [],
+      "noRing": [],
+      "lowRing": [],
+      "ax": {
+        "nameless": [],
+        "charts": [
+          {
+            "role": "image",
+            "name": "Últimas 8 semanas: 1.219 contribuições de 06/09 a 31/10, máximo de 63 em um dia"
+          },
+          {
+            "role": "meter",
+            "name": "RAM"
+          },
+          {
+            "role": "meter",
+            "name": "Swap"
+          },
+          {
+            "role": "meter",
+            "name": "Disco /"
+          },
+          {
+            "role": "meter",
+            "name": "Codex · janela de 5 h"
+          },
+          {
+            "role": "meter",
+            "name": "Codex · semana"
+          },
+          {
+            "role": "image",
+            "name": "Tráfego total por segundo. 5 amostras de 1 s. Descida: atual 177,7 KB/s, pico 205,1 KB/s. "
+          },
+          {
+            "role": "image",
+            "name": "Etiquetas: verde, azul escuro"
+          },
+          {
+            "role": "meter",
+            "name": "Bateria"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "reached": 18,
+      "focusable": 18,
+      "order": [
+        "toolbar",
+        "ai",
+        "agents",
+        "github",
+        "network",
+        "trello"
+      ],
+      "unnamed": [],
+      "noRing": [],
+      "lowRing": [],
+      "ax": {
+        "nameless": [],
+        "charts": [
+          {
+            "role": "image",
+            "name": "Últimas 8 semanas: 1.219 contribuições de 06/09 a 31/10, máximo de 63 em um dia"
+          },
+          {
+            "role": "meter",
+            "name": "RAM"
+          },
+          {
+            "role": "meter",
+            "name": "Swap"
+          },
+          {
+            "role": "meter",
+            "name": "Disco /"
+          },
+          {
+            "role": "meter",
+            "name": "Codex · janela de 5 h"
+          },
+          {
+            "role": "meter",
+            "name": "Codex · semana"
+          },
+          {
+            "role": "image",
+            "name": "Tráfego total por segundo. 5 amostras de 1 s. Descida: atual 177,7 KB/s, pico 205,1 KB/s. "
+          },
+          {
+            "role": "image",
+            "name": "Etiquetas: verde, azul escuro"
+          },
+          {
+            "role": "meter",
+            "name": "Bateria"
+          }
+        ]
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "module": "agents",
+      "width": 1100,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 1100,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 1100,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 1040,
+        "h": 610,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 8.29,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "agents",
+      "width": 1100,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.39,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 1100,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 6.54,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 1100,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 1040,
+        "h": 610,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.92,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "agents",
+      "width": 1000,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 1000,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 1000,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 960,
+        "h": 610,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 8.29,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "agents",
+      "width": 1000,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.39,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 1000,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 680,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 6.54,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 1000,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 960,
+        "h": 610,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.92,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "agents",
+      "width": 650,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 585,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 650,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 585,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 650,
+      "height": 700,
+      "theme": "dark",
+      "geo": {
+        "w": 624,
+        "h": 610,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 8.29,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "agents",
+      "width": 650,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 585,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.39,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 650,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 585,
+        "h": 560,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 6.54,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 650,
+      "height": 700,
+      "theme": "light",
+      "geo": {
+        "w": 624,
+        "h": 610,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.92,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "agents",
+      "width": 1100,
+      "height": 560,
+      "theme": "dark",
+      "geo": {
+        "w": 680,
+        "h": 448,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 1100,
+      "height": 560,
+      "theme": "dark",
+      "geo": {
+        "w": 680,
+        "h": 448,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 9.19,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 1100,
+      "height": 560,
+      "theme": "dark",
+      "geo": {
+        "w": 1040,
+        "h": 515,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 8.29,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "agents",
+      "width": 1100,
+      "height": 560,
+      "theme": "light",
+      "geo": {
+        "w": 680,
+        "h": 448,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.39,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "network",
+      "width": 1100,
+      "height": 560,
+      "theme": "light",
+      "geo": {
+        "w": 680,
+        "h": 448,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 6.54,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    },
+    {
+      "module": "trello",
+      "width": 1100,
+      "height": 560,
+      "theme": "light",
+      "geo": {
+        "w": 1040,
+        "h": 515,
+        "inside": true,
+        "focusInside": true,
+        "contrast": {
+          "min": 5.92,
+          "failures": []
+        },
+        "graphics": {
+          "min": 100,
+          "failures": []
+        },
+        "clipping": []
+      },
+      "focusEscapes": 0,
+      "afterFirst": {
+        "open": false,
+        "restored": true,
+        "closed": false
+      },
+      "panelClosedOnSecondEscape": true
+    }
+  ],
+  "trello": [
+    {
+      "mode": "ok",
+      "before": "Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 2",
+      "listInfo": {
+        "lists": 8,
+        "outOfView": 3
+      },
+      "destinations": 7,
+      "optimistic": "Lista 1 3 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 3",
+      "settled": {
+        "counts": "Lista 1 3 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 3",
+        "message": "“Card 1.1” movido para Lista 8.",
+        "calls": [
+          "move:000000000000000000000004->00000000000000000000001d"
+        ]
+      },
+      "reopened": {
+        "selected": true,
+        "focusOnCard": true
+      },
+      "opened": true,
+      "draggable": "true"
+    },
+    {
+      "mode": "fail",
+      "before": "Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 2",
+      "listInfo": {
+        "lists": 8,
+        "outOfView": 3
+      },
+      "destinations": 7,
+      "optimistic": "Lista 1 3 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 3",
+      "settled": {
+        "counts": "Lista 1 4 Lista 2 0 Lista 3 2 Lista 4 1 Lista 5 3 Lista 6 4 Lista 7 1 Lista 8 2",
+        "message": "Não foi possível mover “Card 1.1”. O card voltou para Lista 1. Tente novamente.",
+        "calls": [
+          "move:000000000000000000000004->00000000000000000000001d"
+        ]
+      },
+      "reopened": {
+        "selected": true,
+        "focusOnCard": true
+      },
+      "opened": true,
+      "draggable": "true"
+    }
+  ],
+  "target": [
+    {
+      "target": "s-closed",
+      "open": true,
+      "highlighted": "CC Sessão encerrada archive · Claude Code EncerradaÚltima situação: Com falha Da",
+      "focus": "Fechar",
+      "notice": null
+    },
+    {
+      "target": "s-waiting",
+      "open": true,
+      "highlighted": "CC example-session example-project · Claude Code Aguardando vocêAguardando",
+      "focus": "Fechar",
+      "notice": null
+    },
+    {
+      "target": "missing-session",
+      "open": true,
+      "highlighted": null,
+      "focus": "Fechar",
+      "notice": "Sessão da notificação indisponível"
+    }
+  ],
+  "motion": [
+    {
+      "motion": "full",
+      "shown": {
+        "decoration": "running",
+        "running": 8
+      },
+      "hidden": {
+        "decoration": "paused",
+        "running": 0
+      },
+      "reopened": {
+        "decoration": "running",
+        "running": 8
+      }
+    },
+    {
+      "motion": "reduced",
+      "shown": {
+        "decoration": "paused",
+        "running": 0
+      },
+      "hidden": {
+        "decoration": "paused",
+        "running": 0
+      },
+      "reopened": {
+        "decoration": "paused",
+        "running": 0
+      }
+    }
+  ],
+  "timing": [
+    {
+      "note": "Headless Chromium, no CPU throttling; programmatic clicks. Not WebKitGTK and not native.",
+      "response": {
+        "agents": {
+          "n": 20,
+          "p95": 34.8,
+          "max": 34.8
+        },
+        "network": {
+          "n": 20,
+          "p95": 30.6,
+          "max": 30.6
+        },
+        "trello": {
+          "n": 20,
+          "p95": 89.7,
+          "max": 89.7
+        }
+      },
+      "eventTiming": {
+        "n": 116,
+        "max": 40
+      },
+      "longAnimationFrames": 21,
+      "scrollFrames": {
+        "n": 120,
+        "p95": 16.7,
+        "max": 16.8,
+        "over20ms": 0
+      }
+    }
+  ]
+}

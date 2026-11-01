@@ -127,16 +127,10 @@
         </div>
       {/each}
     </div>
-    {#if connected}
-      <p class="connection">
-        <span>{data.wired ? t.network.wired : t.network.wireless}</span>
-        <span class:active={data.vpn}>{data.vpn ? t.network.vpn : t.network.noVpn}</span>
-      </p>
-      {#if data.security === "warning" || data.security === "risk"}
-        <ul class="reasons {data.security}">
-          {#each data.reasons as reason (reason)}<li><span aria-hidden="true">⚠&nbsp;</span>{reason}</li>{/each}
-        </ul>
-      {/if}
+    {#if connected && (data.security === "warning" || data.security === "risk")}
+      <ul class="reasons {data.security}">
+        {#each data.reasons as reason (reason)}<li><span aria-hidden="true">⚠&nbsp;</span>{reason}</li>{/each}
+      </ul>
     {/if}
 
     <div class="instruments">
@@ -147,6 +141,12 @@
           <strong class="num">{#if data.internet.latency === null}<span class="absent">{t.network.noValue}</span>{:else}{number.format(data.internet.latency)}<span class="unit">&nbsp;ms</span>{/if}</strong>
         {/if}
         <span id="network-latency" class="caption">{t.network.internetLatency}</span>
+        {#if connected}
+          <p class="connection">
+            <span>{data.wired ? t.network.wired : t.network.wireless}</span>
+            <span class:active={data.vpn}>{data.vpn ? t.network.vpn : t.network.noVpn}</span>
+          </p>
+        {/if}
       </div>
       <div class="speed-instrument" role="group" aria-label={t.network.speed}>
         <button class="speed" disabled={!data.speedAvailable || data.speedRunning} onclick={runSpeed}
@@ -182,7 +182,7 @@
     {/if}
 
     <section class="traffic" aria-labelledby="network-traffic">
-      <h3 id="network-traffic">{t.network.traffic}</h3>
+      <h3 id="network-traffic" class="sr-only">{t.network.traffic}</h3>
       {#if history.length === 0}
         <p class="note">{t.network.noSamples}</p>
       {:else}
@@ -234,34 +234,34 @@
 </div>
 
 <style>
-  .network { padding: 16px 16px 18px; min-width: 0; display: flex; flex-direction: column; gap: 12px; flex: 1; font-size: 12px; }
+  .network { padding: 8px 12px 10px; min-width: 0; display: flex; flex-direction: column; gap: 6px; flex: 1; font-size: 12px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .blank { display: grid; place-items: center; min-height: 120px; padding: 12px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
-  .axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-  .axis { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--surface-2); border-left: 4px solid var(--line); }
-  .axis-name { font: 10px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-  .axis b { font-size: 15px; font-weight: 500; }
+  .axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+  .axis { display: flex; flex-direction: column; gap: 1px; padding: 4px 8px; background: var(--surface-2); border-left: 4px solid var(--line); }
+  .axis-name { font: 10px var(--mono); letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
+  .axis b { font-size: 13px; font-weight: 500; }
   .axis.ok { border-left-color: var(--ok); } .axis.ok b { color: var(--ok); }
   .axis.warn { border-left-color: var(--warn); } .axis.warn b { color: var(--warn); }
   .axis.bad { border-left-color: var(--bad); } .axis.bad b { color: var(--bad); }
-  .connection { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 11px; }
+  .connection { display: flex; gap: 2px 8px; flex-wrap: wrap; margin-top: 2px; color: var(--muted); font-size: 11px; }
   .connection .active { color: var(--accent); }
   .reasons { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
   .reasons.warning { color: var(--warn); } .reasons.risk { color: var(--bad); }
-  .instruments { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: start; gap: 14px; }
+  .instruments { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); align-items: start; gap: 10px; }
   .latency { display: flex; flex-direction: column; gap: 2px; }
-  .latency strong { font-size: 46px; font-weight: 300; line-height: 1.05; letter-spacing: -1px; }
-  .latency .unit { font-size: 15px; letter-spacing: 0; color: var(--muted); }
+  .latency strong { font-size: 32px; font-weight: 300; line-height: 1.05; letter-spacing: -1px; }
+  .latency .unit { font-size: 13px; letter-spacing: 0; color: var(--muted); }
   .latency .absent { font-size: 18px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
-  .caption { display: block; font: 10px var(--mono); letter-spacing: 0.7px; text-transform: uppercase; color: var(--muted); }
-  .speed-instrument { position: relative; display: flex; flex-direction: column; gap: 6px; }
-  .speed { width: 100%; padding: 12px 8px; color: var(--accent); background: var(--surface-2); border: 1px solid var(--line); border-radius: 0 20px 0 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .caption { display: block; font: 10px var(--mono); letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
+  .speed-instrument { position: relative; display: flex; flex-direction: column; gap: 4px; }
+  .speed { width: 100%; padding: 6px 8px; color: var(--accent); background: var(--surface-2); border: 1px solid var(--line); border-radius: 0 20px 0 20px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .speed:hover:not(:disabled) { filter: brightness(1.15); }
   .speed:disabled { cursor: default; }
   .speed:disabled .caption { opacity: 0.7; }
   .speed:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .speed-values { display: flex; justify-content: center; gap: 12px; }
-  .speed-values b { font-size: 22px; font-weight: 400; }
+  .speed-values b { font-size: 18px; font-weight: 400; }
   .speed-none { font-size: 13px; color: var(--muted); }
   /* Test age and date: on pointer and keyboard focus, always when old or not repeatable now. */
   .when { display: none; font-size: 11px; color: var(--muted); }
@@ -269,25 +269,25 @@
   .when.old { color: var(--warn); }
   .note { font-size: 11px; color: var(--muted); }
   .note.warn { color: var(--warn); }
-  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0; }
+  .metrics { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 0; }
+  .metrics div { display: flex; align-items: baseline; gap: 5px; }
   .metrics dt { font-size: 11px; color: var(--muted); }
-  .metrics dd { margin: 3px 0 0; font-size: 13px; }
-  .gateway { font-size: 11px; color: var(--muted); padding: 4px 8px; background: var(--surface); border-left: 3px solid var(--line); }
-  h3 { font: 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-  .traffic svg { display: block; width: 100%; height: 84px; }
+  .metrics dd { margin: 0; font-size: 12px; }
+  .gateway { font-size: 11px; color: var(--muted); padding: 2px 8px; background: var(--surface); border-left: 3px solid var(--line); }
+  h3 { font: 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .traffic > svg { display: block; width: 100%; height: 34px; }
   .grid { stroke: var(--line); stroke-dasharray: 2 4; fill: none; }
   polyline, .key line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
   polyline.download, .key .download { stroke: var(--accent); }
   polyline.upload, .key .upload { stroke: var(--chart-secondary); stroke-dasharray: 5 3; }
-  .key { width: 18px; height: 6px; margin-right: 6px; vertical-align: middle; }
+  .key { width: 12px; height: 6px; margin-right: 4px; vertical-align: middle; }
   circle.download { fill: var(--accent); } rect.upload { fill: var(--chart-secondary); }
-  .rates { display: flex; justify-content: space-between; gap: 12px; margin: 6px 0 0; font-size: 12px; }
-  .rates div { display: flex; gap: 6px; }
+  .rates { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 4px 0 0; font-size: 12px; }
+  .rates div { display: flex; gap: 4px; }
   .rates dt { color: var(--muted); }
   .rates dd { margin: 0; }
   .rates .download dd { color: var(--accent); }
-  .apps-open { display: grid; grid-template-columns: 1fr auto; text-align: left; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; font: inherit; }
-  .apps-open .caption { grid-column: 1 / -1; }
+  .apps-open { display: grid; grid-template-columns: auto 1fr auto; text-align: left; align-items: baseline; gap: 8px; width: 100%; padding: 4px 10px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; font: inherit; }
   .apps-open:hover { filter: brightness(1.15); }
   .apps-open:focus-visible, dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   dialog { margin: auto; width: min(680px, 90vw); max-height: 80vh; overflow: auto; padding: 20px; color: var(--text); background: var(--surface); border: 1px solid var(--line); }
@@ -298,7 +298,7 @@
   .apps { display: flex; flex-direction: column; gap: 6px; }
   .apps ul { margin: 0; padding: 0; list-style: none; }
   .app { display: grid; grid-template-columns: minmax(56px, 90px) minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 6px 0; font-size: 12px; }
-  .app .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app .name { overflow-wrap: anywhere; }
   .app.others .name { color: var(--muted); }
   .bars { display: grid; gap: 3px; }
   .bars i { display: block; height: 4px; min-width: 1px; background: var(--accent); border-radius: 0 4px 4px 0; }

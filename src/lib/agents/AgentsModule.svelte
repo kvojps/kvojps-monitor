@@ -161,10 +161,10 @@
 <style>
   button { cursor: pointer; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .compact-summary { display: flex; align-items: center; gap: 20px; }
-  .ring { flex: none; width: 140px; height: 140px; border-radius: 50%; padding: 12px; border: 0; }
+  .compact-summary { display: flex; align-items: center; gap: 16px; }
+  .ring { flex: none; width: 112px; height: 112px; border-radius: 50%; padding: 10px; border: 0; }
   .ring > span { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; border-radius: 50%; background: var(--surface); }
-  .ring strong { font-size: 32px; }
+  .ring strong { font-size: 28px; }
   .ring small { font-size: 10px; }
   .flow { flex: 1; min-width: 0; }
   dt { position: relative; }
@@ -174,13 +174,13 @@
   dialog::backdrop { background: #000a; }
   dialog header { display: flex; justify-content: space-between; gap: 16px; }
 
-  .agents { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 18px; min-width: 0; flex: 1; }
+  .agents { display: flex; flex-direction: column; gap: 8px; padding: 8px 14px 12px; min-width: 0; flex: 1; }
   .banner {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 4px 4px 14px; border-bottom: 3px solid var(--band-violet);
+    padding: 0 4px 6px; border-bottom: 3px solid var(--band-violet);
   }
   .attention { font: 11px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-  .banner strong { font-size: 56px; font-weight: 300; line-height: 1; color: var(--muted); }
+  .banner strong { font-size: 30px; font-weight: 300; line-height: 1; color: var(--muted); }
   .pending .attention, .pending strong { color: var(--warn); }
   .notice { font-size: 12px; color: var(--muted); }
   .notice.alert { color: var(--warn); }
@@ -206,6 +206,6 @@
   .elapsed { flex: none; font-size: 11px; color: var(--muted); white-space: nowrap; }
 
   .flow { display: flex; flex-direction: column; margin-top: auto; }
-  .flow div { display: flex; justify-content: space-between; gap: 8px; padding: 9px 4px; border-bottom: 3px solid var(--surface-2); font-size: 11px; color: var(--muted); }
+  .flow div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 4px; border-bottom: 2px solid var(--surface-2); font-size: 11px; color: var(--muted); }
   .flow dd { color: var(--band-lavender-text); font-weight: 600; }
 </style>

@@ -31,3 +31,5 @@ Implementado em 2026-10-31:
 - Revisão: Spec sem lacunas funcionais (asserção da Âncora adicionada). Standards sem violações; renomeação e contagem explícita aplicadas. Pendência de manutenção: o ciclo do diálogo (abrir/fechar/Escape/restaurar foco) duplica o de Agentes; extrair um componente comum fica para refatoração posterior, sem bloquear Trello.
 
 Validação nativa no GNOME/Wayland (confinamento de foco, dimensões do diálogo) permanece no ticket 07; não houve falha de leitura de Rede modelada no snapshot além de ausência (sem leitura) e idade do teste.
+
+2026-10-31 — Divergência de B aprovada pelo usuário no ticket 07 (“Approve the move”): a linha de conexão/VPN saiu da linha de status e fica abaixo da latência da Internet, para que o Painel caiba sem rolagem em 1100 × 700. Qualidade e Segurança continuam separadas na linha de status. Ver [validação integrada](../validation/integrated.md).
