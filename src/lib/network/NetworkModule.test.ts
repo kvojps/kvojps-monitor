@@ -82,9 +82,23 @@ it("plots a single sample as two marks instead of inventing a trend", () => {
   expect(chart.querySelectorAll("polyline")).toHaveLength(0);
 });
 
-it("lists five apps and Others with paired bars on a common local scale", () => {
+/** The apps live in the Aplicativos de rede detail, opened from the summary. */
+async function openApps() {
+  await userEvent.click(screen.getByRole("button", { name: "Aplicativos de rede" }));
+  return screen.getByRole("dialog", { name: "Aplicativos de rede" });
+}
+
+it("keeps the apps out of the summary until the detail opens", async () => {
   render(NetworkModule, { data: dataOf(full) });
-  const apps = screen.getByRole("region", { name: "Tráfego por aplicativo" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.queryByText("firefox")).not.toBeInTheDocument();
+  const apps = await openApps();
+  expect(within(apps).getByText("firefox")).toBeInTheDocument();
+});
+
+it("lists five apps and Others with paired bars on a common local scale", async () => {
+  render(NetworkModule, { data: dataOf(full) });
+  const apps = await openApps();
   const rows = within(apps).getAllByRole("listitem");
   expect(rows.map((r) => r.querySelector(".name")!.textContent)).toEqual(["firefox", "codex", "claude", "code", "slack", "Outros"]);
   expect(rows[0]).toHaveTextContent("↓ 6 KB/s ↑ 3 KB/s");
@@ -97,16 +111,16 @@ it("lists five apps and Others with paired bars on a common local scale", () => 
   expect(within(apps).getByRole("list")).toHaveAccessibleDescription("Barras em escala comum entre aplicativos, não a capacidade do link");
 });
 
-it("shows an empty TCP window with the remaining interface traffic", () => {
+it("shows an empty TCP window with the remaining interface traffic", async () => {
   render(NetworkModule, { data: dataOf(processesEmpty) });
-  const apps = screen.getByRole("region", { name: "Tráfego por aplicativo" });
+  const apps = await openApps();
   expect(apps).toHaveTextContent("Nenhum aplicativo com tráfego TCP nesta janela");
   expect(within(apps).getAllByRole("listitem")).toHaveLength(1);
 });
 
-it("waits for attribution until diagnostics provide a baseline", () => {
+it("waits for attribution until diagnostics provide a baseline", async () => {
   render(NetworkModule, { data: dataOf(good) });
-  expect(screen.getByRole("region", { name: "Tráfego por aplicativo" })).toHaveTextContent("Aguardando medição");
+  expect(await openApps()).toHaveTextContent("Aguardando medição");
   expect(screen.queryByText("Outros")).not.toBeInTheDocument();
 });
 
@@ -206,10 +220,10 @@ it("explains that nothing was read before the first snapshot", () => {
   expect(screen.getByText("Sem leitura da rede ainda")).toBeInTheDocument();
 });
 
-it("replaces the latency instrument and the apps with the disconnection, not a pending measurement", () => {
+it("replaces the latency instrument and the apps with the disconnection, not a pending measurement", async () => {
   render(NetworkModule, { data: dataOf(disconnected) });
   expect(screen.getByRole("group", { name: "Latência da internet" })).toHaveTextContent("Sem conexão");
-  const apps = screen.getByRole("region", { name: "Tráfego por aplicativo" });
+  const apps = await openApps();
   expect(apps).toHaveTextContent("Sem conexão");
   expect(apps).not.toHaveTextContent("Aguardando medição");
 });
@@ -255,4 +269,53 @@ it("describes the absence of a speed measurement when the action name replaces i
   render(NetworkModule, { data: dataOf(running) });
   expect(screen.getByRole("button", { name: "Testando velocidade…" }))
     .toHaveAccessibleDescription("Sem teste de velocidade");
+});
+
+it("closes the apps detail with Close or Escape and returns focus to its trigger", async () => {
+  render(NetworkModule, { data: dataOf(full) });
+  const trigger = screen.getByRole("button", { name: "Aplicativos de rede" });
+  const apps = await openApps();
+  await userEvent.click(within(apps).getByRole("button", { name: "Fechar" }));
+  expect(apps).not.toHaveAttribute("open");
+  expect(trigger).toHaveFocus();
+  trigger.focus();
+  await userEvent.keyboard("{Enter}");
+  expect(apps).toHaveAttribute("open");
+  const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  window.dispatchEvent(escape);
+  await act(() => {});
+  expect(escape.defaultPrevented).toBe(true);
+  expect(apps).not.toHaveAttribute("open");
+  expect(trigger).toHaveFocus();
+});
+
+it("leaves Escape to the Panel when the detail is closed", () => {
+  render(NetworkModule, { data: dataOf(full) });
+  const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  window.dispatchEvent(escape);
+  expect(escape.defaultPrevented).toBe(false);
+});
+
+it("keeps the detail open and focused while new snapshots arrive", async () => {
+  const view = render(NetworkModule, { data: dataOf(full) });
+  const apps = await openApps();
+  const close = within(apps).getByRole("button", { name: "Fechar" });
+  expect(close).toHaveFocus();
+  await view.rerender({ data: dataOf(processesEmpty) });
+  expect(apps).toHaveAttribute("open");
+  expect(apps).toHaveTextContent("Nenhum aplicativo com tráfego TCP nesta janela");
+  expect(close).toHaveFocus();
+  await view.rerender({ data: dataOf(disconnected) });
+  expect(apps).toHaveTextContent("Sem conexão");
+});
+
+it("summarizes the detail contents on its trigger, in the singular for one app", async () => {
+  const view = render(NetworkModule, { data: dataOf(full) });
+  const trigger = screen.getByRole("button", { name: "Aplicativos de rede" });
+  expect(trigger).toHaveAccessibleDescription("5 aplicativos e Outros");
+  const one = dataOf(full);
+  await view.rerender({ data: { ...one, processTraffic: { ...one.processTraffic!, apps: one.processTraffic!.apps.slice(0, 1) } } });
+  expect(trigger).toHaveAccessibleDescription("1 aplicativo e Outros");
+  await view.rerender({ data: dataOf(processesEmpty) });
+  expect(trigger).toHaveAccessibleDescription("Nenhum aplicativo com tráfego TCP nesta janela");
 });

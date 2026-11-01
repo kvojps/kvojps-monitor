@@ -532,7 +532,10 @@ describe("Network module in the panel", () => {
     render(Panel, { core: { ...core, runSpeedTest } });
     const network = await screen.findByRole("region", { name: "Rede" });
     expect(within(network).getByRole("group", { name: "Latência da internet" })).toHaveTextContent("20 ms");
-    expect(within(network).getAllByRole("listitem")).toHaveLength(6);
+    expect(within(network).queryAllByRole("listitem")).toHaveLength(0);
+    await userEvent.click(within(network).getByRole("button", { name: "Aplicativos de rede" }));
+    expect(within(screen.getByRole("dialog", { name: "Aplicativos de rede" })).getAllByRole("listitem")).toHaveLength(6);
+    await userEvent.keyboard("{Escape}");
     await userEvent.click(within(network).getByRole("button", { name: "Testar velocidade" }));
     expect(runSpeedTest).toHaveBeenCalledOnce();
   });
@@ -671,4 +674,33 @@ it("preserves notification selection when reopening from the panel ring", async 
   expect(core.closePanel).not.toHaveBeenCalled();
   await userEvent.keyboard("{Escape}");
   expect(core.closePanel).toHaveBeenCalledOnce();
+});
+
+it("closes the network apps detail before Escape hides the panel, keeping the anchor", async () => {
+  const { core } = fakeCore({ lastAnchor: "github", snapshots: [{ module: "network", updatedAt: 1000, data: networkFull.data }] });
+  render(Panel, { core });
+  const trigger = await screen.findByRole("button", { name: "Aplicativos de rede" });
+  await userEvent.click(trigger);
+  const detail = screen.getByRole("dialog", { name: "Aplicativos de rede" });
+  expect(within(detail).getByText("firefox")).toBeInTheDocument();
+  vi.mocked(core.chooseAnchor).mockClear();
+  await userEvent.keyboard("{Escape}");
+  expect(detail).not.toHaveAttribute("open");
+  expect(trigger).toHaveFocus();
+  expect(core.closePanel).not.toHaveBeenCalled();
+  expect(core.chooseAnchor).not.toHaveBeenCalled();
+  await userEvent.keyboard("{Escape}");
+  expect(core.closePanel).toHaveBeenCalledOnce();
+});
+
+it("opening the network apps detail does not change what the core collects", async () => {
+  const { core } = fakeCore({ snapshots: [{ module: "network", updatedAt: 1000, data: networkFull.data }] });
+  const runSpeedTest = vi.fn();
+  render(Panel, { core: { ...core, runSpeedTest } });
+  const trigger = await screen.findByRole("button", { name: "Aplicativos de rede" });
+  const reported = vi.mocked(core.reportVisibleModules).mock.calls.length;
+  await userEvent.click(trigger);
+  await userEvent.keyboard("{Escape}");
+  expect(vi.mocked(core.reportVisibleModules).mock.calls.length).toBe(reported);
+  expect(runSpeedTest).not.toHaveBeenCalled();
 });

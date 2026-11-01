@@ -78,9 +78,44 @@
     return { rows, empty: traffic.apps.length === 0, max: Math.max(1, ...rows.flatMap((r) => [r.download, r.upload])) };
   });
   const width = (v: number, max: number) => `${(v / max) * 100}%`;
+
+  const appsSummary = $derived.by(() => {
+    if (!apps) return connected ? t.network.unmeasured : t.network.disconnected;
+    const count = apps.rows.filter((row) => !row.others).length;
+    if (count === 0) return t.network.noProcesses;
+    return count === 1 ? t.network.appsCountOne : interpolate(t.network.appsCount, { count: String(count) });
+  });
+
+  /** Modal detail listing per-app traffic ("Aplicativos de rede") over the summary; it reads the same snapshot, never a new collection. */
+  let dialog: HTMLDialogElement;
+  let detailOpen = $state(false);
+  let restoringFocus = false;
+  let opener: HTMLElement | null = null;
+  function openApps(event: MouseEvent) {
+    if (dialog.open) return;
+    opener = event.currentTarget as HTMLElement;
+    dialog.showModal();
+    detailOpen = true;
+  }
+  function closeApps() {
+    restoringFocus = true;
+    dialog.close();
+    detailOpen = false;
+    opener?.focus({ preventScroll: true });
+    restoringFocus = false;
+  }
+  function closeOnEscape(event: KeyboardEvent) {
+    if (event.key === "Escape" && dialog?.open) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeApps();
+    }
+  }
 </script>
 
-<div class="network">
+<svelte:window onkeydowncapture={closeOnEscape} />
+
+<div class="network" onfocusin={(event) => { if (restoringFocus) event.stopPropagation(); }}>
   {#if !data}
     <p class="blank">{t.network.noReading}</p>
   {:else}
@@ -168,26 +203,34 @@
       </dl>
     </section>
 
-    <section class="apps" aria-labelledby="network-apps">
-      <h3 id="network-apps">{t.network.processTraffic}</h3>
-      {#if apps}
-        {#if apps.empty}<p class="note">{t.network.noProcesses}</p>{/if}
-        <ul aria-describedby="network-apps-scale">
-          {#each apps.rows as app (app.others ? "others" : `app:${app.name}`)}
-            <li class="app" class:others={app.others}>
-              <span class="name" title={app.others ? t.network.othersHint : app.name}>{app.name}</span>
-              <span class="bars" aria-hidden="true"><i style:width={width(app.download, apps.max)}></i><i class="up" style:width={width(app.upload, apps.max)}></i></span>
-              <span class="app-rates num"><span>↓ {rate(app.download)}</span> <span>↑ {rate(app.upload)}</span></span>
-            </li>
-          {/each}
-        </ul>
-        <p class="note">{t.network.others}: {t.network.othersHint}</p>
-        <p id="network-apps-scale" class="note">{t.network.appsScale}</p>
-      {:else}
-        <p class="note">{connected ? t.network.unmeasured : t.network.disconnected}</p>
-      {/if}
-    </section>
+    <button class="apps-open" onclick={openApps} aria-label={t.network.appsDetail} aria-describedby="network-apps-summary">
+      <span class="caption">{t.network.appsDetail}</span>
+      <span id="network-apps-summary">{appsSummary}</span><span aria-hidden="true">↗</span>
+    </button>
   {/if}
+  <dialog bind:this={dialog} aria-labelledby="network-apps" oncancel={(event) => { event.preventDefault(); closeApps(); }}>
+    <header><h2 id="network-apps">{t.network.appsDetail}</h2><button onclick={closeApps}>{t.network.close}</button></header>
+    {#if detailOpen}
+      <section class="apps" aria-label={t.network.processTraffic}>
+        {#if apps}
+          {#if apps.empty}<p class="note">{t.network.noProcesses}</p>{/if}
+          <ul aria-describedby="network-apps-scale">
+            {#each apps.rows as app (app.others ? "others" : `app:${app.name}`)}
+              <li class="app" class:others={app.others}>
+                <span class="name" title={app.others ? t.network.othersHint : app.name}>{app.name}</span>
+                <span class="bars" aria-hidden="true"><i style:width={width(app.download, apps.max)}></i><i class="up" style:width={width(app.upload, apps.max)}></i></span>
+                <span class="app-rates num"><span>↓ {rate(app.download)}</span> <span>↑ {rate(app.upload)}</span></span>
+              </li>
+            {/each}
+          </ul>
+          <p class="note">{t.network.others}: {t.network.othersHint}</p>
+          <p id="network-apps-scale" class="note">{t.network.appsScale}</p>
+        {:else}
+          <p class="note">{connected ? t.network.unmeasured : t.network.disconnected}</p>
+        {/if}
+      </section>
+    {/if}
+  </dialog>
 </div>
 
 <style>
@@ -243,7 +286,16 @@
   .rates dt { color: var(--muted); }
   .rates dd { margin: 0; }
   .rates .download dd { color: var(--accent); }
-  .apps { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .apps-open { display: grid; grid-template-columns: 1fr auto; text-align: left; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; font: inherit; }
+  .apps-open .caption { grid-column: 1 / -1; }
+  .apps-open:hover { filter: brightness(1.15); }
+  .apps-open:focus-visible, dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  dialog { margin: auto; width: min(680px, 90vw); max-height: 80vh; overflow: auto; padding: 20px; color: var(--text); background: var(--surface); border: 1px solid var(--line); }
+  dialog::backdrop { background: #000a; }
+  dialog header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; }
+  dialog h2 { font-size: 14px; font-weight: 500; }
+  dialog header button { cursor: pointer; }
+  .apps { display: flex; flex-direction: column; gap: 6px; }
   .apps ul { margin: 0; padding: 0; list-style: none; }
   .app { display: grid; grid-template-columns: minmax(56px, 90px) minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 6px 0; font-size: 12px; }
   .app .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
