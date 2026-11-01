@@ -2,7 +2,7 @@
 
 Type: grilling
 Status: open
-Blocked by: 12
+Blocked by: None (12 resolved).
 
 ## Question
 
@@ -17,3 +17,5 @@ Bloqueado pelo [Preenchimento vertical do cartão IA e Agentes](11-ai-agents-ver
 Desbloqueado em 2026-11-01: o [Preenchimento vertical](11-ai-agents-vertical-fill.md) decidiu por instrumentos que crescem. A linha de uso alto, se ficar, só encolhe os anéis; não abre vão.
 
 Bloqueado pelo [Alinhamento da distribuição vertical dos Módulos](12-vertical-distribution-alignment.md) a pedido do usuário (2026-11-01): a distribuição vertical decide primeiro.
+
+Desbloqueado em 2026-11-01: o [Alinhamento da distribuição vertical](12-vertical-distribution-alignment.md) estendeu os instrumentos que crescem aos cartões de apoio. A linha de uso alto, se ficar, só encolhe os anéis.

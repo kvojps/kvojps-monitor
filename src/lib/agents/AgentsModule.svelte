@@ -185,7 +185,8 @@
   /* --dial grows with the free height of the card (Panel); the legend spreads with it. */
   .session-dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; display: block; container-type: inline-size; }
   .session-dial svg { width: 100%; height: 100%; display: block; }
-  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 35cqi; }
+  /* The B size at 94 px, growing at a quarter of the dial so big rings keep a light number. */
+  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(33px + (100cqi - 94px) / 4); }
   .base { fill: none; stroke: var(--line); stroke-width: 8; }
   .orbit { fill: none; stroke: var(--control-line); stroke-width: 1; stroke-dasharray: 24 12 6 30; transform-origin: center; }
   .legend-list { align-self: center; min-width: 0; }

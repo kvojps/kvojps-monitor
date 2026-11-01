@@ -211,7 +211,9 @@
 </div>
 
 <style>
-  .network { min-width: 0; display: flex; flex-direction: column; }
+  /* The free height of the card goes to the traffic chart. */
+  .network { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .traffic-area { flex: 1; display: flex; flex-direction: column; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   header { display: flex; align-items: center; gap: 10px; justify-content: space-between; min-height: 28px; margin-bottom: 6px; }
   h2 { font-size: 1.25em; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
@@ -233,7 +235,7 @@
   .speed:hover:not(:disabled) b { color: var(--accent); }
   .metrics { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin: 6px 0 5px; font-size: .88em; }
   .metrics b { font-weight: 500; }
-  .traffic { width: 100%; height: 40px; display: block; margin-top: 8px; background: linear-gradient(transparent 95%, var(--line) 95%); background-size: 100% 20px; }
+  .traffic { flex: 1; width: 100%; min-height: 40px; display: block; margin-top: 8px; background: linear-gradient(transparent 95%, var(--line) 95%); background-size: 100% 20px; }
   .traffic path { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
   .traffic .download { stroke: var(--accent); }
   .traffic .upload { stroke: var(--chart-secondary); stroke-dasharray: 5 3; }

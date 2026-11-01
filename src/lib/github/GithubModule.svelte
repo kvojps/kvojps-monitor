@@ -179,13 +179,15 @@
   .icon:disabled { opacity: .45; cursor: default; }
   .tip { position: absolute; z-index: 4; right: 0; top: 100%; min-width: 150px; background: var(--surface-2); color: var(--text); padding: 9px; border: 1px solid var(--control-line); box-shadow: 0 4px 20px #0006; font-size: 12px; font-weight: 400; visibility: hidden; }
   .action-wrap:hover .tip, .action-wrap:focus-within .tip { visibility: visible; }
+  /* The free height of the card goes to the activity bars. */
+  .readings { flex: 1; display: flex; flex-direction: column; }
   .readings[data-stale="true"] { --text: var(--muted); --accent: var(--muted); --band-steel: var(--muted); color: var(--muted); }
   .github-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   strong { display: block; font-size: 2.8em; font-weight: 400; line-height: 1.15; }
   .github-top small { display: block; margin-top: 5px; }
   .heatmap { display: grid; grid-template-rows: repeat(7, 7px); grid-auto-columns: 7px; gap: 3px; }
   .heatmap i { background: var(--accent); }
-  .activity { height: 26px; display: flex; align-items: flex-end; gap: 5px; margin: 6px 0 4px; padding: 0; list-style: none; }
+  .activity { flex: 1; min-height: 26px; display: flex; align-items: flex-end; gap: 5px; margin: 6px 0 4px; padding: 0; list-style: none; }
   .activity li { flex: 1; height: 100%; display: flex; align-items: flex-end; }
   .activity i { display: block; width: 100%; background: var(--band-steel); border-radius: 3px 3px 0 0; }
   .featured { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 9px; display: grid; gap: 4px; overflow-wrap: anywhere; }

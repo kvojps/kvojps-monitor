@@ -362,7 +362,9 @@
   .icon:disabled { opacity: .45; cursor: default; }
   .tip { position: absolute; z-index: 4; right: 0; top: 100%; min-width: 150px; background: var(--surface-2); color: var(--text); padding: 9px; border: 1px solid var(--control-line); box-shadow: 0 4px 20px #0006; font-size: 12px; font-weight: 400; visibility: hidden; }
   .action-wrap:hover .tip, .action-wrap:focus-within .tip { visibility: visible; }
-  .trello { min-width: 0; }
+  /* The free height of the card goes to the list rows. */
+  .trello { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .summary { flex: 1; display: flex; flex-direction: column; }
   .line { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
   .line.alert { color: var(--warn); }
   .link { color: var(--accent); text-decoration: underline; font-size: inherit; }
@@ -370,7 +372,7 @@
   .board-summary { display: flex; justify-content: space-between; gap: 10px; font-size: .93em; margin: 2px 0 12px; overflow-wrap: anywhere; }
   .board-summary b { font-weight: 600; }
   .board-summary span { color: var(--muted); white-space: nowrap; }
-  .list-counts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .list-counts { flex: 1; list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; align-items: end; gap: 4px 16px; }
   .list-counts li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
   .list-counts .list-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .labels { display: flex; flex-wrap: wrap; gap: 4px; }

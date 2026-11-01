@@ -109,7 +109,8 @@
 </div>
 
 <style>
-  .system { min-width: 0; display: flex; flex-direction: column; }
+  /* The free height of the card spreads the meters. */
+  .system { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   header { display: flex; align-items: center; gap: 10px; justify-content: space-between; min-height: 28px; margin-bottom: 6px; }
   h2 { font-size: 1.25em; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
   small { font-size: .88em; color: var(--muted); }
@@ -123,12 +124,12 @@
   .temperature strong { font-size: 2.3em; }
   strong.absent, .temperature strong.absent { font-size: 1.1em; line-height: 2.9; color: var(--muted); }
   strong.warning, b.warning { color: var(--warn); }
-  .meter { margin-top: 8px; }
+  .meter { flex: 1; margin-top: 8px; display: flex; flex-direction: column; justify-content: center; }
   .meter-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
   .meter > small { display: block; margin-top: 4px; }
   .track { height: 5px; background: var(--line); border-radius: 5px; }
   .track i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
   .track.warning i { background: var(--warn); }
-  .battery { margin-top: 12px; color: var(--ok); }
+  .battery { margin-top: 4px; color: var(--ok); }
   .battery.warning { color: var(--warn); }
 </style>
