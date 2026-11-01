@@ -1,0 +1,5 @@
+{
+  "refreshing": false,
+  "codex": { "state": "missing", "plan": null, "reading": null },
+  "claude": { "state": "missing", "plan": null, "statusLine": "off", "usage": "off", "reading": null }
+}

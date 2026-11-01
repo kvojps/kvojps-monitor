@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from "@testing-library/svelte";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AiModule from "./AiModule.svelte";
 import type { AiData } from "../core";
 import usage from "./fixtures/claude-usage.json";
@@ -308,7 +308,7 @@ it("explains a missing weekly value without claiming a restart", async () => {
   const { default: unavailable } = await import("./fixtures/weekly-unavailable.json");
   render(AiModule, { data: unavailable as AiData, refresh: vi.fn() });
   expect(within(provider("Codex")).queryByRole("meter", { name: "Codex · semana" })).not.toBeInTheDocument();
-  expect(within(provider("Codex")).getByText("Sem leitura dos limites")).toBeInTheDocument();
+  expect(within(provider("Codex")).getByText("Janela semanal indisponível")).toBeInTheDocument();
   expect(within(provider("Codex")).queryByText(/Reiniciado/)).not.toBeInTheDocument();
 });
 
@@ -335,4 +335,63 @@ it("dismisses action descriptions with Escape before the panel handles it", asyn
   expect(escape.defaultPrevented).toBe(true);
   expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   expect(configure).toHaveFocus();
+});
+
+describe("fixed composition without a reading", () => {
+  const area = (name: string) => provider(name).querySelector<HTMLElement>(".area");
+
+  it("gives each provider without a reading its own neutral area, under its name", () => {
+    render(AiModule, { data: { refreshing: false, codex: { state: "empty", plan: null, reading: null } }, refresh: vi.fn() });
+    expect(provider("Codex")).toHaveTextContent(/^Codex/);
+    expect(area("Codex")).toHaveAttribute("data-tone", "neutral");
+    expect(area("Codex")).toHaveTextContent("◌ Sem leitura dos limites do Codex ainda · use o Codex ou atualize com ↻");
+    expect(area("Claude")).toHaveTextContent("◌ Sem leitura dos limites do Claude ainda");
+    expect(screen.queryByRole("meter")).not.toBeInTheDocument();
+  });
+
+  it("keeps the other provider's instruments beside an absent one", async () => {
+    const { default: missing } = await import("./fixtures/missing.json");
+    render(AiModule, { data: { ...(missing as AiData), claude: usage.claude as AiData["claude"] }, refresh: vi.fn() });
+    expect(area("Codex")).toHaveAttribute("data-tone", "warn");
+    expect(area("Codex")).toHaveTextContent("⚠ Codex não encontrado · instale e faça login no CLI");
+    expect(area("Claude")).toBeNull();
+  });
+
+  it("offers a new attempt when the first Codex reading failed", async () => {
+    const refresh = vi.fn();
+    const data: AiData = { refreshing: false, codex: { state: "empty", plan: null, reading: null, failureSince: USAGE_NOW - 600_000 } };
+    render(AiModule, { data, refresh });
+    expect(area("Codex")).toHaveAttribute("data-tone", "warn");
+    expect(area("Codex")).toHaveTextContent("Falha ao atualizar há 10 minutos · sem leitura anterior");
+    await fireEvent.click(within(area("Codex")!).getByRole("button", { name: "Tentar de novo" }));
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("names Claude's reason without a reading: expired, replaced, failed or not connected", async () => {
+    const reconnect = vi.fn();
+    const claude = (patch: Partial<NonNullable<AiData["claude"]>>): AiData => ({
+      ...(usage as AiData), claude: { ...(usage as AiData).claude!, reading: null, ...patch },
+    });
+    const { unmount } = render(AiModule, { data: claude({ usage: "expired" }), refresh: vi.fn() });
+    expect(area("Claude")).toHaveTextContent("⚠ Token do Claude expirado · abra o Claude Code");
+    unmount();
+    const replaced = render(AiModule, { data: claude({ usage: "off", statusLine: "replaced" }), refresh: vi.fn(), reconnect });
+    await fireEvent.click(within(area("Claude")!).getByRole("button", { name: "Reconectar" }));
+    expect(reconnect).toHaveBeenCalledOnce();
+    replaced.unmount();
+    const failed = render(AiModule, { data: claude({ usage: "on", failureSince: USAGE_NOW - 120_000 }), refresh: vi.fn() });
+    expect(area("Claude")).toHaveTextContent("Falha ao atualizar há 2 minutos · sem leitura anterior Tentar de novo");
+    failed.unmount();
+    render(AiModule, { data: claude({ usage: "off", statusLine: "off" }), refresh: vi.fn() });
+    expect(area("Claude")).toHaveAttribute("data-tone", "neutral");
+    expect(area("Claude")).toHaveTextContent("Conecte o app ao Claude Code para ler os limites Configurar");
+  });
+
+  it("dims an old reading under its failure line instead of the area", async () => {
+    const { default: failure } = await import("./fixtures/failure.json");
+    render(AiModule, { data: failure as AiData, refresh: vi.fn() });
+    expect(area("Codex")).toBeNull();
+    expect(provider("Codex")).toHaveAttribute("data-stale", "true");
+    expect(provider("Claude")).not.toHaveAttribute("data-stale", "true");
+  });
 });

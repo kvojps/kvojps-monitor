@@ -3,6 +3,7 @@
   import type { SystemData } from "../core";
   import { interpolate, t } from "../strings";
   import { pair } from "./format";
+  import AbsentArea from "../AbsentArea.svelte";
 
   let { data, updatedAt }: { data: SystemData | null; updatedAt: number | null } = $props();
 
@@ -28,15 +29,19 @@
   const celsius = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const percent = (used: number, total: number) => (total > 0 ? Math.round((used / total) * 100) : 0);
 
-  /** `note` is the GB pair B shows only under RAM; every meter keeps it in its accessible value. */
-  type Meter = { name: string; used: number; total: number; warning: boolean; note: boolean };
+  /**
+   * `note` is the GB pair B shows only under RAM; every meter keeps it in its accessible value.
+   * `missing` keeps the slot of a meter the machine lacks, with the reason under an empty track.
+   */
+  type Meter = { name: string; used: number; total: number; warning: boolean; note: boolean; missing?: string };
 
   /** The root disk represents the machine; the others only appear when they warn. */
   const disk = $derived(data?.disks.find((d) => d.mount === "/") ?? data?.disks[0] ?? null);
   const meters = $derived.by(() => {
     if (!data) return [];
     const list: Meter[] = [{ name: t.system.ram, ...data.ram, warning: false, note: true }];
-    if (data.swap) list.push({ name: t.system.swap, ...data.swap, warning: false, note: false });
+    list.push(data.swap ? { name: t.system.swap, ...data.swap, warning: false, note: false }
+      : { name: t.system.swap, used: 0, total: 0, warning: false, note: false, missing: t.system.noSwap });
     if (disk) list.push({ name: interpolate(t.system.disk, { mount: disk.mount }), used: disk.used, total: disk.total, warning: disk.warning, note: false });
     return list;
   });
@@ -46,7 +51,7 @@
 <div class="system">
   <header><h2 id="module-system-title">{t.modules.system}</h2></header>
   {#if !data}
-    <small class="line">{t.system.noReading}</small>
+    <AbsentArea absence={{ text: t.system.noReading, tone: "neutral" }} />
   {:else}
     {@const cpu = data.cpu}
     {@const battery = data.battery}
@@ -66,9 +71,8 @@
     {#if battery?.warning}
       <small class="line alert"><span aria-hidden="true">⚠&nbsp;</span>{t.system.lowBattery}</small>
     {/if}
-    {#if !data.swap}<small class="line">{t.system.noSwap}</small>{/if}
-    {#if !battery}<small class="line">{t.system.noBattery}</small>{/if}
 
+    <div class="readings" data-stale={staleSince !== null}>
     <div class="system-top">
       <div role="group" aria-labelledby="system-cpu">
         {#if cpu.usage === null}
@@ -81,15 +85,23 @@
       <div class="temperature" role="group" aria-labelledby="system-temperature">
         {#if cpu.temperature}
           <strong class="num" class:warning={cpu.temperature.warning}>{celsius.format(cpu.temperature.celsius)}<small>°C</small></strong>
+          <small id="system-temperature">{t.system.temperature}</small>
         {:else}
-          <strong class="absent">{t.system.noSensor}</strong>
+          <strong class="num empty" aria-hidden="true">—</strong>
+          <small id="system-temperature">{t.system.temperatureNoSensor}</small>
         {/if}
-        <small id="system-temperature">{t.system.temperature}</small>
       </div>
     </div>
 
     {#each meters as m (m.name)}
       {@const value = percent(m.used, m.total)}
+      {#if m.missing}
+        <div class="meter">
+          <div class="meter-label"><span>{m.name}</span><b class="num empty" aria-hidden="true">—</b></div>
+          <div class="track" aria-hidden="true"></div>
+          <small>{m.missing}</small>
+        </div>
+      {:else}
       <div class="meter">
         <div class="meter-label"><span>{m.name}</span><b class="num" class:warning={m.warning}>{value}%</b></div>
         <div class="track" class:warning={m.warning} role="meter" aria-label={m.name} aria-valuemin={0} aria-valuemax={100}
@@ -98,13 +110,17 @@
         </div>
         {#if m.note}<small>{pair(m.used, m.total)}</small>{/if}
       </div>
+      {/if}
     {/each}
 
     {#if battery}
       <p class="battery" class:warning={battery.warning}>
-        <span aria-hidden="true">▰ </span>{t.system.battery} {Math.round(battery.percentage)}% · {t.system.statesBattery[battery.state]}
+        <span aria-hidden="true">{"▰ "}</span>{t.system.battery} {Math.round(battery.percentage)}% · {t.system.statesBattery[battery.state]}
       </p>
+    {:else}
+      <p class="battery missing"><span aria-hidden="true">{"▱ "}</span>{t.system.noBattery}</p>
     {/if}
+    </div>
   {/if}
 </div>
 
@@ -122,7 +138,7 @@
   strong { display: block; font-size: 2.8em; font-weight: 400; line-height: 1.15; }
   strong small { font-size: .35em; margin-left: 3px; }
   .temperature strong { font-size: 2.3em; }
-  strong.absent, .temperature strong.absent { font-size: 1.1em; line-height: 2.9; color: var(--muted); }
+  strong.absent { font-size: 1.1em; line-height: 2.9; color: var(--muted); }
   strong.warning, b.warning { color: var(--warn); }
   .meter { flex: 1; margin-top: 8px; display: flex; flex-direction: column; justify-content: center; }
   .meter-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
@@ -132,4 +148,8 @@
   .track.warning i { background: var(--warn); }
   .battery { margin-top: 4px; color: var(--ok); }
   .battery.warning { color: var(--warn); }
+  .battery.missing, .empty { color: var(--muted); }
+  /* The free height of the card spreads the meters, also under the conditional lines. */
+  .readings { flex: 1; display: flex; flex-direction: column; }
+  .readings[data-stale="true"] { --text: var(--muted); --accent: var(--muted); --ok: var(--muted); color: var(--muted); }
 </style>

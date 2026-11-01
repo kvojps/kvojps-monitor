@@ -217,7 +217,7 @@
 {/snippet}
 
 {#snippet agents()}
-  <AgentsModule data={agentsData} notified={agentTarget} notificationRequest={agentRequest} />
+  <AgentsModule data={agentsData} notified={agentTarget} notificationRequest={agentRequest} configure={() => openSettings("agents")} />
 {/snippet}
 
 {#snippet github()}

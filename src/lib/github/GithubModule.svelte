@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import type { GithubData } from "../core";
   import { t, interpolate } from "../strings";
+  import AbsentArea, { type Absence } from "../AbsentArea.svelte";
 
   /** The GitHub summary as prototype B shows it; states B does not show become body lines. */
   let { data, refresh, configure = () => {} }:
@@ -31,6 +32,7 @@
   const count = new Intl.NumberFormat("pt-BR");
   function age(when: number) {
     const seconds = Math.max(0, Math.floor((now - when) / 1000));
+    if (seconds < 60) return relative.format(0, "second");
     if (seconds < 3600) return relative.format(-Math.floor(seconds / 60), "minute");
     if (seconds < 86400) return relative.format(-Math.floor(seconds / 3600), "hour");
     return relative.format(-Math.floor(seconds / 86400), "day");
@@ -84,6 +86,21 @@
     allowedAt = Date.now() + 10000;
     refresh();
   }
+
+  /** A previous reading shown while the current one is missing: dimmed under its age. */
+  const old = $derived(activity !== null && data != null && (data.state !== "ready" || paused));
+  /** Without any reading, the body is one area saying why. */
+  const absence = $derived.by((): Absence | null => {
+    if (activity) return null;
+    if (missing) return { text: t.github.missingSource, tone: "warn", action: { label: t.absent.configure, run: configure } };
+    if (invalid) return { text: t.github.invalidCredential, tone: "warn", action: { label: t.absent.reconnect, run: configure } };
+    if (data?.state === "error" && !paused) return {
+      text: data.failureSince != null ? interpolate(t.github.failureNoReading, { age: age(data.failureSince) }) : t.github.error,
+      tone: "warn",
+      action: { label: t.absent.tryAgain, run: refreshNow, disabled: data.refreshing || now < allowedAt },
+    };
+    return { text: t.github.noReading, tone: "neutral" };
+  });
 </script>
 
 <header>
@@ -103,20 +120,20 @@
 
 {#if data?.refreshing}<small role="status" class="line">{t.github.refreshing}</small>{/if}
 {#if paused}<small role="status" class="line">{t.github.paused}</small>{/if}
-{#if missing}
-  <small class="line alert"><span aria-hidden="true">⚠ </span>{t.github.missingSource}</small>
+{#if absence}
+  <AbsentArea {absence} />
 {:else}
   {#if invalid}
-    <small class="line alert"><span aria-hidden="true">⚠ </span>{t.github.invalidCredential}{" · "}<button class="link" onclick={configure}>{t.github.reconnect}</button></small>
+    <small class="line alert"><span aria-hidden="true">{"⚠ "}</span>{t.github.invalidCredential}{" · "}<button class="link" onclick={configure}>{t.github.reconnect}</button></small>
   {/if}
   {#if data?.state === "error" && !paused}
-    <small class="line alert"><span aria-hidden="true">⚠ </span>{data.failureSince != null ? interpolate(t.github.failureAge, { age: age(data.failureSince) }) : t.github.error}</small>
+    <small class="line alert"><span aria-hidden="true">{"⚠ "}</span>{data.failureSince != null ? interpolate(t.github.failureAge, { age: age(data.failureSince) }) : t.github.error}</small>
   {/if}
   {#if data?.lastSuccessAt != null && (data.state !== "ready" || paused)}
     <small class="line">{interpolate(t.github.updatedAge, { age: age(data.lastSuccessAt) })}</small>
   {/if}
-  <div class="readings" data-stale={invalid}>
-    {#if activity}
+  {#if activity}
+    <div class="readings" data-stale={old}>
       <div class="github-top">
         <div><strong class="num">{count.format(activity.annual)}</strong><small>{t.github.annual}</small></div>
         {#if activity.weeks.length > 0}
@@ -148,13 +165,8 @@
         </ul>
         <small>{t.github.days}</small>
       {/if}
-    {:else}
-      <small class="line">{t.github.noReading}</small>
-    {/if}
-    <!-- Without any successful reading, "no commits" would be a claim nothing supports. -->
-    {#if data && (data.featured || data.state === "ready" || data.lastSuccessAt != null)}
       <div class="featured" role="region" aria-label={t.github.featured}>
-        {#if data.featured}
+        {#if data?.featured}
           <small>{interpolate(plural(data.featured.commits, t.github.featuredCommits), { commits: count.format(data.featured.commits) })}</small>
           <b>{data.featured.name}</b>
           <!-- The disk cache never stores commit titles. -->
@@ -164,8 +176,8 @@
           <span>{t.github.empty}</span>
         {/if}
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
 {/if}
 
 <style>

@@ -61,7 +61,7 @@ it("explains a missing measurement instead of showing zero", () => {
   render(NetworkModule, { data: dataOf(running) });
   expect(document.querySelector(".metrics")).toHaveTextContent("Jitter sem medição");
   expect(screen.getByText("Gateway · jitter sem medição · perda 0%")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Testando velocidade…" })).toHaveTextContent("Sem teste de velocidade");
+  expect(screen.getByRole("button", { name: "Testando velocidade…" })).toHaveTextContent("↓ — · ↑ — Mbps · testar ↻ Sem teste ainda");
   const traffic = screen.getByRole("region", { name: "Tráfego total" });
   expect(traffic).toHaveTextContent("Aguardando amostras de tráfego");
   expect(traffic.querySelector(".traffic-values .upload")).toHaveTextContent("sem medição");
@@ -170,7 +170,7 @@ it("shows a disconnection without measurements, apps or connection labels", () =
   expect(lines()).toEqual(["⊘ Sem conexão"]);
   expect(screen.queryByText("Wi-Fi")).not.toBeInTheDocument();
   expect(screen.queryByText(/^Gateway ·/)).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Testar velocidade" })).toHaveTextContent("Sem teste de velocidade");
+  expect(screen.getByRole("button", { name: "Testar velocidade" })).toHaveTextContent("Sem teste ainda");
 });
 
 it("shows a wired connection on the status line and an active VPN as a line", () => {
@@ -233,7 +233,11 @@ it("does not offer a test that the core cannot run, and says why", async () => {
 it("explains that nothing was read before the first snapshot", () => {
   render(NetworkModule, { data: null });
   expect(screen.getByRole("heading", { level: 2, name: "Rede" })).toBeInTheDocument();
-  expect(lines()).toEqual(["Sem leitura da rede ainda"]);
+  expect(lines()).toEqual([]);
+  const area = document.querySelector(".network .area");
+  expect(area).toHaveAttribute("data-tone", "neutral");
+  expect(area).toHaveTextContent("◌ Sem leitura da rede ainda");
+  expect(screen.queryByRole("group", { name: "Internet" })).not.toBeInTheDocument();
 });
 
 it("replaces the apps with the disconnection, not a pending measurement", async () => {
@@ -291,4 +295,16 @@ it("keeps the detail open and focused while new snapshots arrive", async () => {
   expect(close).toHaveFocus();
   await view.rerender({ data: dataOf(disconnected) });
   expect(apps).toHaveTextContent("Sem conexão");
+});
+
+it("keeps the apps button with the reason while per-app traffic has no measurement", () => {
+  render(NetworkModule, { data: dataOf(good) });
+  expect(appsTrigger()).toHaveTextContent("Aplicativos de rede · sem medição ↗");
+});
+
+it("keeps the speed test slot with dashes and the reason before the first test", () => {
+  render(NetworkModule, { data: { ...dataOf(full), speed: null } });
+  const speed = screen.getByRole("button", { name: "Testar velocidade" });
+  expect(speed).toHaveTextContent("↓ — · ↑ — Mbps · testar ↻ Sem teste ainda");
+  expect(speed).toHaveAccessibleDescription("Sem teste de velocidade");
 });

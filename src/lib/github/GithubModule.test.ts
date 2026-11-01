@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from "@testing-library/svelte";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import GithubModule from "./GithubModule.svelte";
 import type { GithubData } from "../core";
 import full from "./fixtures/full.json";
@@ -134,9 +134,11 @@ it("requests a refresh and waits ten seconds before the next one", async () => {
 
 it("shows refresh failure without data from fixture", async () => {
   const { default: error } = await import("./fixtures/error.json");
-  render(GithubModule, { data: data(error), refresh: vi.fn() });
-  expect(screen.getByText(/Falha ao atualizar/)).toBeInTheDocument();
-  expect(screen.getByText("Sem leitura da atividade do GitHub ainda")).toBeInTheDocument();
+  const refresh = vi.fn();
+  render(GithubModule, { data: data(error), refresh });
+  expect(screen.getByText(/^Falha ao atualizar .* · sem leitura anterior$/)).toBeInTheDocument();
+  await fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+  expect(refresh).toHaveBeenCalledOnce();
   // Nothing was read, so it must not claim there were no commits.
   expect(screen.queryByText("Sem commits nos últimos 7 dias")).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Repo em destaque" })).not.toBeInTheDocument();
@@ -212,4 +214,50 @@ it("describes compact title actions and lets Escape dismiss their descriptions",
   await vi.advanceTimersByTimeAsync(0);
   expect(document.getElementById(configure.getAttribute("aria-describedby")!)).toHaveAttribute("hidden");
   expect(escape.defaultPrevented).toBe(true);
+});
+
+describe("fixed composition without a reading", () => {
+  const area = (container: HTMLElement) => container.querySelector<HTMLElement>(".area");
+
+  it("fills the body with one neutral area before the first reading", () => {
+    const { container } = render(GithubModule, { data: null, refresh: vi.fn() });
+    expect(area(container)).toHaveAttribute("data-tone", "neutral");
+    expect(area(container)).toHaveTextContent("◌ Sem leitura da atividade do GitHub ainda");
+    expect(within(area(container)!).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("fills the body with an amber area and its action when the source is missing", async () => {
+    const configure = vi.fn();
+    const { container } = render(GithubModule, { data: data(missingGh), refresh: vi.fn(), configure });
+    expect(area(container)).toHaveAttribute("data-tone", "warn");
+    expect(area(container)).toHaveTextContent("⚠ GitHub não conectado · rode gh auth login no terminal ou cole um token Configurar");
+    await fireEvent.click(within(area(container)!).getByRole("button", { name: "Configurar" }));
+    expect(configure).toHaveBeenCalledOnce();
+  });
+
+  it("offers reconnection in an amber area when the credential is invalid and nothing was read", async () => {
+    const configure = vi.fn();
+    const invalid = { ...data(full), state: "invalidCredential", calendar: null, featured: null };
+    const { container } = render(GithubModule, { data: invalid, refresh: vi.fn(), configure });
+    expect(area(container)).toHaveAttribute("data-tone", "warn");
+    expect(area(container)).toHaveTextContent("Credencial do GitHub inválida");
+    await fireEvent.click(within(area(container)!).getByRole("button", { name: "Reconectar" }));
+    expect(configure).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the old reading dimmed under its age instead of the area", () => {
+    const old = { ...data(full), state: "error", lastSuccessAt: FIXTURE_NOW - 7_200_000, failureSince: FIXTURE_NOW - 600_000 };
+    const { container } = render(GithubModule, { data: old, refresh: vi.fn() });
+    expect(area(container)).toBeNull();
+    expect(screen.getByText("Atualizado há 2 horas")).toBeInTheDocument();
+    expect(container.querySelector(".readings")).toHaveAttribute("data-stale", "true");
+    expect(screen.getByText("1.608")).toBeInTheDocument();
+  });
+
+  it("keeps the conditional top lines above the area", () => {
+    const { container } = render(GithubModule, { data: { ...data(missingGh), refreshing: true }, refresh: vi.fn() });
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Atualizando…");
+    expect(status.compareDocumentPosition(area(container)!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import type { AiData, AiReading, AiWindow } from "../core";
   import { t, interpolate } from "../strings";
+  import AbsentArea, { type Absence } from "../AbsentArea.svelte";
 
   /** Renders the top of the "IA e Agentes" card: its shared heading and the AI instruments. */
   let { data, refresh, configure = () => {}, reconnect = () => {} }:
@@ -94,40 +95,59 @@
     /** Ring colour: always the provider's, whatever the usage. */
     tone: string;
     reading: AiReading | null;
-    /** Explanation shown under an empty ring when there is nothing to show. */
-    blank: Notice | null;
+    /** Without a reading, the provider's column is one area saying why. */
+    absence: Absence | null;
     notices: Notice[];
+    /** The reading shown is older than a failed refresh: dimmed, in the provider's own colour. */
+    old?: boolean;
   }
 
   function failure(since: number | null | undefined, paused: boolean | undefined): Notice[] {
     return since != null && !paused ? [{ text: interpolate(t.ai.failureAge, { age: age(since) }), alert: true }] : [];
   }
+  const pausedNotice = (paused: boolean | undefined): Notice[] => (paused ? [{ text: t.ai.paused }] : []);
+  /** A failure before any reading offers a new attempt, under the same limits as ↻. */
+  function failedFirst(since: number): Absence {
+    return {
+      text: interpolate(t.ai.failureNoReading, { age: age(since) }),
+      tone: "warn",
+      action: { label: t.absent.tryAgain, run: refreshNow, disabled: data.paused || data.refreshing || now < allowedAt },
+    };
+  }
 
   function codexOf(codex: AiData["codex"]): Provider {
-    const missing = codex.state === "missing";
-    return {
-      name: t.ai.codex,
-      tone: "var(--accent)",
-      reading: missing ? null : codex.reading,
-      blank: missing ? { text: t.ai.missingCodex, alert: true } : codex.reading ? null : { text: t.ai.emptyCodex },
-      notices: missing ? [] : [...failure(codex.failureSince, data.paused), ...(data.paused ? [{ text: t.ai.paused }] : [])],
+    const base = { name: t.ai.codex, tone: "var(--accent)" };
+    if (codex.state === "missing") return { ...base, reading: null, absence: { text: t.ai.missingCodex, tone: "warn" }, notices: [] };
+    if (!codex.reading) return {
+      ...base, reading: null, notices: pausedNotice(data.paused),
+      absence: codex.failureSince != null && !data.paused ? failedFirst(codex.failureSince) : { text: t.ai.emptyCodex, tone: "neutral" },
     };
+    const failed = failure(codex.failureSince, data.paused);
+    return { ...base, reading: codex.reading, absence: null, notices: [...failed, ...pausedNotice(data.paused)], old: failed.length > 0 };
   }
 
   /** Each provider is independent: Claude's state never hides Codex. */
   function claudeOf(claude: AiData["claude"]): Provider {
     const base = { name: t.ai.claude, tone: "var(--band-lavender-text)" };
-    if (!claude) return { ...base, reading: null, blank: { text: t.ai.noReading }, notices: [] };
-    if (claude.state === "missing") return { ...base, reading: null, blank: { text: t.ai.missingClaude, alert: true }, notices: [] };
-    const off: Notice | null = claude.statusLine === "off" && claude.usage !== "on"
-      ? { text: t.ai.offClaude, action: "configure" } : null;
-    const notices: Notice[] = claude.paused ? [{ text: t.ai.paused }] : [];
+    if (!claude) return { ...base, reading: null, absence: { text: t.ai.noReadingClaude, tone: "neutral" }, notices: [] };
+    if (claude.state === "missing") return { ...base, reading: null, absence: { text: t.ai.missingClaude, tone: "warn" }, notices: [] };
+    const off = claude.statusLine === "off" && claude.usage !== "on";
+    if (!claude.reading) {
+      const failing = claude.usage === "on" && claude.failureSince != null && !claude.paused;
+      const absence: Absence = claude.usage === "expired" ? { text: t.ai.expired, tone: "warn" }
+        : claude.statusLine === "replaced" ? { text: t.ai.replaced, tone: "warn", action: { label: t.absent.reconnect, run: () => reconnect() } }
+        : failing ? failedFirst(claude.failureSince!)
+        : off ? { text: t.ai.offClaude, tone: "neutral", action: { label: t.absent.configure, run: () => configure() } }
+        : { text: claude.statusLine === "connected" ? t.ai.emptyClaude : t.ai.noReadingClaude, tone: "neutral" };
+      return { ...base, reading: null, absence, notices: pausedNotice(claude.paused) };
+    }
+    const notices: Notice[] = pausedNotice(claude.paused);
+    const failed = claude.usage === "on" ? failure(claude.failureSince, claude.paused) : [];
     if (claude.usage === "expired") notices.push({ text: t.ai.expired, alert: true });
-    else if (claude.usage === "on") notices.push(...failure(claude.failureSince, claude.paused));
+    else notices.push(...failed);
     if (claude.statusLine === "replaced") notices.push({ text: t.ai.replaced, alert: true, action: "reconnect" });
-    if (claude.reading) return { ...base, reading: claude.reading, blank: null, notices: off ? [...notices, off] : notices };
-    const blank = off ?? { text: claude.statusLine === "connected" ? t.ai.emptyClaude : t.ai.noReading };
-    return { ...base, reading: null, blank, notices };
+    if (off) notices.push({ text: t.ai.offClaude, action: "configure" });
+    return { ...base, reading: claude.reading, absence: null, notices, old: failed.length > 0 };
   }
 
   function refreshNow() {
@@ -185,24 +205,24 @@
 
 <div class="instruments">
   {#each providers as provider (provider.name)}
-    {@const five = windowOf(provider.reading, FIVE_HOURS)}
-    {@const week = windowOf(provider.reading, WEEK)}
-    {@const fivePercent = provider.blank ? null : usedPercent(five)}
-    {@const weekPercent = provider.blank ? null : usedPercent(week)}
-    <section class="provider" aria-label={provider.name} style:--instrument={provider.tone}>
-      <div class="instrument">
-        {#if provider.blank}
-          <div class="dial" aria-hidden="true">{@render rings(null)}<span class="reading num">—</span></div>
-        {:else}
-          {@render dial(provider.name, five)}
-        {/if}
+    {#if provider.absence}
+      <section class="provider absent" aria-label={provider.name}>
         <h3>{provider.name}</h3>
-        <small>{fivePercent !== null && five?.resetsAt != null
-          ? interpolate(t.ai.fiveHourResets, { time: clock.format(five.resetsAt) }) : t.ai.fiveHour}</small>
-      </div>
-      {#if provider.blank}
-        {@render notice(provider.blank)}
-      {:else}
+        {#each provider.notices as n (n.text)}{@render notice(n)}{/each}
+        <AbsentArea absence={provider.absence} />
+      </section>
+    {:else}
+      {@const five = windowOf(provider.reading, FIVE_HOURS)}
+      {@const week = windowOf(provider.reading, WEEK)}
+      {@const fivePercent = usedPercent(five)}
+      {@const weekPercent = usedPercent(week)}
+      <section class="provider" aria-label={provider.name} style:--instrument={provider.tone} data-stale={provider.old}>
+        <div class="instrument">
+          {@render dial(provider.name, five)}
+          <h3>{provider.name}</h3>
+          <small>{fivePercent !== null && five?.resetsAt != null
+            ? interpolate(t.ai.fiveHourResets, { time: clock.format(five.resetsAt) }) : t.ai.fiveHour}</small>
+        </div>
         {#if fivePercent === null}<small class="line">{missing(five)}</small>{/if}
         <div class="meter">
           <div class="meter-label"><span>{t.ai.weeklyLabel}</span><b class="num">{weekPercent === null ? "—" : `${weekPercent}%`}</b></div>
@@ -214,15 +234,16 @@
             {#if week?.resetsAt != null}<small>{interpolate(t.ai.weeklyResets, { date: date.format(week.resetsAt) })}</small>{/if}
           {:else}
             <div class="track" aria-hidden="true"></div>
-            <small>{missing(week)}</small>
+            <!-- B keeps the weekly slot: a missing week says so in it, a restarted one says when. -->
+            <small>{missing(week) === t.ai.noReading ? t.ai.weeklyUnavailable : missing(week)}</small>
           {/if}
         </div>
-      {/if}
-      {#if provider.reading}
-        <small class="source"><time datetime={new Date(provider.reading.readAt).toISOString()}>{readAt(provider.reading.readAt)}</time></small>
-      {/if}
-      {#each provider.notices as n (n.text)}{@render notice(n)}{/each}
-    </section>
+        {#if provider.reading}
+          <small class="source"><time datetime={new Date(provider.reading.readAt).toISOString()}>{readAt(provider.reading.readAt)}</time></small>
+        {/if}
+        {#each provider.notices as n (n.text)}{@render notice(n)}{/each}
+      </section>
+    {/if}
   {/each}
 </div>
 
@@ -240,6 +261,10 @@
   .action-wrap:hover .tip, .action-wrap:focus-within .tip { visibility: visible; }
   .instruments { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: start; }
   .provider { min-width: 0; display: flex; flex-direction: column; }
+  /* An absent provider keeps its column: as tall as the other one, or as a B column with the current dial. */
+  .provider.absent { align-self: stretch; --absent-min: calc(var(--dial, 94px) + 96px); }
+  .provider.absent h3 { text-align: center; margin-bottom: 6px; }
+  .provider[data-stale="true"] :is(.dial, .meter) { opacity: .45; }
   .instrument { text-align: center; display: flex; flex-direction: column; }
   /* --dial grows with the free height of the card (Panel); never wider than the column. */
   .dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; container-type: inline-size; }

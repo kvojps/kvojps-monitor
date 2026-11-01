@@ -84,13 +84,13 @@
     "disk": "Disco {mount}",
     "noReading": "Sem leitura do sistema ainda",
     "measuring": "Medindo…",
-    "noSensor": "Sem sensor",
     "hot": "Temperatura alta",
     "noSwap": "Sem swap configurada",
     "diskFull": "Pouco espaço em {mount}",
     "noBattery": "Sem bateria detectada",
     "lowBattery": "Bateria baixa",
-    "stale": "Leitura antiga · sem atualização {age}"
+    "stale": "Leitura antiga · sem atualização {age}",
+    "temperatureNoSensor": "Temperatura · sem sensor"
   },
   "network": {
     "good": "Boa",
@@ -141,7 +141,9 @@
     "appsScale": "Barras em escala comum entre aplicativos, não a capacidade do link",
     "others": "Outros",
     "othersHint": "UDP/QUIC, processos do sistema e conexões curtas",
-    "noProcesses": "Nenhum aplicativo com tráfego TCP nesta janela"
+    "noProcesses": "Nenhum aplicativo com tráfego TCP nesta janela",
+    "noSpeedYet": "Sem teste ainda",
+    "appsUnmeasured": "Aplicativos de rede · sem medição"
   },
   "github": {
     "refresh": "Atualizar GitHub",
@@ -187,7 +189,8 @@
     "featuredCommits": {
       "one": "Repo em destaque · {commits} commit / 7 dias",
       "other": "Repo em destaque · {commits} commits / 7 dias"
-    }
+    },
+    "failureNoReading": "Falha ao atualizar {age} · sem leitura anterior"
   },
   "trello": {
     "refresh": "Atualizar Trello",
@@ -272,7 +275,8 @@
     "configureDescription": "Abrir as configurações de conexão do Trello",
     "noDue": "Sem vencimento",
     "openShort": "Abrir no Trello",
-    "boardHint": "Selecione um card e a lista de destino, ou arraste entre colunas."
+    "boardHint": "Selecione um card e a lista de destino, ou arraste entre colunas.",
+    "failureNoReading": "Falha ao atualizar {age} · sem leitura anterior"
   },
   "ai": {
     "refresh": "Atualizar IA",
@@ -325,7 +329,10 @@
     "fiveHourResets": "5 h · reinicia {time}",
     "weeklyResets": "Reinício {date}",
     "readAt": "Leitura {time}",
-    "now": "agora"
+    "now": "agora",
+    "failureNoReading": "Falha ao atualizar {age} · sem leitura anterior",
+    "noReadingClaude": "Sem leitura dos limites do Claude ainda",
+    "weeklyUnavailable": "Janela semanal indisponível"
   },
   "agents": {
     "close": "Fechar",
@@ -357,7 +364,8 @@
     "noneWaiting": "Nenhuma sessão aguardando você",
     "sessions": "{count} sessões · inclui encerradas",
     "oneSession": "1 sessão · inclui encerradas",
-    "seeSessions": "Ver sessões ↗"
+    "seeSessions": "Ver sessões ↗",
+    "noneWaitingAt": "Nenhuma sessão aguardando na última leitura ({time})"
   },
   "agentNotifications": {
     "waiting": "Aguardando sua resposta",
@@ -378,5 +386,10 @@
   },
   "intelligence": {
     "title": "IA e Agentes"
+  },
+  "absent": {
+    "tryAgain": "Tentar de novo",
+    "configure": "Configurar",
+    "reconnect": "Reconectar"
   }
 }

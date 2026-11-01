@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import type { NetworkData, NetworkTraffic } from "../core";
   import { interpolate, t } from "../strings";
+  import AbsentArea from "../AbsentArea.svelte";
 
   /** The network summary as prototype B shows it; states B does not show become body lines. */
   let { data, runSpeed = () => {} }: { data: NetworkData | null; runSpeed?: () => void } = $props();
@@ -69,6 +70,7 @@
   });
   const width = (v: number, max: number) => `${(v / max) * 100}%`;
   const appsLabel = $derived.by(() => {
+    if (connected && !data?.processTraffic) return t.network.appsUnmeasured;
     if (!apps || apps.count === 0) return t.network.appsDetail;
     return apps.count === 1 ? t.network.appsCountOne : interpolate(t.network.appsCount, { count: String(apps.count) });
   });
@@ -105,7 +107,7 @@
 <div class="network" onfocusin={(event) => { if (restoringFocus) event.stopPropagation(); }}>
   <header><h2 id="module-network-title">{t.modules.network}</h2></header>
   {#if !data}
-    <small class="line">{t.network.noReading}</small>
+    <AbsentArea absence={{ text: t.network.noReading, tone: "neutral" }} />
   {:else}
     {#if connected}
       <p class="network-status">
@@ -145,10 +147,10 @@
         {#if speed}
           <b class="num">↓ {number.format(speed.download)} · ↑ {number.format(speed.upload)}</b>
         {:else}
-          <b class="none">{t.network.noSpeed}</b>
+          <b class="num" aria-hidden="true">↓ — · ↑ —</b>
         {/if}
         <span>Mbps · {t.network.test} <span aria-hidden="true">↻</span></span>
-        {#if speed}<small>{interpolate(t.network.speedAt, { time: clock.format(speed.measuredAt) })}</small>{/if}
+        <small>{speed ? interpolate(t.network.speedAt, { time: clock.format(speed.measuredAt) }) : t.network.noSpeedYet}</small>
       </button>
       <span id="network-speed-values" class="sr-only">{#if speed}{t.network.download}: {number.format(speed.download)} Mbps. {t.network.upload}: {number.format(speed.upload)} Mbps. {interpolate(t.network.speedAt, { time: date.format(speed.measuredAt) })}.{:else}{t.network.noSpeed}{/if}</span>
     </div>
@@ -230,7 +232,6 @@
   strong.absent { font-size: 1.1em; line-height: 2.9; color: var(--muted); }
   .speed { text-align: right; display: grid; gap: 4px; }
   .speed span { font-size: .9em; color: var(--muted); }
-  .speed .none { font-weight: 400; color: var(--muted); }
   .speed:disabled { cursor: default; opacity: .6; }
   .speed:hover:not(:disabled) b { color: var(--accent); }
   .metrics { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin: 6px 0 5px; font-size: .88em; }

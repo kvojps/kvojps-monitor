@@ -2,9 +2,11 @@
   import { tick, untrack } from "svelte";
   import type { AgentsData, AgentSession } from "../core";
   import { interpolate, t } from "../strings";
+  import AbsentArea, { type Absence } from "../AbsentArea.svelte";
 
   /** `notified` is the session a notification pointed to; it is not the last anchor. */
-  let { data, notified = null, notificationRequest = 0 }: { data: AgentsData | null; notified?: string | null; notificationRequest?: number } = $props();
+  let { data, notified = null, notificationRequest = 0, configure = () => {} }:
+    { data: AgentsData | null; notified?: string | null; notificationRequest?: number; configure?: () => void } = $props();
 
   /** Same allowlist as the core notifications: free-form waiting detail can carry user content. */
   const TOOLS = new Set(["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch", "Agent"]);
@@ -100,6 +102,15 @@
     return null;
   }
 
+  /** Without any reading, the ring, legend and notice give way to one area saying why. */
+  const absence = $derived.by((): Absence | null => {
+    if (!data) return { text: t.agents.noReading, tone: "neutral" };
+    if (data.failed && data.lastSuccessAt == null) return { text: t.agents.failure, tone: "warn" };
+    return null;
+  });
+  /** Sessions from before a failed read: dimmed under the failure line. */
+  const old = $derived(!!data?.failed && !absence);
+
   const caption = $derived(!data ? t.agents.noReading : shown.length === 0 ? t.agents.empty
     : shown.length === 1 ? t.agents.oneSession : interpolate(t.agents.sessions, { count: String(shown.length) }));
 </script>
@@ -107,11 +118,16 @@
 <svelte:window onkeydowncapture={keyboard} />
 
 <div class="agents" onfocusin={(event) => { if (restoringFocus) event.stopPropagation(); }}>
+  {#if absence}
+    <AbsentArea {absence} />
+  {:else}
   {#if data?.failed}
     <small role="status" class="line alert"><span aria-hidden="true">{"⚠ "}</span>{[t.agents.failure, data.lastSuccessAt != null && interpolate(t.agents.lastRead, { time: time.format(data.lastSuccessAt) })].filter(Boolean).join(" · ")}</small>
   {/if}
-  {#if data?.codexWaitingUnavailable}<small class="line">{t.agents.codexWaitingUnavailable}</small>{/if}
+  <!-- The notice box says it when it is free; a waiting session takes it first. -->
+  {#if data?.codexWaitingUnavailable && waiting > 0}<small class="line">{t.agents.codexWaitingUnavailable}</small>{/if}
 
+  <div class="readings" data-stale={old}>
   <div class="summary">
     <div class="agent-instrument">
       <button class="session-dial" bind:this={ring} aria-label={t.agents.list} onclick={() => open()}>
@@ -126,7 +142,7 @@
             {/each}
           {/if}
         </svg>
-        <span class="reading num">{data ? count("working") : "—"}</span>
+        <span class="reading num">{count("working")}</span>
       </button>
       <h3>{t.agents.states.working}</h3>
       <small>{caption}</small>
@@ -136,7 +152,7 @@
         <div class="legend-item">
           <button class="legend" style:--state-color={colors[state]} aria-describedby={"agent-legend-" + state}
             onclick={() => open(shown.find((s) => s.state === state)?.id ?? null)}>
-            <i aria-hidden="true"></i><span>{t.agents.states[state]}</span> <b class="num">{data ? count(state) : "—"}</b>
+            <i aria-hidden="true"></i><span>{t.agents.states[state]}</span> <b class="num">{count(state)}</b>
           </button>
           <span class="session-tip" id={"agent-legend-" + state}>{shown.filter((s) => s.state === state).map((s) => `${s.project} · ${s.name ?? t.agents.unnamed}`).join(" / ") || "—"}</span>
         </div>
@@ -148,12 +164,22 @@
       <span><span aria-hidden="true">{"⚠ "}</span>{interpolate(t.agents.waitingCount, { count: String(waiting) })}</span>
       <span class="see">{t.agents.seeSessions}</span>
     </button>
-  {:else if data && !data.failed && !data.codexWaitingUnavailable}
-    <!-- Keeps the notice space: an empty card bottom read as missing content. Only when the reading supports the claim. -->
+  {:else if data?.codexWaitingUnavailable}
+    <!-- Without instant detection Codex cannot report waiting: the box says so instead of claiming none. -->
+    <div class="waiting calm">
+      <span>{t.agents.codexWaitingUnavailable}{" · "}<button class="link" onclick={configure}>{t.absent.configure}</button></span>
+      <button class="see" onclick={() => open()}>{t.agents.seeSessions}</button>
+    </div>
+  {:else}
+    <!-- Keeps the notice space: an empty card bottom read as missing content. After a failed read it
+         speaks of the last good one only, since the current state is unknown. -->
     <button class="waiting calm" onclick={() => open()}>
-      <span><span aria-hidden="true">{"✓ "}</span>{t.agents.noneWaiting}</span>
+      <span><span aria-hidden="true">{"✓ "}</span>{old && data?.lastSuccessAt != null
+        ? interpolate(t.agents.noneWaitingAt, { time: time.format(data.lastSuccessAt) }) : t.agents.noneWaiting}</span>
       <span class="see">{t.agents.seeSessions}</span>
     </button>
+  {/if}
+  </div>
   {/if}
 
   <dialog bind:this={dialog} aria-label={t.agents.list} oncancel={(event) => { event.preventDefault(); close(); }}>
@@ -182,6 +208,11 @@
 
 <style>
   .agents { display: flex; flex-direction: column; margin-top: 18px; min-width: 0; }
+  /* An absent reading keeps the place of the ring, legend and notice, growing with the dials. */
+  .agents { --absent-min: calc(var(--dial, 94px) + 110px); }
+  .readings[data-stale="true"] { opacity: .45; }
+  .link { color: var(--accent); text-decoration: underline; font-size: inherit; }
+  .waiting .see { align-self: flex-start; text-align: left; }
   small { font-size: .88em; color: var(--muted); }
   h3 { font-size: 1em; font-weight: 500; }
   .line { display: block; margin-bottom: 6px; overflow-wrap: anywhere; }
@@ -206,7 +237,7 @@
   .waiting .see { font-size: .9em; }
   .waiting.calm { color: var(--muted); border-color: var(--line); }
   .waiting.calm .see { color: var(--accent); }
-  .session-dial:focus-visible, .legend:focus-visible, .waiting:focus-visible, .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .session-dial:focus-visible, .legend:focus-visible, .waiting:focus-visible, .see:focus-visible, .link:focus-visible, .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
   dialog { margin: auto; width: min(680px, 90vw); max-height: 80vh; overflow: auto; background: var(--surface); color: var(--text); border: 1px solid var(--control-line); padding: 20px; font-size: 13px; }
   dialog::backdrop { background: #000a; }

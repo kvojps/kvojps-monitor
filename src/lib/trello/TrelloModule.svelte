@@ -3,6 +3,7 @@
   import { onMount, tick, untrack } from "svelte";
   import type { TrelloData } from "../core";
   import { t, interpolate } from "../strings";
+  import AbsentArea, { type Absence } from "../AbsentArea.svelte";
   let { data, refresh, configure, openCard, moveCard }: {
     data: TrelloData | null; refresh: () => void; configure: () => void; openCard: (url: string) => void;
     /** Rejects when the core could not move the card. */
@@ -28,6 +29,7 @@
   const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
   function age(when: number) {
     const seconds = Math.max(0, Math.floor((now - when) / 1000));
+    if (seconds < 60) return relative.format(0, "second");
     if (seconds < 3600) return relative.format(-Math.floor(seconds / 60), "minute");
     if (seconds < 86400) return relative.format(-Math.floor(seconds / 3600), "hour");
     return relative.format(-Math.floor(seconds / 86400), "day");
@@ -48,6 +50,23 @@
   const paused = $derived(data?.paused ?? false);
   const stale = $derived(data?.state === "invalidCredential" && !paused);
   function refreshNow() { allowedAt = Date.now() + 10000; refresh(); }
+  /** A previous board shown while the current reading is missing: dimmed under its age. */
+  const old = $derived(data?.lists != null && (data.state !== "ready" || paused));
+  /** Without a board to show, the body is one area saying why. */
+  const absence = $derived.by((): Absence | null => {
+    const setup = { label: t.absent.configure, run: configure };
+    if (data?.state === "missingCredential")
+      return { text: t.trello.missingCredential, tone: "warn", detail: data.pendingKey ? t.trello.pendingToken : undefined, action: setup };
+    if (data?.state === "chooseBoard") return { text: t.trello.chooseBoard, tone: "neutral", action: setup };
+    if (data?.lists != null) return null;
+    if (stale) return { text: t.trello.invalidCredential, tone: "warn", action: { label: t.absent.reconnect, run: configure } };
+    if (data?.state === "error" && !paused) return {
+      text: data.failureSince != null ? interpolate(t.trello.failureNoReading, { age: age(data.failureSince) }) : t.trello.error,
+      tone: "warn",
+      action: { label: t.absent.tryAgain, run: refreshNow, disabled: data.refreshing || now < allowedAt },
+    };
+    return { text: t.trello.noReading, tone: "neutral" };
+  });
 
   let selected = $state<string | null>(null);
   let destination = $state("");
@@ -252,25 +271,20 @@
 
 <div class="trello" onfocusin={(event) => { if (restoringFocus) event.stopPropagation(); }}>
   {#if data?.refreshing}<small role="status" class="line">{t.trello.refreshing}</small>{/if}
-  {#if data?.state === "missingCredential"}
-    <small class="line alert"><span aria-hidden="true">⚠ </span>{t.trello.missingCredential}</small>
-    {#if data.pendingKey}<small class="line">{t.trello.pendingToken}</small>{/if}
-  {:else if data?.state === "chooseBoard"}
-    <small class="line">{t.trello.chooseBoard}</small>
-  {:else if !data}
-    <small class="line">{t.trello.noReading}</small>
-  {:else}
+  {#if absence}
+    <AbsentArea {absence} />
+  {:else if data}
     {#if stale}
-      <small class="line alert"><span aria-hidden="true">⚠ </span>{t.trello.invalidCredential}{" · "}<button class="link" onclick={configure}>{t.trello.reconnect}</button></small>
+      <small class="line alert"><span aria-hidden="true">{"⚠ "}</span>{t.trello.invalidCredential}{" · "}<button class="link" onclick={configure}>{t.trello.reconnect}</button></small>
     {/if}
     {#if data.state === "error" && !paused}
-      <small class="line alert"><span aria-hidden="true">⚠ </span>{data.failureSince != null ? interpolate(t.trello.failureAge, { age: age(data.failureSince) }) : t.trello.error}</small>
+      <small class="line alert"><span aria-hidden="true">{"⚠ "}</span>{data.failureSince != null ? interpolate(t.trello.failureAge, { age: age(data.failureSince) }) : t.trello.error}</small>
     {/if}
     {#if data.lastSuccessAt != null && (data.state !== "ready" || paused)}
       <small class="line">{interpolate(t.trello.updatedAge, { age: age(data.lastSuccessAt) })}</small>
     {/if}
     {#if outcome?.kind === "failed" && !detailOpen}<small role="alert" class="line alert">{outcome.text}</small>{/if}
-    <div class="summary" data-stale={stale}>
+    <div class="summary" data-stale={old}>
       {#if data.board}
         <div class="board-summary"><b>{data.board.name}</b><span>{boardCounts}</span></div>
       {/if}

@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import TrelloModule from "./TrelloModule.svelte";
 import type { TrelloData } from "../core";
 import fullJson from "./fixtures/full.json";
@@ -514,4 +514,51 @@ it("opens the full board as prototype B: board name, hint, due line and open act
   await select("Card 1.1");
   expect(within(board()).getByRole("button", { name: "Abrir no Trello: Card 1.1" })).toHaveTextContent("Abrir no Trello ↗");
   expect(within(board()).getByRole("button", { name: "Fechar" })).toHaveTextContent("Fechar ×");
+});
+
+describe("fixed composition without a reading", () => {
+  const area = (container: HTMLElement) => container.querySelector<HTMLElement>(".area");
+
+  it("fills the body with one neutral area before the first reading", () => {
+    const { container } = render(TrelloModule, props(null));
+    expect(area(container)).toHaveAttribute("data-tone", "neutral");
+    expect(area(container)).toHaveTextContent("◌ Sem leitura do quadro do Trello ainda");
+    expect(screen.queryByRole("list", { name: "Cards por lista" })).not.toBeInTheDocument();
+  });
+
+  it("asks for a connection in an amber area, with the pending token step", async () => {
+    const p = props({ ...emptyJson, pendingKey: "k" });
+    const { container } = render(TrelloModule, p);
+    expect(area(container)).toHaveAttribute("data-tone", "warn");
+    expect(area(container)).toHaveTextContent("⚠ Trello não conectado Token gerado? Cole-o nas Configurações para concluir. Configurar");
+    await fireEvent.click(within(area(container)!).getByRole("button", { name: "Configurar" }));
+    expect(p.configure).toHaveBeenCalledOnce();
+  });
+
+  it("asks for a board in a neutral area", () => {
+    const { container } = render(TrelloModule, props(chooseJson));
+    expect(area(container)).toHaveAttribute("data-tone", "neutral");
+    expect(area(container)).toHaveTextContent("Escolha um quadro nas Configurações Configurar");
+  });
+
+  it("offers a new attempt when the first reading failed", async () => {
+    const p = props({ ...errorJson, lists: null, lastSuccessAt: null });
+    const { container } = render(TrelloModule, p);
+    expect(area(container)).toHaveAttribute("data-tone", "warn");
+    expect(area(container)).toHaveTextContent(/Falha ao atualizar .* · sem leitura anterior/);
+    await fireEvent.click(within(area(container)!).getByRole("button", { name: "Tentar de novo" }));
+    expect(p.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("offers reconnection when the credential is invalid and nothing was read", () => {
+    const { container } = render(TrelloModule, props({ ...invalidJson, lists: null }));
+    expect(area(container)).toHaveTextContent("⚠ Credencial inválida Reconectar");
+  });
+
+  it("keeps the old board dimmed instead of the area", () => {
+    const { container } = render(TrelloModule, props(errorJson));
+    expect(area(container)).toBeNull();
+    expect(container.querySelector(".summary")).toHaveAttribute("data-stale", "true");
+    expect(counts()).toBeInTheDocument();
+  });
 });

@@ -1,0 +1,10 @@
+{
+  "account": { "login": "exemplo" },
+  "board": { "id": "000000000000000000000002", "name": "Quadro 1" },
+  "boards": [{ "id": "000000000000000000000002", "name": "Quadro 1" }],
+  "failureSince": 1793400600000,
+  "lastSuccessAt": null,
+  "lists": null,
+  "refreshing": false,
+  "state": "error"
+}

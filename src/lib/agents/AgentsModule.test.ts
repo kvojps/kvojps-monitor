@@ -38,14 +38,35 @@ it("claims no waiting session only when the reading supports it", () => {
   unmount();
   render(AgentsModule, { data: { ...states, failed: true, sessions: [] } as AgentsData });
   expect(screen.queryByText("Nenhuma sessão aguardando você")).not.toBeInTheDocument();
+  // The box keeps its place, speaking only of the last good read.
+  const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(states.lastSuccessAt);
+  expect(screen.getByRole("button", { name: /Nenhuma sessão aguardando na última leitura/ })).toHaveTextContent(`(${time})`);
 });
 
 it("distinguishes an unavailable reading from zero sessions", () => {
-  render(AgentsModule, { data: null });
-  expect(screen.getByText("Sem leitura das sessões de agente ainda")).toBeInTheDocument();
+  const { container } = render(AgentsModule, { data: null });
+  const area = container.querySelector(".area");
+  expect(area).toHaveAttribute("data-tone", "neutral");
+  expect(area).toHaveTextContent("◌ Sem leitura das sessões de agente ainda");
   expect(screen.queryByText("Nenhuma sessão de agente ativa")).not.toBeInTheDocument();
-  expect(ring()).toHaveTextContent("—");
-  expect(counter("Em andamento")).toBe("—");
+  // The area takes the place of the ring, the legend and the notice.
+  expect(screen.queryByRole("button", { name: "Sessões de agente" })).not.toBeInTheDocument();
+  expect(container.querySelector(".legend-list, .waiting")).toBeNull();
+});
+
+it("fills the place of the ring with an amber area when the first read failed", () => {
+  const { container } = render(AgentsModule, { data: { ...empty, failed: true, lastSuccessAt: null } as AgentsData });
+  const area = container.querySelector(".area");
+  expect(area).toHaveAttribute("data-tone", "warn");
+  expect(area).toHaveTextContent("⚠ Não foi possível consultar as sessões de agente");
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+it("dims the sessions of the last good read under the failure line", () => {
+  const { container } = render(AgentsModule, { data: { ...states, failed: true, lastSuccessAt: 1800000000000 } as AgentsData });
+  expect(container.querySelector(".area")).toBeNull();
+  expect(container.querySelector(".readings")).toHaveAttribute("data-stale", "true");
+  expect(ring()).toHaveTextContent("1");
 });
 
 it("summarizes the sessions as in prototype B and alerts the ones waiting for you", async () => {
@@ -106,8 +127,26 @@ it("identifies each provider and explains unavailable Codex waiting detection", 
   await userEvent.click(screen.getByRole("button", { name: "Sessões de agente" }));
   expect(within(row("Sessão Codex")).getByText("Codex")).toBeInTheDocument();
   expect(within(row("Minha sessão")).getByText("Claude Code")).toBeInTheDocument();
-  expect(screen.getByText("Aguardando indisponível sem Detecção instantânea")).toBeVisible();
   expect(screen.queryByText(/aguardando você/)).not.toBeInTheDocument();
+});
+
+it("says in the notice box that Codex waiting is unavailable, instead of leaving it empty", async () => {
+  const configure = vi.fn();
+  const { container } = render(AgentsModule, { data: mixed as AgentsData, configure });
+  const box = container.querySelector(".waiting")!;
+  expect(box).toHaveTextContent("Aguardando indisponível sem Detecção instantânea · Configurar Ver sessões ↗");
+  expect(container.querySelector(".line")).toBeNull();
+  await userEvent.click(within(box as HTMLElement).getByRole("button", { name: "Configurar" }));
+  expect(configure).toHaveBeenCalledOnce();
+  await userEvent.click(within(box as HTMLElement).getByRole("button", { name: "Ver sessões ↗" }));
+  expect(list()).toBeVisible();
+});
+
+it("keeps the Codex detection line on top when a waiting session takes the box", () => {
+  const data = { ...states, codexWaitingUnavailable: true } as AgentsData;
+  render(AgentsModule, { data });
+  expect(screen.getByText("Aguardando indisponível sem Detecção instantânea")).toHaveClass("line");
+  expect(screen.getByRole("button", { name: /1 aguardando você/ })).toBeInTheDocument();
 });
 
 it("keeps the sessions with the age of the last good read when collection fails", async () => {

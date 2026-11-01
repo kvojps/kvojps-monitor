@@ -1,0 +1,5 @@
+{
+  "refreshing": false,
+  "codex": { "state": "empty", "plan": "plus", "failureSince": 1793400600000, "reading": null },
+  "claude": { "state": "ready", "plan": "max", "statusLine": "off", "usage": "on", "failureSince": 1793400480000, "reading": null }
+}

@@ -64,7 +64,8 @@ describe("System module", () => {
   it("says a desktop has no battery instead of showing a charge", () => {
     renderSnapshot(desktop as Snapshot);
 
-    expect(screen.getByText("Sem bateria detectada")).toHaveClass("line");
+    expect(screen.getByText("Sem bateria detectada")).toHaveClass("battery", "missing");
+    expect(screen.getByText("Sem bateria detectada")).toHaveTextContent("▱ Sem bateria detectada");
     expect(screen.queryByText(/^Bateria/)).not.toBeInTheDocument();
     expect(group("CPU")).toHaveTextContent("2%");
   });
@@ -72,17 +73,21 @@ describe("System module", () => {
   it("explains a missing temperature sensor without inventing a value", () => {
     renderSnapshot(noSensor as Snapshot);
 
-    expect(group("Temperatura")).toHaveTextContent("Sem sensor");
-    expect(group("Temperatura")).not.toHaveTextContent("°C");
+    expect(group("Temperatura · sem sensor")).toHaveTextContent("—");
+    expect(group("Temperatura · sem sensor")).not.toHaveTextContent("°C");
   });
 
   it("explains missing sensor, swap and battery together", () => {
     renderSnapshot(missing as Snapshot);
 
-    expect(group("Temperatura")).toHaveTextContent("Sem sensor");
+    // Each missing item keeps its place in B's composition, with the reason in it.
+    expect(group("Temperatura · sem sensor")).toHaveTextContent("—");
     expect(screen.queryByRole("meter", { name: "Swap" })).not.toBeInTheDocument();
-    expect(screen.getByText("Sem swap configurada")).toHaveClass("line");
-    expect(screen.getByText("Sem bateria detectada")).toHaveClass("line");
+    const swap = screen.getByText("Sem swap configurada").closest(".meter")!;
+    expect(swap).toHaveTextContent(/^Swap\s*—\s*Sem swap configurada$/);
+    expect(swap.querySelector(".track")).toBeInTheDocument();
+    expect(screen.getByText("Sem bateria detectada")).toHaveClass("battery");
+    expect(screen.getByText("Sem swap configurada")).not.toHaveClass("line");
     expect(meter("RAM")).toBeInTheDocument();
   });
 
@@ -120,7 +125,9 @@ describe("System module", () => {
     render(SystemModule, { data: null, updatedAt: null });
 
     expect(screen.getByRole("heading", { level: 2, name: "Sistema" })).toBeInTheDocument();
-    expect(screen.getByText("Sem leitura do sistema ainda")).toHaveClass("line");
+    const area = screen.getByText("Sem leitura do sistema ainda").closest(".area");
+    expect(area).toHaveAttribute("data-tone", "neutral");
+    expect(area).toHaveTextContent("◌ Sem leitura do sistema ainda");
     expect(screen.queryByRole("meter")).not.toBeInTheDocument();
   });
 
@@ -130,6 +137,7 @@ describe("System module", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Leitura antiga · sem atualização há 1 minuto");
     expect(group("CPU")).toHaveTextContent("2%");
     expect(meter("RAM")).toBeInTheDocument();
+    expect(document.querySelector(".readings")).toHaveAttribute("data-stale", "true");
   });
 
   it("does not flag a reading that is still fresh", () => {

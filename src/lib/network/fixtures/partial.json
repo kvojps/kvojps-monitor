@@ -1,0 +1,54 @@
+{
+  "module": "network",
+  "updatedAt": 1793457125000,
+  "data": {
+    "processTraffic": null,
+    "speed": null,
+    "speedAvailable": true,
+    "speedRunning": false,
+    "speedFailed": false,
+    "automaticSpeed": true,
+    "connected": true,
+    "wired": false,
+    "vpn": false,
+    "quality": "regular",
+    "security": "noAlerts",
+    "reasons": [],
+    "gateway": {
+      "latency": 2.0,
+      "jitter": 0.0,
+      "loss": 0.0
+    },
+    "internet": {
+      "latency": 20.0,
+      "jitter": 0.0,
+      "loss": 0.0
+    },
+    "traffic": {
+      "download": 182000.0,
+      "upload": 47000.0
+    },
+    "history": [
+      {
+        "download": 60000.0,
+        "upload": 12000.0
+      },
+      {
+        "download": 148000.0,
+        "upload": 30000.0
+      },
+      {
+        "download": 96000.0,
+        "upload": 21000.0
+      },
+      {
+        "download": 210000.0,
+        "upload": 64000.0
+      },
+      {
+        "download": 182000.0,
+        "upload": 47000.0
+      }
+    ]
+  }
+}
