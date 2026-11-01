@@ -300,7 +300,8 @@
   .workspace { position: relative; flex: 1; min-height: 0; }
   .scroller { height: 100%; overflow: auto; }
   .scroller.covered { visibility: hidden; }
-  .composition { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence github network" "intelligence trello system"; gap: 12px; align-items: stretch; }
+  /* The grid takes the whole Panel height: no empty strip at the bottom of the screen. */
+  .composition { min-height: 100%; display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr)); grid-template-areas: "intelligence github network" "intelligence trello system"; gap: 12px; align-items: stretch; }
   .intelligence { grid-area: intelligence; display: flex; flex-direction: column; }
   .composition > :global(.github) { grid-area: github; }
   .composition > :global(.network) { grid-area: network; }

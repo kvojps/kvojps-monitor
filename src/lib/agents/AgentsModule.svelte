@@ -183,9 +183,9 @@
   .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: center; }
   .agent-instrument { text-align: center; min-width: 0; }
   /* --dial grows with the free height of the card (Panel); the legend spreads with it. */
-  .session-dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; display: block; }
+  .session-dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; display: block; container-type: inline-size; }
   .session-dial svg { width: 100%; height: 100%; display: block; }
-  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(min(var(--dial, 94px), 100%) * .35); }
+  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 35cqi; }
   .base { fill: none; stroke: var(--line); stroke-width: 8; }
   .orbit { fill: none; stroke: var(--control-line); stroke-width: 1; stroke-dasharray: 24 12 6 30; transform-origin: center; }
   .legend-list { align-self: center; min-width: 0; }

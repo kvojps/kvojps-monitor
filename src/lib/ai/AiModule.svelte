@@ -244,9 +244,9 @@
   .provider { min-width: 0; display: flex; flex-direction: column; }
   .instrument { text-align: center; display: flex; flex-direction: column; }
   /* --dial grows with the free height of the card (Panel); never wider than the column. */
-  .dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; }
+  .dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; container-type: inline-size; }
   .dial svg { width: 100%; height: 100%; display: block; }
-  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(min(var(--dial, 94px), 100%) * .35); gap: 2px; }
+  .reading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 35cqi; gap: 2px; }
   .reading small { font-size: .4em; }
   .base { fill: none; stroke: var(--line); stroke-width: 8; }
   .arc { fill: none; stroke: var(--instrument); stroke-width: 8; }
