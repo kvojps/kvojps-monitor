@@ -49,16 +49,16 @@
 
   /** Select the section of a module, or General, and focus its title; without a module the welcome stays until a section is chosen. */
   export async function focus(module?: Module) {
-    if (!module && welcome && !selected) return focusTitle(false);
+    if (!module && welcome && !selected) return focusTitle({ scroll: false });
     await select(module && isSection(module) ? module : "general", { scroll: !!module });
   }
 
   async function select(section: Section, { scroll = true } = {}) {
     selected = section;
-    await focusTitle(scroll);
+    await focusTitle({ scroll });
   }
 
-  async function focusTitle(scroll: boolean) {
+  async function focusTitle({ scroll }: { scroll: boolean }) {
     await tick();
     const title = pane.querySelector<HTMLElement>(":scope > section > h3");
     if (!title) return;

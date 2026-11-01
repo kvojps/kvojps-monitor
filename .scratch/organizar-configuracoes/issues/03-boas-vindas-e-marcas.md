@@ -15,4 +15,5 @@
 **Notas da implementação:**
 
 - Sem seção escolhida, o painel direito mostra só as Boas-vindas e o foco vai para o título delas; nenhum item do índice fica com `aria-current`.
+- Exceção à história 5: na primeira abertura, entrar sem Módulo mantém as Boas-vindas em vez de abrir Geral; nas aberturas seguintes, o botão do topo abre Geral.
 - A marca "!" usa `moduleStatus` (`settings/status.ts`), a mesma regra das Boas-vindas. O texto acessível "precisa configurar" entra como descrição (`aria-describedby`), mantendo o nome do item igual ao da seção.

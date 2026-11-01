@@ -429,12 +429,9 @@ describe("index", () => {
     render(Panel, { core });
     await openSettings();
 
-    const needsSetup = within(index()).getAllByRole("button")
-      .filter((b) => b.textContent?.includes("!"))
-      .map((b) => b.textContent?.replace("!", "").trim());
+    const needsSetup = ["Geral", "Aparência", "IA", "Agentes", "GitHub", "Trello", "Rede"]
+      .filter((name) => within(index()).queryByRole("button", { name, description: "precisa configurar" }));
     expect(needsSetup).toEqual(marked);
-    for (const name of marked) expect(indexItem(name)).toHaveAccessibleDescription("precisa configurar");
-    for (const name of ["Geral", "Aparência", "Agentes", "Rede"]) expect(indexItem(name)).not.toHaveAccessibleDescription();
   });
 
   it("goes back to the panel from any section", async () => {

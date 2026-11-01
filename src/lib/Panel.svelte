@@ -21,7 +21,7 @@
   let agentTarget = $state<string | null>(null);
   let snapshots = $state<Partial<Record<Module, Snapshot>>>({});
 
-  /** First opening: Settings shows the welcome until the user goes back to the panel. */
+  /** First opening: Settings shows the welcome until a section is chosen or the user goes back to the panel. */
   let welcome = $state(false);
   const appearance = new AppearanceState();
   let nativeVisible = $state(false);
