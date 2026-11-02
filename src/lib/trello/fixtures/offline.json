@@ -256,6 +256,11 @@
       "name": "Lista 8"
     }
   ],
+  "operation": {
+    "id": 2,
+    "origin": "automatic",
+    "state": "paused"
+  },
   "paused": true,
   "refreshing": false,
   "state": "ready"

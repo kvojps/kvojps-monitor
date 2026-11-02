@@ -3,6 +3,11 @@
   "board": null,
   "boards": [],
   "lists": null,
+  "operation": {
+    "id": 1,
+    "origin": "automatic",
+    "state": "unavailable"
+  },
   "refreshing": false,
   "state": "missingCredential"
 }

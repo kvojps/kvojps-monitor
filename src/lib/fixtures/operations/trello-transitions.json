@@ -1,0 +1,7 @@
+[
+  {"operation":{"id":1,"origin":"user","state":"running"},"movement":{"id":2,"origin":"user","state":"running"}},
+  {"operation":{"id":1,"origin":"user","state":"failed"},"movement":{"id":2,"origin":"user","state":"succeeded"}},
+  {"operation":{"id":3,"origin":"resume","state":"running"},"movement":{"id":4,"origin":"user","state":"failed"}},
+  {"operation":{"id":3,"origin":"resume","state":"recovered"},"movement":{"id":5,"origin":"user","state":"cancelled"}},
+  {"operation":{"id":6,"origin":"automatic","state":"succeeded"},"movement":{"id":5,"origin":"user","state":"cancelled"}}
+]

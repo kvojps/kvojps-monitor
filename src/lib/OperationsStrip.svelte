@@ -35,11 +35,11 @@
   onDestroy(() => { disposed = true; timers.forEach(cancel => cancel()); });
 
   // Only the closed operational vocabulary reaches the strip; source payload content is never rendered.
-  function describe(module: Module, operation: Operation, provider?: "codex" | "claude"): Entry | null {
+  function describe(module: Module, operation: Operation, provider?: "codex" | "claude", movement = false): Entry | null {
     const state = operation.state;
     if (state === "running" && operation.origin === "automatic") return null;
     if (state === "succeeded" && operation.origin !== "user") return null;
-    const messages = t.operations.messages;
+    const messages = movement ? t.operations.movement : t.operations.messages;
     if (!Object.hasOwn(messages, state)) return null;
     const text = state === "running" && operation.origin === "resume" ? t.operations.resume : messages[state];
     const priority = state === "failed" ? 0 : state === "paused" ? 1 : state === "attention" || state === "unavailable" ? 2 : state === "running" ? 3 : 4;
@@ -48,15 +48,21 @@
 
   $effect(() => {
     if (!ready) return;
-    const current = MODULES.flatMap<{ module: Module; source: string; provider?: "codex" | "claude"; operation?: Operation }>(module => {
-      const data = snapshots[module]?.data as { operation?: Operation; codex?: { operation?: Operation }; claude?: { operation?: Operation } } | undefined;
+    const current = MODULES.flatMap<{ module: Module; source: string; provider?: "codex" | "claude"; movement?: boolean; operation?: Operation }>(module => {
+      const data = snapshots[module]?.data as { operation?: Operation; movement?: Operation; codex?: { operation?: Operation }; claude?: { operation?: Operation } } | undefined;
       if (module === "ai" && (data?.codex || data?.claude)) {
         return (["codex", "claude"] as const).map(provider => ({ module, source: `ai:${provider}`, provider, operation: data[provider]?.operation }));
+      }
+      if (module === "trello") {
+        return [
+          { module, source: "trello:refresh", operation: data?.operation },
+          { module, source: "trello:movement", movement: true, operation: data?.movement },
+        ];
       }
       return [{ module, source: module, provider: undefined, operation: data?.operation }];
     });
     untrack(() => {
-      for (const { module, source, provider, operation } of current) {
+      for (const { module, source, provider, movement, operation } of current) {
         if (!operation) {
           timers.get(source)?.();
           timers.delete(source);
@@ -69,7 +75,7 @@
         if (!initialized) continue;
         timers.get(source)?.();
         timers.delete(source);
-        const entry = describe(module, operation, provider);
+        const entry = describe(module, operation, provider, movement);
         entries[source] = entry ?? undefined;
         if (!entry) continue;
         if (operation.state !== "running") {

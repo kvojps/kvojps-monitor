@@ -60,7 +60,38 @@ pub enum CredentialError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct MoveError;
 
+/// Transient operational metadata, serialized only into live snapshots.
+#[derive(Clone, Serialize)]
+struct Operation {
+    id: u64,
+    origin: OperationOrigin,
+    state: OperationState,
+}
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum OperationOrigin {
+    User,
+    Automatic,
+    Resume,
+}
+#[derive(Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum OperationState {
+    Running,
+    Succeeded,
+    Failed,
+    Recovered,
+    Paused,
+    Unavailable,
+    Cancelled,
+}
+
 pub struct Trello<A, R> {
+    operation: Option<Operation>,
+    movement: Option<Operation>,
+    operation_id: u64,
+    resume_pending: bool,
+    operation_failed: bool,
     api: A,
     clock: R,
     keyring: Box<dyn Keyring>,
@@ -79,6 +110,7 @@ pub struct Trello<A, R> {
     /// Identity of a credential refused with 401/403; no request until it changes.
     rejected: Option<u64>,
     lifecycle: Option<crate::lifecycle::Status>,
+    lifecycle_source: Option<Box<dyn crate::lifecycle::CurrentStatus>>,
     /// Key typed before "Gerar token". The browser closes the panel, so the next
     /// panel reads it back. Memory only; dropped on connect or disconnect.
     pending_key: Option<String>,
@@ -86,6 +118,11 @@ pub struct Trello<A, R> {
 impl<A: TrelloApi, R: Clock> Trello<A, R> {
     pub fn new(api: A, clock: R) -> Self {
         Self {
+            operation: None,
+            movement: None,
+            operation_id: 0,
+            resume_pending: false,
+            operation_failed: false,
             api,
             clock,
             keyring: Box::new(crate::ports::UnavailableKeyring),
@@ -101,8 +138,25 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
             retry_at: 0,
             rejected: None,
             lifecycle: None,
+            lifecycle_source: None,
             pending_key: None,
         }
+    }
+    pub fn with_lifecycle(
+        mut self,
+        source: impl crate::lifecycle::CurrentStatus + 'static,
+    ) -> Self {
+        self.lifecycle = Some(source.current());
+        self.lifecycle_source = Some(Box::new(source));
+        self
+    }
+    fn changed_lifecycle(&self) -> Option<crate::lifecycle::Status> {
+        let latest = self.lifecycle_source.as_ref()?.current();
+        (!latest.online
+            || self
+                .lifecycle
+                .is_some_and(|started| started.generation != latest.generation))
+        .then_some(latest)
     }
     pub fn with_keyring(mut self, keyring: impl Keyring + 'static) -> Self {
         self.keyring = Box::new(keyring);
@@ -240,7 +294,46 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
     /// Move a card to another list of the shown board. On success the board is read
     /// again, which restarts the 30 s clock; on failure nothing changes, so the
     /// panel's optimistic move falls back to the last board.
-    pub fn move_card(&mut self, card: &str, list: &str) -> Result<(), MoveError> {
+    fn begin_move(&mut self) -> Snapshot {
+        self.operation_id += 1;
+        self.movement = Some(Operation {
+            id: self.operation_id,
+            origin: OperationOrigin::User,
+            state: OperationState::Running,
+        });
+        self.snapshot(false)
+    }
+    pub fn move_card(
+        &mut self,
+        card: &str,
+        list: &str,
+        mut progress: impl FnMut(Snapshot),
+    ) -> Result<(), MoveError> {
+        progress(self.begin_move());
+        let result = self.perform_move(card, list);
+        if let Some(movement) = &mut self.movement {
+            if movement.state == OperationState::Cancelled {
+                progress(self.snapshot(false));
+                return Err(MoveError);
+            }
+            movement.state = if result.is_ok() {
+                OperationState::Succeeded
+            } else {
+                OperationState::Failed
+            };
+        }
+        progress(self.snapshot(false));
+        if result.is_ok() {
+            self.attempt_at = Some(self.clock.now());
+            self.new_operation(OperationOrigin::Automatic, OperationState::Running);
+            progress(self.snapshot(true));
+            if let Some(snapshot) = self.refresh() {
+                progress(snapshot);
+            }
+        }
+        result
+    }
+    fn perform_move(&mut self, card: &str, list: &str) -> Result<(), MoveError> {
         // Ids come from the panel: only cards and lists of the shown board reach the URL.
         let lists = self.data["lists"].as_array().ok_or(MoveError)?;
         let position = |id: &str, items: &[Value]| items.iter().position(|item| item["id"] == id);
@@ -263,10 +356,17 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
         let credential = self.credential().ok().flatten().ok_or(MoveError)?;
         let auth = Auth::new(&credential.key, &credential.token);
         let started_at = self.clock.now();
-        if let Err(error) = self
+        let response = self
             .api
-            .put(&auth, &format!("/cards/{card}?idList={list}&pos=bottom"))
-        {
+            .put(&auth, &format!("/cards/{card}?idList={list}&pos=bottom"));
+        if let Some(latest) = self.changed_lifecycle() {
+            self.lifecycle(latest);
+            if let Some(movement) = &mut self.movement {
+                movement.state = OperationState::Cancelled;
+            }
+            return Err(MoveError);
+        }
+        if let Err(error) = response {
             if matches!(error.status, Some(401 | 403)) {
                 self.rejected = Some(credential_id(&credential));
                 self.data["state"] = json!("invalidCredential");
@@ -285,8 +385,6 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
             .as_array_mut()
             .unwrap()
             .push(moved);
-        self.attempt_at = Some(self.clock.now());
-        self.refresh();
         Ok(())
     }
     /// Each new connectivity generation (login, reconnect, resume) refreshes once.
@@ -300,7 +398,20 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
             self.manual_at = None;
             self.retry_at = 0;
         }
+        let was_paused = self.paused();
+        let previous = self.lifecycle;
         self.lifecycle = Some(status);
+        if self.paused() && !was_paused {
+            self.new_operation(OperationOrigin::Automatic, OperationState::Paused);
+            if let Some(movement) = &mut self.movement {
+                if movement.state == OperationState::Running {
+                    movement.state = OperationState::Cancelled;
+                }
+            }
+        }
+        if previous.is_some_and(|old| old.generation != status.generation) || was_paused {
+            self.resume_pending = true;
+        }
     }
     fn paused(&self) -> bool {
         self.lifecycle.is_some_and(|status| {
@@ -309,6 +420,12 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
     }
     pub fn snapshot(&self, refreshing: bool) -> Snapshot {
         let mut data = self.data.clone();
+        if let Some(operation) = &self.operation {
+            data["operation"] = json!(operation);
+        }
+        if let Some(movement) = &self.movement {
+            data["movement"] = json!(movement);
+        }
         let paused = self.paused();
         data["refreshing"] = json!(refreshing && !paused);
         if let Some(key) = &self.pending_key {
@@ -365,11 +482,44 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
             || manual
             || ((self.failures > 0 || due) && since(self.attempt_at, 30_000))
     }
-    /// Use the injected clock for every collection decision.
-    pub fn step(&mut self, visible: bool, manual: bool) -> Option<Snapshot> {
+    fn new_operation(&mut self, origin: OperationOrigin, state: OperationState) {
+        self.operation_id += 1;
+        self.operation = Some(Operation {
+            id: self.operation_id,
+            origin,
+            state,
+        });
+    }
+    fn finish_operation(&mut self, state: OperationState) {
+        if let Some(operation) = &mut self.operation {
+            operation.state = state;
+        }
+    }
+    /// Publish the real start before the synchronous HTTP work; identity is independent of time.
+    pub fn begin(&mut self, visible: bool, manual: bool) -> Option<Snapshot> {
         if !self.should_collect(visible, manual) {
             return None;
         }
+        if !self
+            .operation
+            .as_ref()
+            .is_some_and(|op| op.state == OperationState::Running)
+        {
+            let origin = if manual {
+                OperationOrigin::User
+            } else if self.resume_pending {
+                OperationOrigin::Resume
+            } else {
+                OperationOrigin::Automatic
+            };
+            self.new_operation(origin, OperationState::Running);
+            self.resume_pending = false;
+        }
+        Some(self.snapshot(true))
+    }
+    /// Use the injected clock for every collection decision.
+    pub fn step(&mut self, visible: bool, manual: bool) -> Option<Snapshot> {
+        self.begin(visible, manual)?;
         let now = self.clock.now();
         if manual
             && self
@@ -384,8 +534,17 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
         self.refresh()
     }
     fn refresh(&mut self) -> Option<Snapshot> {
+        if !self
+            .operation
+            .as_ref()
+            .is_some_and(|op| op.state == OperationState::Running)
+        {
+            self.new_operation(OperationOrigin::Automatic, OperationState::Running);
+        }
         let now = self.clock.now();
         let Ok(credential) = self.credential() else {
+            self.finish_operation(OperationState::Unavailable);
+            self.operation_failed = true;
             // Keep the restored board; the keyring is retried with the normal cadence.
             self.log(Event::Failed, None, now);
             return Some(self.snapshot(false));
@@ -393,6 +552,8 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
         let Some(credential) = credential else {
             self.updated_at = None;
             self.data = disconnected();
+            self.finish_operation(OperationState::Unavailable);
+            self.operation_failed = true;
             self.log(Event::MissingCredential, None, now);
             return Some(self.snapshot(false));
         };
@@ -401,7 +562,19 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
             self.failures = 0;
             self.failure_since = None;
         }
+        let previous_data = self.data.clone();
+        let boards_pending = self.boards_pending;
         let result = self.read(&credential);
+        if let Some(latest) = self.changed_lifecycle() {
+            self.data = previous_data;
+            self.boards_pending = boards_pending;
+            let cancelled = self.operation.clone();
+            self.lifecycle(latest);
+            self.operation = cancelled;
+            self.finish_operation(OperationState::Cancelled);
+            self.resume_pending = true;
+            return Some(self.snapshot(false));
+        }
         let status = result.as_ref().err().and_then(|error| error.status);
         match result {
             Ok(()) => {
@@ -428,6 +601,19 @@ impl<A: TrelloApi, R: Clock> Trello<A, R> {
                 self.data["state"] = json!(if self.failures >= 3 { "error" } else { "stale" });
             }
         }
+        let success = self.data["state"] == "ready";
+        self.finish_operation(if success {
+            if self.operation_failed {
+                OperationState::Recovered
+            } else {
+                OperationState::Succeeded
+            }
+        } else if self.data["state"] == "chooseBoard" {
+            OperationState::Unavailable
+        } else {
+            OperationState::Failed
+        });
+        self.operation_failed = !success;
         let snapshot = self.snapshot(false);
         let event = match self.data["state"].as_str() {
             Some("ready") => {
@@ -558,7 +744,8 @@ pub fn start(app: tauri::AppHandle) {
     app.manage(Collector(tx));
     std::thread::spawn(move || {
         let mut trello = Trello::new(TrelloHttp, crate::ports::SystemClock)
-            .with_keyring(crate::ports::SecretService);
+            .with_keyring(crate::ports::SecretService)
+            .with_lifecycle(app.state::<crate::lifecycle::Shared>().inner().clone());
         if let (Some(cache), Some(state)) = (dirs::cache_dir(), dirs::state_dir()) {
             use crate::persistence::{Cache, DiskStorage, LocalPersistence, Logs};
             trello = trello.with_persistence(LocalPersistence {
@@ -590,8 +777,9 @@ pub fn start(app: tauri::AppHandle) {
                     let _ = reply.send(result);
                 }
                 Some(Command::Move(card, list, reply)) => {
-                    let result = trello.move_card(&card, &list);
-                    crate::snapshot::publish(&app, trello.snapshot(false));
+                    let result = trello.move_card(&card, &list, |snapshot| {
+                        crate::snapshot::publish(&app, snapshot)
+                    });
                     let _ = reply.send(result);
                 }
                 Some(Command::Disconnect(reply)) => {
@@ -608,8 +796,8 @@ pub fn start(app: tauri::AppHandle) {
             }
             let visible = crate::collection::is_visible(&app, Module::Trello);
             // Publish previous data before blocking on HTTP.
-            if trello.should_collect(visible, manual) {
-                crate::snapshot::publish(&app, trello.snapshot(true));
+            if let Some(snapshot) = trello.begin(visible, manual) {
+                crate::snapshot::publish(&app, snapshot);
             }
             if let Some(snapshot) = trello.step(visible, manual) {
                 crate::snapshot::publish(&app, snapshot);

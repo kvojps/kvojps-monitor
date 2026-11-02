@@ -421,6 +421,16 @@
     "providers": { "codex": "Codex", "claude": "Claude" },
     "rest": "Bordo em repouso",
     "resume": "Retomando atualização…",
+    "movement": {
+      "running": "Movendo card…",
+      "succeeded": "Card movido.",
+      "failed": "Falha ao mover card. Confira o Módulo.",
+      "recovered": "Movimentação restabelecida.",
+      "paused": "Movimentação pausada. Confira o Módulo.",
+      "unavailable": "Movimentação indisponível. Confira o Módulo.",
+      "cancelled": "Movimentação cancelada.",
+      "attention": "Atenção. Confira o Módulo."
+    },
     "messages": {
       "running": "Estabelecendo enlace…",
       "succeeded": "Telemetria atualizada.",

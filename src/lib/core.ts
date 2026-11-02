@@ -259,6 +259,8 @@ export interface TrelloCard {
   overdue: boolean;
 }
 export interface TrelloData {
+  operation?: Operation;
+  movement?: Operation;
   state: "missingCredential" | "chooseBoard" | "ready" | "stale" | "error" | "invalidCredential";
   refreshing: boolean;
   paused?: boolean;

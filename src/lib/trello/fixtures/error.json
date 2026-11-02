@@ -257,6 +257,11 @@
       "name": "Lista 8"
     }
   ],
+  "operation": {
+    "id": 4,
+    "origin": "automatic",
+    "state": "failed"
+  },
   "refreshing": false,
   "state": "error"
 }

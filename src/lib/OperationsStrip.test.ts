@@ -148,3 +148,44 @@ it("uses AI provider identities for recovery, pause, resume, repetition and reop
   expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
   expect(screen.getByRole("status").textContent).toBe("");
 });
+
+it("groups Trello movement and refresh independently and announces sanitized actual results", async () => {
+  vi.useFakeTimers();
+  const { rerender } = render(OperationsStrip, { snapshots: {}, ready: true });
+  const { default: transitions } = await import("./fixtures/operations/trello-transitions.json");
+  const state = (index: number): Snapshot => ({ module: "trello", updatedAt: 1, data: {
+    ...transitions[index], card: "CARD_SENTINEL", list: "LIST_SENTINEL", token: "TOKEN_SENTINEL",
+  } });
+  await rerender({ snapshots: { trello: state(0) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Movendo card…");
+  await rerender({ snapshots: { trello: state(1) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Falha ao atualizar");
+  expect(screen.getByRole("status")).toHaveTextContent("Card movido.");
+  expect(screen.getByRole("status")).not.toHaveTextContent("SENTINEL");
+  await act(() => vi.advanceTimersByTime(4000));
+  await rerender({ snapshots: { trello: state(1) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+});
+
+it("shows fast Trello failures recovery and cancellation and establishes a fresh reference on reopen", async () => {
+  vi.useFakeTimers();
+  const { default: transitions } = await import("./fixtures/operations/trello-transitions.json");
+  const snapshot = (index: number): Snapshot => ({ module: "trello", updatedAt: null, data: transitions[index] });
+  const { rerender, unmount } = render(OperationsStrip, { snapshots: {}, ready: true });
+  await rerender({ snapshots: { trello: snapshot(2) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Falha ao mover card");
+  expect(screen.getByRole("status")).not.toHaveTextContent("Retomando");
+  await rerender({ snapshots: { trello: snapshot(3) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Atualização restabelecida");
+  expect(screen.getByRole("status")).toHaveTextContent("Movimentação cancelada");
+  await act(() => vi.advanceTimersByTime(4000));
+  await rerender({ snapshots: { trello: snapshot(4) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  unmount();
+  render(OperationsStrip, { snapshots: { trello: snapshot(3) }, ready: true });
+  expect(screen.getByRole("status").textContent).toBe("");
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+});

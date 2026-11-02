@@ -255,6 +255,11 @@
       "name": "Lista 8"
     }
   ],
+  "operation": {
+    "id": 1,
+    "origin": "automatic",
+    "state": "succeeded"
+  },
   "refreshing": false,
   "state": "ready"
 }

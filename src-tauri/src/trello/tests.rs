@@ -37,6 +37,8 @@ struct Api {
     calls: Arc<Mutex<Vec<String>>>,
     /// Status of the next card update; Some(0) is a network failure.
     put_status: Arc<Mutex<Option<u16>>>,
+    lifecycle_after_get: Arc<Mutex<Option<crate::lifecycle::Shared>>>,
+    lifecycle_after_put: Arc<Mutex<Option<crate::lifecycle::Shared>>>,
 }
 impl Api {
     fn fail(&self, status: Option<u16>) {
@@ -46,6 +48,9 @@ impl Api {
 impl TrelloApi for Api {
     fn get(&self, _: &Auth, path: &str) -> Result<Value, HttpError> {
         self.calls.lock().unwrap().push(path.into());
+        if let Some(shared) = self.lifecycle_after_get.lock().unwrap().take() {
+            shared.lock().unwrap().generation += 1;
+        }
         if let Some(status) = *self.status.lock().unwrap() {
             return Err(HttpError {
                 status: (status != 0).then_some(status),
@@ -67,6 +72,9 @@ impl TrelloApi for Api {
     }
     fn put(&self, _: &Auth, path: &str) -> Result<(), HttpError> {
         self.calls.lock().unwrap().push(format!("PUT {path}"));
+        if let Some(shared) = self.lifecycle_after_put.lock().unwrap().take() {
+            shared.lock().unwrap().online = false;
+        }
         match *self.put_status.lock().unwrap() {
             Some(status) => Err(HttpError {
                 status: (status != 0).then_some(status),
@@ -797,7 +805,7 @@ fn moving_a_card_updates_its_list_then_rereads_the_board_and_restarts_the_clock(
     clock.advance(20_000);
     api.calls.lock().unwrap().clear();
     *api.lists.lock().unwrap() = Some(moved_lists());
-    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Ok(()));
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Ok(()));
     let calls = api.calls.lock().unwrap().clone();
     assert_eq!(
         calls[0],
@@ -830,10 +838,15 @@ fn failed_move_keeps_the_last_board_and_its_clock_and_logs_only_metadata() {
         clock.advance(20_000);
         api.calls.lock().unwrap().clear();
         *api.put_status.lock().unwrap() = status;
-        assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+        assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Err(MoveError));
         assert_eq!(api.calls.lock().unwrap().len(), 1, "no re-read");
         let after = trello.snapshot(false);
-        assert_eq!(after.data, before.data);
+        let mut board = after.data.clone();
+        assert_eq!(
+            board.as_object_mut().unwrap().remove("movement").unwrap()["state"],
+            "failed"
+        );
+        assert_eq!(board, before.data);
         assert_eq!(after.updated_at, Some(NOW));
         let log = std::fs::read_to_string(dir.path().join("state/info.log")).unwrap();
         assert!(log.lines().last().unwrap().contains("failed"));
@@ -852,11 +865,11 @@ fn refused_move_marks_the_credential_invalid_and_stops_requests() {
     let (mut trello, _) = connected(api.clone(), clock.clone());
     trello.step(true, false).unwrap();
     *api.put_status.lock().unwrap() = Some(401);
-    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Err(MoveError));
     assert_eq!(trello.snapshot(false).data["state"], "invalidCredential");
     api.calls.lock().unwrap().clear();
     clock.advance(600_000);
-    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Err(MoveError));
     assert!(trello.step(true, true).is_none());
     assert!(api.calls.lock().unwrap().is_empty());
 }
@@ -872,10 +885,10 @@ fn moves_wait_for_the_backoff_after_a_failed_read() {
     trello.step(true, false).unwrap();
     api.fail(None);
     api.calls.lock().unwrap().clear();
-    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Err(MoveError));
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Err(MoveError));
     assert!(api.calls.lock().unwrap().is_empty());
     clock.advance(30_000);
-    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Ok(()));
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Ok(()));
 }
 
 #[test]
@@ -884,7 +897,7 @@ fn moves_only_cards_and_lists_of_the_shown_board_while_online() {
     let api = Api::default();
     let (mut trello, _) = connected(api.clone(), clock.clone());
     assert_eq!(
-        trello.move_card(CARD, EMPTY_LIST),
+        trello.move_card(CARD, EMPTY_LIST, |_| {}),
         Err(MoveError),
         "board not read yet"
     );
@@ -897,14 +910,14 @@ fn moves_only_cards_and_lists_of_the_shown_board_while_online() {
         (CARD, FIRST_LIST),
     ] {
         assert_eq!(
-            trello.move_card(card, list),
+            trello.move_card(card, list, |_| {}),
             Err(MoveError),
             "{card} {list}"
         );
     }
     trello.lifecycle(crate::lifecycle::Status::default());
     assert_eq!(
-        trello.move_card(CARD, EMPTY_LIST),
+        trello.move_card(CARD, EMPTY_LIST, |_| {}),
         Err(MoveError),
         "offline"
     );
@@ -918,8 +931,233 @@ fn a_move_stays_visible_when_the_reread_fails() {
     let (mut trello, _) = connected(api.clone(), clock.clone());
     trello.step(true, false).unwrap();
     api.fail(Some(503));
-    assert_eq!(trello.move_card(CARD, EMPTY_LIST), Ok(()));
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Ok(()));
     let data = trello.snapshot(false).data;
     assert!(!card_ids(&data, 0).contains(&CARD.to_owned()));
     assert_eq!(card_ids(&data, 1), [CARD]);
+}
+
+#[test]
+fn refresh_operations_have_real_identity_origin_and_outcome() {
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), clock.clone());
+    assert_eq!(
+        trello.begin(true, true).unwrap().data["operation"],
+        json!({"id":1,"origin":"user","state":"running"})
+    );
+    let result = trello.step(true, true).unwrap();
+    assert_eq!(
+        result.data["operation"],
+        json!({"id":1,"origin":"user","state":"succeeded"})
+    );
+    clock.advance(30_000);
+    api.fail(Some(500));
+    assert_eq!(
+        trello.step(true, false).unwrap().data["operation"]["state"],
+        "failed"
+    );
+    clock.advance(30_000);
+    api.fail(None);
+    assert_eq!(
+        trello.step(true, false).unwrap().data["operation"]["state"],
+        "recovered"
+    );
+}
+
+#[test]
+fn movement_result_is_independent_of_refresh_and_never_contains_card_content() {
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), FakeClock::at(NOW));
+    trello.step(true, false).unwrap();
+    api.fail(Some(500));
+    let mut published = Vec::new();
+    assert_eq!(
+        trello.move_card(CARD, EMPTY_LIST, |snapshot| published.push(snapshot)),
+        Ok(())
+    );
+    assert_eq!(
+        published[0].data["movement"],
+        json!({"id":2,"origin":"user","state":"running"})
+    );
+    let result = trello.snapshot(false);
+    assert_eq!(
+        result.data["movement"],
+        json!({"id":2,"origin":"user","state":"succeeded"})
+    );
+    assert_eq!(result.data["operation"]["state"], "failed");
+    for secret in [CARD, EMPTY_LIST, "private-token", "0123abcd", "Card 1.1"] {
+        assert!(!result.data["movement"].to_string().contains(secret));
+    }
+}
+
+#[test]
+fn paused_refresh_resumes_once_and_reports_recovery_without_replaying_snapshots() {
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), clock.clone());
+    trello.step(true, false).unwrap();
+    clock.advance(30_000);
+    api.fail(Some(500));
+    trello.step(true, false).unwrap();
+    trello.lifecycle(crate::lifecycle::Status::default());
+    let paused = trello.snapshot(false);
+    assert_eq!(paused.data["operation"]["state"], "paused");
+    assert!(trello.begin(true, true).is_none());
+    trello.lifecycle(crate::lifecycle::Status::default());
+    assert_eq!(
+        trello.snapshot(false).data["operation"],
+        paused.data["operation"]
+    );
+    trello.lifecycle(crate::lifecycle::Status {
+        online: true,
+        generation: 1,
+        ready_at: clock.now(),
+    });
+    assert!(trello.begin(true, false).is_none());
+    clock.advance(3_000);
+    api.fail(None);
+    let start = trello.begin(true, false).unwrap();
+    assert_eq!(start.data["operation"]["origin"], "resume");
+    assert_eq!(start.data["operation"]["state"], "running");
+    let end = trello.step(true, false).unwrap();
+    assert_eq!(end.data["operation"]["id"], start.data["operation"]["id"]);
+    assert_eq!(end.data["operation"]["state"], "recovered");
+    assert_eq!(
+        trello.snapshot(false).data["operation"],
+        end.data["operation"]
+    );
+}
+
+#[test]
+fn movement_and_refresh_metadata_are_never_cached_or_logged() {
+    let dir = tempfile::tempdir().unwrap();
+    let api = Api::default();
+    let (trello, _) = connected(api.clone(), FakeClock::at(NOW));
+    let mut trello = trello.with_persistence(disk(&dir));
+    let mut lists = fixture("lists");
+    lists[0]["cards"][0]["name"] = json!("CARD_CONTENT_SENTINEL");
+    *api.lists.lock().unwrap() = Some(lists);
+    trello.step(true, false).unwrap();
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Ok(()));
+    for file in ["cache/trello.json", "state/info.log"] {
+        let text = std::fs::read_to_string(dir.path().join(file)).unwrap();
+        for secret in [
+            "operation",
+            "movement",
+            "CARD_CONTENT_SENTINEL",
+            "private-token",
+            "0123abcd",
+        ] {
+            assert!(!text.contains(secret), "{file}: {secret}");
+        }
+    }
+}
+
+#[test]
+fn movement_result_is_published_before_the_board_reread_starts() {
+    let api = Api::default();
+    let (mut trello, _) = connected(api.clone(), FakeClock::at(NOW));
+    trello.step(true, false).unwrap();
+    api.calls.lock().unwrap().clear();
+    let mut published = Vec::new();
+    trello
+        .move_card(CARD, EMPTY_LIST, |snapshot| {
+            if snapshot.data["movement"]["state"] == "succeeded" && published.len() == 1 {
+                assert_eq!(api.calls.lock().unwrap().len(), 1, "only PUT completed");
+            }
+            published.push(snapshot);
+        })
+        .unwrap();
+    assert_eq!(published[0].data["movement"]["state"], "running");
+    assert_eq!(published[1].data["movement"]["state"], "succeeded");
+    assert_eq!(published[2].data["operation"]["state"], "running");
+    assert_eq!(published[3].data["operation"]["state"], "succeeded");
+}
+
+#[test]
+fn suspension_during_put_cancels_the_move_and_keeps_the_last_confirmed_board() {
+    let api = Api::default();
+    let shared = Arc::new(Mutex::new(crate::lifecycle::Status {
+        online: true,
+        generation: 1,
+        ready_at: 0,
+    }));
+    let (trello, _) = connected(api.clone(), FakeClock::at(NOW));
+    let mut trello = trello.with_lifecycle(shared.clone());
+    let before = trello.step(true, false).unwrap();
+    *api.lifecycle_after_put.lock().unwrap() = Some(shared);
+    let mut published = Vec::new();
+    assert_eq!(
+        trello.move_card(CARD, EMPTY_LIST, |snapshot| published.push(snapshot)),
+        Err(MoveError)
+    );
+    let end = published.last().unwrap();
+    assert_eq!(end.data["movement"]["state"], "cancelled");
+    assert_eq!(end.data["lists"], before.data["lists"]);
+    assert_eq!(end.updated_at, before.updated_at);
+    assert!(end.data["paused"].as_bool().unwrap());
+    assert!(!published
+        .iter()
+        .any(|snapshot| snapshot.data["movement"]["state"] == "succeeded"));
+}
+
+#[test]
+fn connection_generation_changed_during_get_discards_the_read_without_success_or_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let clock = FakeClock::at(NOW);
+    let api = Api::default();
+    let shared = Arc::new(Mutex::new(crate::lifecycle::Status {
+        online: true,
+        generation: 1,
+        ready_at: 0,
+    }));
+    let (trello, _) = connected(api.clone(), clock.clone());
+    let mut trello = trello
+        .with_lifecycle(shared.clone())
+        .with_persistence(disk(&dir));
+    let before = trello.step(true, false).unwrap();
+    let cache = std::fs::read_to_string(dir.path().join("cache/trello.json")).unwrap();
+    clock.advance(30_000);
+    *api.lists.lock().unwrap() = Some(moved_lists());
+    *api.lifecycle_after_get.lock().unwrap() = Some(shared);
+    let end = trello.step(true, false).unwrap();
+    assert_eq!(end.data["operation"]["state"], "cancelled");
+    assert_eq!(end.data["lists"], before.data["lists"]);
+    assert_eq!(end.updated_at, before.updated_at);
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("cache/trello.json")).unwrap(),
+        cache
+    );
+    assert_eq!(
+        trello.begin(true, false).unwrap().data["operation"]["origin"],
+        "resume"
+    );
+}
+
+#[test]
+fn a_new_move_after_cancel_and_resume_has_a_new_identity_and_can_succeed() {
+    let api = Api::default();
+    let shared = Arc::new(Mutex::new(crate::lifecycle::Status {
+        online: true,
+        generation: 1,
+        ready_at: 0,
+    }));
+    let (trello, _) = connected(api.clone(), FakeClock::at(NOW));
+    let mut trello = trello.with_lifecycle(shared.clone());
+    trello.step(true, false).unwrap();
+    *api.lifecycle_after_put.lock().unwrap() = Some(shared.clone());
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Err(MoveError));
+    let cancelled = trello.snapshot(false).data["movement"]["id"].clone();
+    *shared.lock().unwrap() = crate::lifecycle::Status {
+        online: true,
+        generation: 2,
+        ready_at: 0,
+    };
+    trello.lifecycle(*shared.lock().unwrap());
+    *api.lists.lock().unwrap() = Some(moved_lists());
+    assert_eq!(trello.move_card(CARD, EMPTY_LIST, |_| {}), Ok(()));
+    let end = trello.snapshot(false);
+    assert_ne!(end.data["movement"]["id"], cancelled);
+    assert_eq!(end.data["movement"]["state"], "succeeded");
 }
