@@ -32,7 +32,7 @@ Um único seam no núcleo: toda E/S (processos, HTTP, sistema de arquivos, D-Bus
 
 ## Git
 
-Branches `research/*` e `prototype/*` são locais: nunca faça push delas. A spec v1 e o registro sanitizado da revisão pública permanecem em `.scratch/`; material novo ali também é publicado e deve seguir a sanitização.
+Branches `research/*` e `prototype/*` são locais: nunca faça push delas. A spec v1 permanece em `.scratch/`; qualquer material novo ali também é publicado e deve seguir a sanitização.
 
 ## Agent skills
 

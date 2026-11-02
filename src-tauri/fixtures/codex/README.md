@@ -18,4 +18,4 @@ As fixtures de UI em `src/lib/ai/fixtures/` são publicadas pelo núcleo e confe
 
 O cache em disco guarda plano, fonte, idade e janelas; nunca e-mail, IDs de conta ou conteúdo de rollouts.
 
-Os UUIDs presentes nos nomes dos rollouts foram substituídos por identificadores sintéticos na revisão do ticket 40; os horários e contadores não identificam mais uma sessão pelo seu UUID original.
+Os UUIDs presentes nos nomes dos rollouts foram substituídos por identificadores sintéticos; os horários e contadores não identificam mais uma sessão pelo seu UUID original.

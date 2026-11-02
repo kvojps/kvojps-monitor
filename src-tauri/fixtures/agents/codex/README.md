@@ -4,4 +4,4 @@ Fixtures capturadas do SQLite e rollouts locais em 31/10/2026. IDs, caminhos e t
 
 A associação por descritores abertos foi verificada em `/proc` no host: um executável `codex` mantinha três rollouts abertos. O teste recria essa topologia com PID, descritor e caminhos anonimizados. Processos Codex sem rollout aberto não tornam sessões históricas ativas.
 
-Na revisão do ticket 40, o SQLite foi reconstruído em um banco novo a partir do schema e das linhas sanitizadas. Páginas livres e bytes residuais do arquivo de origem não são copiados.
+O SQLite foi reconstruído em um banco novo a partir do schema e das linhas sanitizadas. Páginas livres e bytes residuais do arquivo de origem não são copiados.

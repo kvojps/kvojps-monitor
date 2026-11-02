@@ -1,6 +1,6 @@
 # GitHub: calendário do ano e repo destaque dos últimos 7 dias
 
-Nota de sanitização (ticket 40): contagens e horários do exemplo de repositório privado são sintéticos; não representam atividade real do mantenedor.
+Nota de sanitização: contagens e horários do exemplo de repositório privado são sintéticos; não representam atividade real do mantenedor.
 
 Data da pesquisa: 2026-10-30. Todas as consultas abaixo foram executadas de verdade nesta máquina (somente leitura, via `gh api graphql`, conta `kvojps`), e as conclusões técnicas vêm dessas execuções. Os resultados relativos ao repositório privado foram substituídos por exemplos sintéticos. O token nunca foi impresso.
 
@@ -210,4 +210,4 @@ Limites do fine-grained relevantes [S4]: cada token acessa recursos de **um úni
 3. **Opcional:** se o destaque precisar contar PRs, issues e reviews, peça ao usuário para rodar `gh auth refresh -h github.com -s read:user` e troque para a opção 1, mantendo a 2 como fallback quando `restrictedContributionsCount > 0` e a lista vier vazia.
 4. **Evite** fine-grained PAT neste caso: o comportamento com `contributionsCollection` privado não está documentado, e a restrição a um único dono atrapalha. Evite também a REST Events (30 dias, latência de até 6 h). Custo total: zero.
 
-Nota de privacidade (ticket 40): o nome do projeto privado foi substituído por um exemplo. Não usar os nomes de exemplo para localizar repositórios reais.
+Nota de privacidade: o nome do projeto privado foi substituído por um exemplo. Não usar os nomes de exemplo para localizar repositórios reais.

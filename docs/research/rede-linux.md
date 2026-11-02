@@ -110,4 +110,4 @@ Evitar, por não ser confiável: "detectar MITM" de forma genérica só por lat�
 6. **Velocidade**: Cloudflare (`__down`/`__up`, MIT), só quando o usuário clicar; NDT7 opcional, com aviso de que o IP é publicado; não incluir Ookla.
 7. **Alertas de risco**: alertar com confiança sobre rede aberta, WEP/TKIP, portal cativo e DNS sequestrando NXDOMAIN; tratar mudança de MAC do gateway e evil twin como "aviso" com contexto, nunca como certeza.
 
-Nota de privacidade (ticket 40): endereços e MAC da conexão observada foram substituídos por aliases de documentação; preservam-se os contratos e as conclusões técnicas.
+Nota de privacidade: endereços e MAC da conexão observada foram substituídos por aliases de documentação; preservam-se os contratos e as conclusões técnicas.
