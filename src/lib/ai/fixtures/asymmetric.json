@@ -1,0 +1,654 @@
+[
+  {
+    "name": "codex-primary-reset",
+    "provider": "codex",
+    "slot": "primary",
+    "state": "reset",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": {
+                "durationMins": 300,
+                "reset": true,
+                "resetsAt": 1793467355000,
+                "usedPercent": 91.0
+              },
+              "secondary": {
+                "durationMins": 10080,
+                "reset": false,
+                "resetsAt": 1793814230000,
+                "usedPercent": 48.0
+              }
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": {
+                "usedPercent": 15.0,
+                "durationMins": 300,
+                "resetsAt": 1793413800000,
+                "reset": false
+              },
+              "secondary": {
+                "usedPercent": 6.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  },
+  {
+    "name": "codex-primary-missing",
+    "provider": "codex",
+    "slot": "primary",
+    "state": "missing",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": null,
+              "secondary": {
+                "durationMins": 10080,
+                "reset": false,
+                "resetsAt": 1793814230000,
+                "usedPercent": 48.0
+              }
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": {
+                "usedPercent": 15.0,
+                "durationMins": 300,
+                "resetsAt": 1793413800000,
+                "reset": false
+              },
+              "secondary": {
+                "usedPercent": 6.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  },
+  {
+    "name": "codex-secondary-reset",
+    "provider": "codex",
+    "slot": "secondary",
+    "state": "reset",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": {
+                "durationMins": 300,
+                "reset": false,
+                "resetsAt": 1793467355000,
+                "usedPercent": 91.0
+              },
+              "secondary": {
+                "durationMins": 10080,
+                "reset": true,
+                "resetsAt": 1793814230000,
+                "usedPercent": 48.0
+              }
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": {
+                "usedPercent": 15.0,
+                "durationMins": 300,
+                "resetsAt": 1793413800000,
+                "reset": false
+              },
+              "secondary": {
+                "usedPercent": 6.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  },
+  {
+    "name": "codex-secondary-missing",
+    "provider": "codex",
+    "slot": "secondary",
+    "state": "missing",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": {
+                "durationMins": 300,
+                "reset": false,
+                "resetsAt": 1793467355000,
+                "usedPercent": 91.0
+              },
+              "secondary": null
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": {
+                "usedPercent": 15.0,
+                "durationMins": 300,
+                "resetsAt": 1793413800000,
+                "reset": false
+              },
+              "secondary": {
+                "usedPercent": 6.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  },
+  {
+    "name": "claude-primary-reset",
+    "provider": "claude",
+    "slot": "primary",
+    "state": "reset",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": {
+                "durationMins": 300,
+                "reset": false,
+                "resetsAt": 1793467355000,
+                "usedPercent": 91.0
+              },
+              "secondary": {
+                "durationMins": 10080,
+                "reset": false,
+                "resetsAt": 1793814230000,
+                "usedPercent": 48.0
+              }
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": {
+                "usedPercent": 15.0,
+                "durationMins": 300,
+                "resetsAt": 1793413800000,
+                "reset": true
+              },
+              "secondary": {
+                "usedPercent": 6.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  },
+  {
+    "name": "claude-primary-missing",
+    "provider": "claude",
+    "slot": "primary",
+    "state": "missing",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": {
+                "durationMins": 300,
+                "reset": false,
+                "resetsAt": 1793467355000,
+                "usedPercent": 91.0
+              },
+              "secondary": {
+                "durationMins": 10080,
+                "reset": false,
+                "resetsAt": 1793814230000,
+                "usedPercent": 48.0
+              }
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": null,
+              "secondary": {
+                "usedPercent": 6.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  },
+  {
+    "name": "claude-secondary-reset",
+    "provider": "claude",
+    "slot": "secondary",
+    "state": "reset",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": {
+                "durationMins": 300,
+                "reset": false,
+                "resetsAt": 1793467355000,
+                "usedPercent": 91.0
+              },
+              "secondary": {
+                "durationMins": 10080,
+                "reset": false,
+                "resetsAt": 1793814230000,
+                "usedPercent": 48.0
+              }
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": {
+                "usedPercent": 15.0,
+                "durationMins": 300,
+                "resetsAt": 1793413800000,
+                "reset": false
+              },
+              "secondary": {
+                "usedPercent": 6.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": true
+              }
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  },
+  {
+    "name": "claude-secondary-missing",
+    "provider": "claude",
+    "slot": "secondary",
+    "state": "missing",
+    "data": {
+      "codex": {
+        "plan": "plus",
+        "reading": {
+          "buckets": [
+            {
+              "id": "codex",
+              "name": null,
+              "primary": {
+                "durationMins": 300,
+                "reset": false,
+                "resetsAt": 1793467355000,
+                "usedPercent": 91.0
+              },
+              "secondary": {
+                "durationMins": 10080,
+                "reset": false,
+                "resetsAt": 1793814230000,
+                "usedPercent": 48.0
+              }
+            }
+          ],
+          "readAt": 1793460871000,
+          "source": "appServer"
+        },
+        "state": "ready",
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "refreshing": false,
+      "claude": {
+        "state": "ready",
+        "plan": "pro",
+        "statusLine": "off",
+        "usage": "on",
+        "reading": {
+          "source": "oauthUsage",
+          "readAt": 1793401200000,
+          "buckets": [
+            {
+              "id": "claude",
+              "name": null,
+              "primary": {
+                "usedPercent": 15.0,
+                "durationMins": 300,
+                "resetsAt": 1793413800000,
+                "reset": false
+              },
+              "secondary": null
+            },
+            {
+              "id": "claude-sonnet",
+              "name": "Sonnet",
+              "primary": null,
+              "secondary": {
+                "usedPercent": 33.0,
+                "durationMins": 10080,
+                "resetsAt": 1793887200000,
+                "reset": false
+              }
+            }
+          ]
+        },
+        "operation": {
+          "id": 1,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      }
+    }
+  }
+]

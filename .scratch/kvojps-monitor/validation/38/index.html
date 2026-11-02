@@ -1,0 +1,12 @@
+<html><body><div id="app"></div><script type="module">
+import { mount } from 'svelte';
+import AiModule from '/src/lib/ai/AiModule.svelte';
+import cases from '/src/lib/ai/fixtures/asymmetric.json';
+import full from '/src/lib/ai/fixtures/claude-usage.json';
+import '/src/tokens.css';
+const params=new URLSearchParams(location.search); const scenario=Number(params.get('case') ?? -1);
+Date.now=()=>1793401200000;
+document.documentElement.dataset.theme=params.get('theme') ?? 'dark';
+document.body.style.cssText=`margin:16px;width:${params.get('width') ?? 320}px;font-size:${params.get('font') ?? 14}px;background:var(--bg);color:var(--text)`;
+mount(AiModule,{target:document.getElementById('app'),props:{data:scenario<0?full:cases[scenario].data,refresh:()=>{}}});
+</script></body></html>

@@ -2,6 +2,7 @@ import { render, screen, fireEvent, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AiModule from "./AiModule.svelte";
 import type { AiData } from "../core";
+import asymmetric from "./fixtures/asymmetric.json";
 import usage from "./fixtures/claude-usage.json";
 
 /** Instant the oauth/usage fixtures were published (São Paulo). */
@@ -413,4 +414,16 @@ it.each([true, false])("keeps missing-token guidance and an action after the str
   await fireEvent.click(within(provider("Claude")).getByRole("button", { name: "Configurar" }));
   expect(configure).toHaveBeenCalledOnce();
   expect(within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" })).toHaveAttribute("aria-valuenow", "91");
+});
+
+// Snapshot fixtures are also exercised in the browser for geometry (ticket 38).
+it.each(asymmetric)("preserves unknown usage and the other provider in $name", ({ provider: key, slot, state, data }) => {
+  render(AiModule, { data: data as AiData, refresh: vi.fn() });
+  const name = key === "codex" ? "Codex" : "Claude";
+  const other = key === "codex" ? "Claude" : "Codex";
+  const label = slot === "primary" ? "janela de 5 h" : "semana";
+  expect(within(provider(name)).queryByRole("meter", { name: `${name} · ${label}` })).not.toBeInTheDocument();
+  expect(within(provider(name)).queryByText("0%")).not.toBeInTheDocument();
+  expect(within(provider(other)).getAllByRole("meter")).toHaveLength(2);
+  expect(within(provider(name)).getByText(state === "reset" ? /Reiniciado às.*sem leitura nova/ : slot === "primary" ? "Sem leitura dos limites" : "Janela semanal indisponível")).toBeInTheDocument();
 });

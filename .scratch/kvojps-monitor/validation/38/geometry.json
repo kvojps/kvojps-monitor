@@ -1,0 +1,794 @@
+[
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      -1,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      -1,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      -1,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      -1,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      216,
+      216
+    ],
+    "tracks": [
+      237,
+      237
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nReiniciado \u00e0s 14:22 \u00b7 sem leitura nova\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      0,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      303,
+      303
+    ],
+    "tracks": [
+      332,
+      332
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nReiniciado \u00e0s 14:22 \u00b7 sem leitura nova\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      0,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      216,
+      216
+    ],
+    "tracks": [
+      237,
+      237
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nReiniciado \u00e0s 14:22 \u00b7 sem leitura nova\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      0,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      303,
+      303
+    ],
+    "tracks": [
+      332,
+      332
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nReiniciado \u00e0s 14:22 \u00b7 sem leitura nova\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      0,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      201,
+      201
+    ],
+    "tracks": [
+      222,
+      222
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nSem leitura dos limites\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      1,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      281,
+      281
+    ],
+    "tracks": [
+      310,
+      310
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nSem leitura dos limites\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      1,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      201,
+      201
+    ],
+    "tracks": [
+      222,
+      222
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nSem leitura dos limites\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      1,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      281,
+      281
+    ],
+    "tracks": [
+      310,
+      310
+    ],
+    "overflow": false,
+    "text": [
+      "\u2014\nCodex\n5 h\nSem leitura dos limites\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      1,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nReiniciado \u00e0s 14:43 \u00b7 sem leitura nova\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      2,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nReiniciado \u00e0s 14:43 \u00b7 sem leitura nova\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      2,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nReiniciado \u00e0s 14:43 \u00b7 sem leitura nova\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      2,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nReiniciado \u00e0s 14:43 \u00b7 sem leitura nova\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      2,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      3,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      3,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      3,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      3,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      216,
+      216
+    ],
+    "tracks": [
+      237,
+      237
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nReiniciado \u00e0s 23:30 \u00b7 sem leitura nova\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      4,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      303,
+      303
+    ],
+    "tracks": [
+      332,
+      332
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nReiniciado \u00e0s 23:30 \u00b7 sem leitura nova\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      4,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      216,
+      216
+    ],
+    "tracks": [
+      237,
+      237
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nReiniciado \u00e0s 23:30 \u00b7 sem leitura nova\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      4,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      303,
+      303
+    ],
+    "tracks": [
+      332,
+      332
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nReiniciado \u00e0s 23:30 \u00b7 sem leitura nova\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      4,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      201,
+      201
+    ],
+    "tracks": [
+      222,
+      222
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nSem leitura dos limites\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      5,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      281,
+      281
+    ],
+    "tracks": [
+      310,
+      310
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nSem leitura dos limites\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      5,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      201,
+      201
+    ],
+    "tracks": [
+      222,
+      222
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nSem leitura dos limites\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      5,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      281,
+      281
+    ],
+    "tracks": [
+      310,
+      310
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "\u2014\nClaude\n5 h\nSem leitura dos limites\nSemana\n6%\nRein\u00edcio 05/11/2026\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      5,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nReiniciado \u00e0s 11:00 \u00b7 sem leitura nova\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      6,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nReiniciado \u00e0s 11:00 \u00b7 sem leitura nova\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      6,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nReiniciado \u00e0s 11:00 \u00b7 sem leitura nova\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      6,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nReiniciado \u00e0s 11:00 \u00b7 sem leitura nova\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      6,
+      "light",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      7,
+      "dark",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      7,
+      "dark",
+      240,
+      21
+    ]
+  },
+  {
+    "meters": [
+      182,
+      182
+    ],
+    "tracks": [
+      203,
+      203
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      7,
+      "light",
+      360,
+      14
+    ]
+  },
+  {
+    "meters": [
+      255,
+      255
+    ],
+    "tracks": [
+      284,
+      284
+    ],
+    "overflow": false,
+    "text": [
+      "91\n%\nCodex\n5 h \u00b7 reinicia 14:22\nSemana\n48%\nRein\u00edcio 04/11/2026\nLeitura 12:34\n",
+      "15\n%\nClaude\n5 h \u00b7 reinicia 23:30\nSemana\n\u2014\nJanela semanal indispon\u00edvel\nLeitura 20:00\n"
+    ],
+    "subgrid": true,
+    "case": [
+      7,
+      "light",
+      240,
+      21
+    ]
+  }
+]

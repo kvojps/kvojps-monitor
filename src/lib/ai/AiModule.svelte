@@ -224,8 +224,8 @@
           <h3>{provider.name}</h3>
           <small>{fivePercent !== null && five?.resetsAt != null
             ? interpolate(t.ai.fiveHourResets, { time: clock.format(five.resetsAt) }) : t.ai.fiveHour}</small>
+          {#if fivePercent === null}<small class="line">{missing(five)}</small>{/if}
         </div>
-        {#if fivePercent === null}<small class="line">{missing(five)}</small>{/if}
         <div class="meter">
           <div class="meter-label"><span>{t.ai.weeklyLabel}</span><b class="num">{weekPercent === null ? "—" : `${weekPercent}%`}</b></div>
           {#if weekPercent !== null}
@@ -243,7 +243,7 @@
         {#if provider.reading}
           <small class="source"><time datetime={new Date(provider.reading.readAt).toISOString()}>{readAt(provider.reading.readAt)}</time></small>
         {/if}
-        {#each provider.notices as n (n.text)}{@render notice(n)}{/each}
+        <div class="notices">{#each provider.notices as n (n.text)}{@render notice(n)}{/each}</div>
       </section>
     {/if}
   {/each}
@@ -261,13 +261,14 @@
   .icon:disabled { opacity: .45; cursor: default; }
   .tip { position: absolute; z-index: 4; right: 0; top: 100%; min-width: 150px; background: var(--surface-2); color: var(--text); padding: 9px; border: 1px solid var(--control-line); box-shadow: 0 4px 20px #0006; font-size: 12px; font-weight: 400; visibility: hidden; }
   .action-wrap:hover .tip, .action-wrap:focus-within .tip { visibility: visible; }
-  .instruments { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; align-items: start; }
-  .provider { min-width: 0; display: flex; flex-direction: column; }
+  .instruments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; align-items: start; }
+  /* Shared rows let either explanation grow without moving only one weekly meter. */
+  .provider { min-width: 0; display: grid; grid-row: span 4; grid-template-rows: subgrid; }
   /* An absent provider keeps its column: as tall as the other one, or as a B column with the current dial. */
-  .provider.absent { align-self: stretch; --absent-min: calc(var(--dial, 94px) + 96px); }
+  .provider.absent { display: flex; flex-direction: column; align-self: stretch; --absent-min: calc(var(--dial, 94px) + 96px); }
   .provider.absent h3 { text-align: center; margin-bottom: 6px; }
   .provider[data-stale="true"] :is(.dial, .meter) { opacity: .45; }
-  .instrument { text-align: center; display: flex; flex-direction: column; }
+  .instrument { align-self: start; text-align: center; display: flex; flex-direction: column; }
   /* --dial grows with the free height of the card (Panel); never wider than the column. */
   .dial { position: relative; width: min(var(--dial, 94px), 100%); aspect-ratio: 1; margin: auto; container-type: inline-size; }
   .dial svg { width: 100%; height: 100%; display: block; }
