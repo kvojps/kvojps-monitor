@@ -733,6 +733,7 @@ mod usage {
                 "plan": "pro",
                 "statusLine": "off",
                 "usage": "on",
+                "operation": {"id":1,"origin":"automatic","state":"succeeded"},
                 "reading": {
                     "source": "oauthUsage",
                     "readAt": NOW,
@@ -1076,4 +1077,174 @@ mod usage {
         });
         assert_eq!(claude.data()["paused"], true);
     }
+}
+
+#[test]
+fn only_opted_in_queries_have_operational_results() {
+    let home = usage::home();
+    let api = usage::Api::default();
+    let mut claude = usage::collector(&home, &api);
+    home.status_line_runs(&payload());
+    claude.step(true);
+    assert!(claude.data().get("operation").is_none());
+    claude.set_usage(true).unwrap();
+    home.clock.advance(10_000);
+    claude.step(true);
+    assert_eq!(
+        claude.data()["operation"],
+        json!({"id":1,"origin":"user","state":"succeeded"})
+    );
+}
+
+#[test]
+fn claude_publishes_request_start_before_http_and_recovers_from_real_failure() {
+    let home = usage::home();
+    let api = usage::Api::default();
+    let mut claude = usage::collector(&home, &api);
+    claude.set_usage(true).unwrap();
+    api.answer(Err(crate::ports::HttpError::response(503, None)));
+    let mut starts = Vec::new();
+    claude.step_with_progress(true, |data| starts.push(data));
+    assert_eq!(
+        starts[0]["operation"],
+        json!({"id":1,"origin":"user","state":"running"})
+    );
+    assert_eq!(claude.data()["operation"]["state"], "failed");
+    assert!(claude.data().get("failureSince").is_none());
+    home.clock.advance(30_000);
+    claude.step(false);
+    assert_eq!(
+        claude.data()["operation"],
+        json!({"id":2,"origin":"automatic","state":"recovered"})
+    );
+    claude.set_usage(false).unwrap();
+    claude.step(true);
+    assert!(claude.data().get("operation").is_none());
+    claude.set_usage(true).unwrap();
+    claude.step(true);
+    assert_eq!(claude.data()["operation"]["id"], 3);
+}
+
+#[test]
+fn operational_snapshots_and_persistence_exclude_sensitive_sentinels() {
+    let home = usage::home();
+    let mut credentials: Value =
+        serde_json::from_str(&home.read(".claude/.credentials.json")).unwrap();
+    credentials["claudeAiOauth"]["accessToken"] = json!("SENTINEL_CREDENTIAL");
+    home.write(".claude/.credentials.json", &credentials.to_string());
+    let settings = home.settings();
+    let api = usage::Api::default();
+    let mut response = usage::response();
+    response["prompt"] = json!("SENTINEL_PROMPT");
+    response["response"] = json!("SENTINEL_RESPONSE");
+    api.answer(Ok(response));
+    let state = tempfile::tempdir().unwrap();
+    let mut claude = usage::collector(&home, &api).with_persistence(disk(state.path()));
+    claude.set_usage(true).unwrap();
+    let mut starts = Vec::new();
+    claude.step_with_progress(true, |data| starts.push(data));
+    for text in [
+        serde_json::to_string(&starts).unwrap(),
+        claude.data().to_string(),
+        std::fs::read_to_string(state.path().join("cache/ai.json")).unwrap(),
+        std::fs::read_to_string(state.path().join("state/info.log")).unwrap(),
+    ] {
+        assert!(!text.contains("SENTINEL"));
+    }
+    let cached = std::fs::read_to_string(state.path().join("cache/ai.json")).unwrap();
+    assert!(!cached.contains("operation"));
+    assert_eq!(home.settings(), settings);
+    assert_eq!(
+        home.read(".claude/.credentials.json"),
+        credentials.to_string()
+    );
+}
+
+#[test]
+fn claude_resumes_only_its_opted_in_source_after_pause() {
+    use crate::lifecycle::Status;
+    let home = usage::home();
+    let api = usage::Api::default();
+    let mut claude = usage::collector(&home, &api);
+    claude.lifecycle(Status {
+        online: false,
+        generation: 1,
+        ready_at: 0,
+    });
+    claude.step(true);
+    assert!(claude.data().get("operation").is_none());
+    claude.set_usage(true).unwrap();
+    claude.lifecycle(Status {
+        online: false,
+        generation: 1,
+        ready_at: 0,
+    });
+    claude.step(false);
+    assert_eq!(claude.data()["operation"]["state"], "paused");
+    claude.lifecycle(Status {
+        online: true,
+        generation: 2,
+        ready_at: 0,
+    });
+    let mut starts = Vec::new();
+    claude.step_with_progress(false, |data| starts.push(data));
+    assert_eq!(
+        starts[0]["operation"],
+        json!({"id":2,"origin":"resume","state":"running"})
+    );
+    assert_eq!(claude.data()["operation"]["state"], "succeeded");
+}
+
+#[test]
+fn a_connection_change_during_http_discards_the_response() {
+    use crate::lifecycle::{Shared, Status};
+    struct Interrupted(Shared);
+    impl UsageApi for Interrupted {
+        fn usage(&self, _: &str) -> Result<Value, crate::ports::HttpError> {
+            *self.0.lock().unwrap() = Status {
+                online: false,
+                generation: 1,
+                ready_at: 0,
+            };
+            Ok(usage::response())
+        }
+    }
+    let home = usage::home();
+    let status = Shared::default();
+    *status.lock().unwrap() = Status {
+        online: true,
+        generation: 1,
+        ready_at: 0,
+    };
+    let mut claude = home
+        .claude()
+        .with_usage(Interrupted(status.clone()))
+        .with_lifecycle(status.clone());
+    claude.set_usage(true).unwrap();
+    claude.lifecycle(*status.lock().unwrap());
+    claude.step(true);
+    assert_eq!(claude.data()["operation"]["state"], "paused");
+    assert!(claude.data()["reading"].is_null());
+    assert!(claude.updated_at().is_none());
+}
+
+#[test]
+fn missing_access_token_keeps_a_persistent_condition_beside_existing_readings() {
+    let home = usage::home();
+    let api = usage::Api::default();
+    let mut claude = usage::collector(&home, &api);
+    claude.set_usage(true).unwrap();
+    claude.step(false);
+    let previous = claude.data()["reading"].clone();
+    let mut credentials: Value =
+        serde_json::from_str(&home.read(".claude/.credentials.json")).unwrap();
+    credentials["claudeAiOauth"]["accessToken"] = Value::Null;
+    home.write(".claude/.credentials.json", &credentials.to_string());
+    home.clock.advance(300_000);
+    claude.step(true);
+    assert_eq!(claude.data()["usageUnavailable"], true);
+    assert_eq!(claude.data()["reading"], previous);
+    home.clock.advance(4000);
+    claude.step(false);
+    assert_eq!(claude.data()["usageUnavailable"], true);
 }

@@ -1,0 +1,117 @@
+[
+  {
+    "module": "ai",
+    "updatedAt": null,
+    "data": {
+      "codex": {
+        "operation": {
+          "id": 1,
+          "origin": "user",
+          "state": "running"
+        }
+      },
+      "claude": {
+        "operation": {
+          "id": 1,
+          "origin": "user",
+          "state": "failed"
+        },
+        "token": "SENTINEL_TOKEN",
+        "prompt": "SENTINEL_PROMPT",
+        "response": "SENTINEL_RESPONSE"
+      }
+    }
+  },
+  {
+    "module": "ai",
+    "updatedAt": null,
+    "data": {
+      "codex": {
+        "operation": {
+          "id": 1,
+          "origin": "user",
+          "state": "succeeded"
+        }
+      },
+      "claude": {
+        "operation": {
+          "id": 1,
+          "origin": "user",
+          "state": "failed"
+        },
+        "token": "SENTINEL_TOKEN",
+        "prompt": "SENTINEL_PROMPT",
+        "response": "SENTINEL_RESPONSE"
+      }
+    }
+  },
+  {
+    "module": "ai",
+    "updatedAt": null,
+    "data": {
+      "codex": {
+        "operation": {
+          "id": 2,
+          "origin": "automatic",
+          "state": "succeeded"
+        }
+      },
+      "claude": {
+        "operation": {
+          "id": 2,
+          "origin": "automatic",
+          "state": "recovered"
+        },
+        "token": "SENTINEL_TOKEN",
+        "prompt": "SENTINEL_PROMPT",
+        "response": "SENTINEL_RESPONSE"
+      }
+    }
+  },
+  {
+    "module": "ai",
+    "updatedAt": null,
+    "data": {
+      "codex": {
+        "operation": {
+          "id": 3,
+          "origin": "automatic",
+          "state": "paused"
+        }
+      },
+      "claude": {
+        "operation": {
+          "id": 3,
+          "origin": "automatic",
+          "state": "paused"
+        },
+        "token": "SENTINEL_TOKEN",
+        "prompt": "SENTINEL_PROMPT",
+        "response": "SENTINEL_RESPONSE"
+      }
+    }
+  },
+  {
+    "module": "ai",
+    "updatedAt": null,
+    "data": {
+      "codex": {
+        "operation": {
+          "id": 4,
+          "origin": "resume",
+          "state": "running"
+        }
+      },
+      "claude": {
+        "operation": {
+          "id": 4,
+          "origin": "resume",
+          "state": "running"
+        },
+        "token": "SENTINEL_TOKEN",
+        "prompt": "SENTINEL_PROMPT",
+        "response": "SENTINEL_RESPONSE"
+      }
+    }
+  }
+]

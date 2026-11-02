@@ -395,3 +395,22 @@ describe("fixed composition without a reading", () => {
     expect(provider("Claude")).not.toHaveAttribute("data-stale", "true");
   });
 });
+
+it.each([true, false])("keeps missing-token guidance and an action after the strip expires (reading: %s)", async (hasReading) => {
+  const { default: OperationsStrip } = await import("../OperationsStrip.svelte");
+  const { act } = await import("@testing-library/svelte");
+  const data: AiData = structuredClone(usage) as AiData;
+  data.claude!.usageUnavailable = true;
+  if (!hasReading) data.claude!.reading = null;
+  const configure = vi.fn();
+  render(AiModule, { data, refresh: vi.fn(), configure });
+  const strip = render(OperationsStrip, { snapshots: {}, ready: true });
+  await strip.rerender({ snapshots: { ai: { module: "ai", updatedAt: null, data: { ...data, claude: { ...data.claude, operation: { id: 2, origin: "automatic", state: "unavailable" } } } } }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Claude · Atualização indisponível");
+  await act(() => vi.advanceTimersByTime(4000));
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  expect(provider("Claude")).toHaveTextContent("Token do Claude indisponível · abra o Claude Code");
+  await fireEvent.click(within(provider("Claude")).getByRole("button", { name: "Configurar" }));
+  expect(configure).toHaveBeenCalledOnce();
+  expect(within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" })).toHaveAttribute("aria-valuenow", "91");
+});

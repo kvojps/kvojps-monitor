@@ -23,7 +23,12 @@
       "readAt": 1793460871000,
       "source": "appServer"
     },
-    "state": "ready"
+    "state": "ready",
+    "operation": {
+      "id": 1,
+      "origin": "automatic",
+      "state": "succeeded"
+    }
   },
   "refreshing": false
 }

@@ -134,7 +134,8 @@
     const off = claude.statusLine === "off" && claude.usage !== "on";
     if (!claude.reading) {
       const failing = claude.usage === "on" && claude.failureSince != null && !claude.paused;
-      const absence: Absence = claude.usage === "expired" ? { text: t.ai.expired, tone: "warn" }
+      const absence: Absence = claude.usageUnavailable ? { text: t.ai.usageUnavailable, tone: "warn", action: { label: t.ai.configure, run: () => configure() } }
+        : claude.usage === "expired" ? { text: t.ai.expired, tone: "warn" }
         : claude.statusLine === "replaced" ? { text: t.ai.replaced, tone: "warn", action: { label: t.absent.reconnect, run: () => reconnect() } }
         : failing ? failedFirst(claude.failureSince!)
         : off ? { text: t.ai.offClaude, tone: "neutral", action: { label: t.absent.configure, run: () => configure() } }
@@ -143,11 +144,12 @@
     }
     const notices: Notice[] = pausedNotice(claude.paused);
     const failed = claude.usage === "on" ? failure(claude.failureSince, claude.paused) : [];
+    if (claude.usageUnavailable) notices.push({ text: t.ai.usageUnavailable, alert: true, action: "configure" });
     if (claude.usage === "expired") notices.push({ text: t.ai.expired, alert: true });
     else notices.push(...failed);
     if (claude.statusLine === "replaced") notices.push({ text: t.ai.replaced, alert: true, action: "reconnect" });
     if (off) notices.push({ text: t.ai.offClaude, action: "configure" });
-    return { ...base, reading: claude.reading, absence: null, notices, old: failed.length > 0 };
+    return { ...base, reading: claude.reading, absence: null, notices, old: failed.length > 0 || claude.usageUnavailable };
   }
 
   function refreshNow() {

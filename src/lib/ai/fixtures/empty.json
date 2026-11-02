@@ -2,7 +2,12 @@
   "codex": {
     "plan": "plus",
     "reading": null,
-    "state": "empty"
+    "state": "empty",
+    "operation": {
+      "id": 1,
+      "origin": "automatic",
+      "state": "failed"
+    }
   },
   "refreshing": false
 }

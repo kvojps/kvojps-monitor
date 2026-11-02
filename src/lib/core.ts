@@ -206,6 +206,7 @@ export interface AiData {
   refreshing: boolean;
   paused?: boolean;
   codex: {
+    operation?: Operation;
     state: "missing" | "empty" | "ready";
     /** First of at least three consecutive failed queries. */
     failureSince?: number | null;
@@ -214,6 +215,7 @@ export interface AiData {
     reading: AiReading | null;
   };
   claude?: {
+    operation?: Operation;
     state: "missing" | "empty" | "ready";
     /** Claude subscriptionType, e.g. pro or max. */
     plan: string | null;
@@ -221,6 +223,8 @@ export interface AiData {
     statusLine: "off" | "connected" | "replaced";
     /** oauth/usage opt-in; expired: token expired or refused, back to the status line. */
     usage: "off" | "on" | "expired";
+    /** Opted in, but the local access token could not be read. */
+    usageUnavailable?: boolean;
     /** First of at least three consecutive failed oauth/usage reads. */
     failureSince?: number | null;
     /** oauth/usage waits for connectivity or its turn after login/reconnection. */

@@ -23,7 +23,12 @@
       "readAt": 1793457238475,
       "source": "rollout"
     },
-    "state": "ready"
+    "state": "ready",
+    "operation": {
+      "id": 1,
+      "origin": "automatic",
+      "state": "failed"
+    }
   },
   "refreshing": false
 }

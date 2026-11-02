@@ -309,6 +309,7 @@
     "replaced": "Status line desconectada",
     "reconnect": "Reconectar",
     "expired": "Token do Claude expirado · abra o Claude Code",
+    "usageUnavailable": "Token do Claude indisponível · abra o Claude Code",
     "settings": {
       "connect": "Conectar ao Claude Code",
       "disconnect": "Desconectar",
@@ -417,6 +418,7 @@
     "reconnect": "Reconectar"
   },
   "operations": {
+    "providers": { "codex": "Codex", "claude": "Claude" },
     "rest": "Bordo em repouso",
     "resume": "Retomando atualização…",
     "messages": {

@@ -10,15 +10,15 @@
     const timer = setTimeout(callback, delay);
     return () => clearTimeout(timer);
   } } }: { snapshots: Partial<Record<Module, Snapshot>>; ready: boolean; clock?: Clock } = $props();
-  type Entry = { operation: Operation; text: string; priority: number };
-  let entries = $state<Partial<Record<Module, Entry>>>({});
+  type Entry = { module: Module; operation: Operation; text: string; priority: number };
+  let entries = $state<Record<string, Entry | undefined>>({});
   let announcement = $state("");
   let capacity = $state(3);
   let host: HTMLElement;
   let initialized = false;
-  const seen = new Map<Module, string>();
-  const timers = new Map<Module, () => void>();
-  const pendingAnnouncements = new Map<Module, string>();
+  const seen = new Map<string, string>();
+  const timers = new Map<string, () => void>();
+  const pendingAnnouncements = new Map<string, string>();
   let announcing = false;
   let disposed = false;
 
@@ -35,7 +35,7 @@
   onDestroy(() => { disposed = true; timers.forEach(cancel => cancel()); });
 
   // Only the closed operational vocabulary reaches the strip; source payload content is never rendered.
-  function describe(module: Module, operation: Operation): Entry | null {
+  function describe(module: Module, operation: Operation, provider?: "codex" | "claude"): Entry | null {
     const state = operation.state;
     if (state === "running" && operation.origin === "automatic") return null;
     if (state === "succeeded" && operation.origin !== "user") return null;
@@ -43,31 +43,42 @@
     if (!Object.hasOwn(messages, state)) return null;
     const text = state === "running" && operation.origin === "resume" ? t.operations.resume : messages[state];
     const priority = state === "failed" ? 0 : state === "paused" ? 1 : state === "attention" || state === "unavailable" ? 2 : state === "running" ? 3 : 4;
-    return { operation, text: `${t.modules[module]} · ${text}`, priority };
+    return { module, operation, text: `${provider ? t.operations.providers[provider] : t.modules[module]} · ${text}`, priority };
   }
 
   $effect(() => {
     if (!ready) return;
-    const current = MODULES.map(module => ({ module, operation: (snapshots[module]?.data as { operation?: Operation } | undefined)?.operation }));
+    const current = MODULES.flatMap<{ module: Module; source: string; provider?: "codex" | "claude"; operation?: Operation }>(module => {
+      const data = snapshots[module]?.data as { operation?: Operation; codex?: { operation?: Operation }; claude?: { operation?: Operation } } | undefined;
+      if (module === "ai" && (data?.codex || data?.claude)) {
+        return (["codex", "claude"] as const).map(provider => ({ module, source: `ai:${provider}`, provider, operation: data[provider]?.operation }));
+      }
+      return [{ module, source: module, provider: undefined, operation: data?.operation }];
+    });
     untrack(() => {
-      for (const { module, operation } of current) {
-        if (!operation) continue;
+      for (const { module, source, provider, operation } of current) {
+        if (!operation) {
+          timers.get(source)?.();
+          timers.delete(source);
+          entries[source] = undefined;
+          continue;
+        }
         const key = `${operation.id}:${operation.state}`;
-        if (seen.get(module) === key) continue;
-        seen.set(module, key);
+        if (seen.get(source) === key) continue;
+        seen.set(source, key);
         if (!initialized) continue;
-        timers.get(module)?.();
-        timers.delete(module);
-        const entry = describe(module, operation);
-        entries[module] = entry ?? undefined;
+        timers.get(source)?.();
+        timers.delete(source);
+        const entry = describe(module, operation, provider);
+        entries[source] = entry ?? undefined;
         if (!entry) continue;
         if (operation.state !== "running") {
-          timers.set(module, clock.after(4000, () => {
-            entries[module] = undefined;
-            timers.delete(module);
+          timers.set(source, clock.after(4000, () => {
+            entries[source] = undefined;
+            timers.delete(source);
           }));
           if (operation.origin === "user" || ["failed", "recovered", "paused", "attention", "unavailable"].includes(operation.state)) {
-            pendingAnnouncements.set(module, entry.text);
+            pendingAnnouncements.set(source, entry.text);
           }
         }
       }
@@ -75,7 +86,10 @@
       if (pendingAnnouncements.size) void announce();
     });
   });
-  const ordered = $derived(Object.values(entries).filter((entry): entry is Entry => !!entry).sort((a, b) => a.priority - b.priority));
+  const ordered = $derived(MODULES.flatMap(module => {
+    const sources = Object.values(entries).filter((entry): entry is Entry => entry?.module === module).sort((a, b) => a.priority - b.priority);
+    return sources.length ? [{ text: sources.map(entry => entry.text).join("; "), priority: sources[0].priority }] : [];
+  }).sort((a, b) => a.priority - b.priority));
   const visible = $derived(ordered.slice(0, capacity));
   onMount(() => {
     if (typeof ResizeObserver !== "function") return;

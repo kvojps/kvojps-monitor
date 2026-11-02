@@ -149,8 +149,11 @@ pub struct Claude<S, P, W, R> {
     checked_at: Option<u64>,
     stepped_at: u64,
     api: Box<dyn UsageApi>,
+    operations: super::operation::Operations,
     /// The user opted in to `oauth/usage`; read from the app configuration.
     usage_enabled: bool,
+    usage_unavailable: bool,
+    lifecycle_source: Option<Box<dyn crate::lifecycle::CurrentStatus>>,
     /// Newest `oauth/usage` reading.
     usage_reading: Option<Reading>,
     /// Identity of a token that expired or was refused; never sent again.
@@ -180,7 +183,10 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             checked_at: None,
             stepped_at: 0,
             api: Box::new(usage::NoUsage),
+            operations: super::operation::Operations::default(),
             usage_enabled: false,
+            usage_unavailable: false,
+            lifecycle_source: None,
             usage_reading: None,
             rejected: None,
             usage_pending: true,
@@ -191,6 +197,14 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             retry_at: 0,
             lifecycle: None,
         }
+    }
+
+    pub fn with_lifecycle(
+        mut self,
+        source: impl crate::lifecycle::CurrentStatus + 'static,
+    ) -> Self {
+        self.lifecycle_source = Some(Box::new(source));
+        self
     }
 
     /// The `oauth/usage` endpoint, used only after the user opts in.
@@ -374,6 +388,8 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             &self.locations.usage_choice,
             &serde_json::to_string(&choice).unwrap(),
         )?;
+        self.operations.clear();
+        self.usage_unavailable = false;
         self.usage_enabled = enabled;
         self.usage_pending = true;
         self.usage_reading = None;
@@ -386,6 +402,9 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
 
     /// Each new connectivity generation (login, reconnect, resume) reads once.
     pub fn lifecycle(&mut self, status: crate::lifecycle::Status) {
+        let resumed = self
+            .lifecycle
+            .is_some_and(|previous| previous.generation != status.generation);
         if self
             .lifecycle
             .is_none_or(|previous| previous.generation != status.generation)
@@ -396,6 +415,13 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             self.retry_at = 0;
         }
         self.lifecycle = Some(status);
+        if self.usage() == Usage::On {
+            if self.paused() {
+                self.operations.pause();
+            } else if resumed {
+                self.operations.discard();
+            }
+        }
     }
 
     /// Offline, or before this source's turn after login/reconnection.
@@ -415,7 +441,7 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
 
     /// The token is read for this request only. One that expired or was
     /// refused is never sent: Claude Code has to renew it.
-    fn read_usage(&mut self, manual: bool) -> bool {
+    fn read_usage(&mut self, manual: bool, progress: &mut impl FnMut(Value)) -> bool {
         let now = self.clock.now();
         let since =
             |at: Option<u64>, interval: u64| at.is_none_or(|t| now.saturating_sub(t) >= interval);
@@ -434,14 +460,31 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
         self.usage_pending = false;
         self.usage_at = Some(now);
         let Some(token) = self.token() else {
-            return false;
+            self.usage_unavailable = true;
+            self.operations.unavailable();
+            return true;
         };
+        self.usage_unavailable = false;
+        self.operations.begin(manual);
         if token.expires_at.is_some_and(|at| at <= now) {
             self.refuse(&token);
             self.log(Event::InvalidCredential, None, now);
             return true;
         }
-        match self.api.usage(&token.access_token) {
+        progress(self.data());
+        let response = self.api.usage(&token.access_token);
+        if let Some(source) = &self.lifecycle_source {
+            let latest = source.current();
+            if !latest.online
+                || self
+                    .lifecycle
+                    .is_some_and(|started| started.generation != latest.generation)
+            {
+                self.lifecycle(latest);
+                return true;
+            }
+        }
+        match response {
             Ok(response) => match usage::buckets(&response) {
                 Some(buckets) => {
                     self.usage_reading = Some(Reading {
@@ -449,6 +492,7 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
                         read_at: self.clock.now(),
                         buckets,
                     });
+                    self.operations.success();
                     self.failures = 0;
                     self.failure_since = None;
                     self.persistence.save(&self.snapshot());
@@ -474,6 +518,7 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
 
     /// Never send this token again, even after a restart.
     fn refuse(&mut self, token: &Token) {
+        self.operations.finish(super::operation::State::Unavailable);
         self.rejected = Some(token.id());
         let choice = UsageChoice {
             refused_expires_at: token.expires_at,
@@ -491,6 +536,7 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
         let now = self.clock.now();
         self.failure_since.get_or_insert(now);
         self.failures += 1;
+        self.operations.failure();
         self.retry_at = now
             .saturating_add(
                 BACKOFF[(self.failures - 1).min(BACKOFF.len() - 1)].max(error.retry_after_ms),
@@ -644,7 +690,13 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
     }
 
     /// True whenever something the module shows may have changed.
+    #[cfg(test)]
     pub fn step(&mut self, manual: bool) -> bool {
+        self.step_with_progress(manual, |_| {})
+    }
+
+    /// Publish real request start before the blocking HTTP port is called.
+    pub fn step_with_progress(&mut self, manual: bool, mut progress: impl FnMut(Value)) -> bool {
         let now = self.clock.now();
         let first = self.checked_at.is_none();
         let mut changed = false;
@@ -664,7 +716,7 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
         if self.watch.changed() || first || manual {
             changed |= self.read_copy();
         }
-        changed |= self.read_usage(manual);
+        changed |= self.read_usage(manual, &mut progress);
         // A window restarting turns into "Reiniciado às" without a new reading.
         let since = std::mem::replace(&mut self.stepped_at, now);
         changed |= self.merged().iter().flat_map(|r| &r.buckets).any(|bucket| {
@@ -690,6 +742,12 @@ impl<S: Storage, P: Programs, W: Watch, R: Clock> Claude<S, P, W, R> {
             "usage": self.usage(),
             "reading": reading,
         });
+        if self.usage_unavailable {
+            data["usageUnavailable"] = json!(true);
+        }
+        if let Some(operation) = &self.operations.current {
+            data["operation"] = json!(operation);
+        }
         if self.usage() == Usage::On && self.failures >= FAILURES_SHOWN {
             data["failureSince"] = json!(self.failure_since);
         }

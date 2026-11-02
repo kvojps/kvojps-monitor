@@ -132,6 +132,7 @@ fn app_server_reading_shows_plan_and_both_windows() {
         data["codex"],
         json!({
             "state": "ready",
+            "operation": {"id":1,"origin":"automatic","state":"succeeded"},
             "plan": "plus",
             "reading": {
                 "source": "appServer",
@@ -486,7 +487,9 @@ fn restart_shows_the_cached_reading_before_any_query() {
         .with_persistence(disk(&dir))
         .snapshot();
     assert_eq!(restored.updated_at, Some(NOW));
-    assert_eq!(restored.data["codex"], fresh.data["codex"]);
+    let mut expected = fresh.data["codex"].clone();
+    expected.as_object_mut().unwrap().remove("operation");
+    assert_eq!(restored.data["codex"], expected);
 }
 
 #[test]
@@ -679,4 +682,79 @@ fn failed_queries_back_off_and_show_the_failure_after_three_in_a_row() {
     let data = codex.step(false, false).unwrap().data;
     assert!(data["codex"]["failureSince"].is_null());
     assert_eq!(data["codex"]["reading"]["source"], "appServer");
+}
+
+#[test]
+fn requested_query_has_its_own_real_result() {
+    let clock = FakeClock::at(NOW);
+    let mut codex = Codex::new(Server::recorded(), FakeRoot::from("codex/home"), clock);
+    let snapshot = codex.step(true, true).unwrap();
+    assert_eq!(
+        snapshot.data["codex"]["operation"],
+        json!({"id":1,"origin":"user","state":"succeeded"})
+    );
+}
+
+#[test]
+fn discarded_queries_cannot_complete_after_a_pause_and_resume_has_a_new_identity() {
+    use crate::lifecycle::Status;
+    let server = Server::recorded();
+    server.silent.lock().unwrap().push(RATE_LIMITS);
+    let clock = FakeClock::at(NOW);
+    let mut codex = codex(&server, &clock);
+    let start = codex.step(true, true).unwrap();
+    assert_eq!(start.data["codex"]["operation"]["state"], "running");
+    let request = server
+        .sent
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|m| m["method"] == RATE_LIMITS)
+        .unwrap()
+        .clone();
+    codex.lifecycle(Status {
+        online: false,
+        generation: 1,
+        ready_at: 0,
+    });
+    server
+        .inbox
+        .lock()
+        .unwrap()
+        .push_back(json!({"id":request["id"],"result":server.result(RATE_LIMITS)}));
+    let paused = codex.step(true, false).unwrap();
+    assert_eq!(
+        paused.data["codex"]["operation"],
+        json!({"id":2,"origin":"automatic","state":"paused"})
+    );
+    assert!(paused.data["codex"]["reading"].is_null());
+    server.silent.lock().unwrap().clear();
+    codex.lifecycle(Status {
+        online: true,
+        generation: 2,
+        ready_at: 0,
+    });
+    let resumed = codex.step(true, false).unwrap();
+    assert_eq!(
+        resumed.data["codex"]["operation"],
+        json!({"id":3,"origin":"resume","state":"succeeded"})
+    );
+}
+
+#[test]
+fn failures_and_recovery_are_real_results_not_rollout_fallback_success() {
+    let server = Server::recorded();
+    server.failing.lock().unwrap().push(RATE_LIMITS);
+    let clock = FakeClock::at(NOW);
+    let mut codex = codex(&server, &clock);
+    let failed = codex.step(true, true).unwrap();
+    assert_eq!(failed.data["codex"]["operation"]["state"], "failed");
+    assert_eq!(failed.data["codex"]["reading"]["source"], "rollout");
+    server.failing.lock().unwrap().clear();
+    clock.advance(30_000);
+    let recovered = codex.step(true, false).unwrap();
+    assert_eq!(
+        recovered.data["codex"]["operation"],
+        json!({"id":2,"origin":"automatic","state":"recovered"})
+    );
 }

@@ -2,6 +2,7 @@
 //! newest rollout snapshot as fallback, and Claude limits from the Claude Code
 //! status line and, opted in, the `oauth/usage` endpoint.
 mod claude;
+mod operation;
 mod process;
 mod usage;
 use crate::module::Module;
@@ -73,6 +74,7 @@ struct PendingRequest {
 }
 
 pub struct Codex<A, F, R> {
+    operations: operation::Operations,
     server: A,
     files: F,
     clock: R,
@@ -101,6 +103,7 @@ pub struct Codex<A, F, R> {
 impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
     pub fn new(server: A, files: F, clock: R) -> Self {
         Self {
+            operations: operation::Operations::default(),
             server,
             files,
             clock,
@@ -165,6 +168,9 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
                 "reading": reading,
             },
         });
+        if let Some(operation) = &self.operations.current {
+            data["codex"]["operation"] = json!(operation);
+        }
         if self.failures >= FAILURES_SHOWN {
             data["codex"]["failureSince"] = json!(self.failure_since);
         }
@@ -188,6 +194,13 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
             self.manual_at = None;
             self.spawn_at = None;
             self.retry_at = 0;
+        }
+        if self.paused() {
+            self.pending.retain(|request| request.method != RATE_LIMITS);
+            self.operations.pause();
+        } else if previous.is_some_and(|p| p.generation != status.generation) {
+            self.pending.retain(|request| request.method != RATE_LIMITS);
+            self.operations.discard();
         }
         self.dirty |=
             previous.is_none_or(|p| p.online != status.online || p.generation != status.generation);
@@ -226,7 +239,11 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
         }
         self.refresh_pending = false;
         self.query_at = Some(now);
+        self.operations.begin(manual);
         self.request(RATE_LIMITS, Value::Null);
+        if !self.querying() {
+            self.failed(now);
+        }
         true
     }
 
@@ -235,6 +252,9 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
         let mut changed = std::mem::take(&mut self.dirty);
         let now = self.clock.now();
         if self.connection.as_mut().is_some_and(|c| !c.alive()) {
+            if self.querying() {
+                self.failed(now);
+            }
             self.connection = None;
             self.pending.clear();
             changed = true;
@@ -248,6 +268,7 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
                 Ok(connection) => self.connection = Some(connection),
                 Err(()) => {
                     self.detected = Some(false);
+                    self.operations.unavailable();
                     return Some(self.snapshot());
                 }
             }
@@ -323,6 +344,7 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
         let now = self.clock.now();
         self.failure_since.get_or_insert(now);
         self.failures += 1;
+        self.operations.failure();
         self.retry_at = now.saturating_add(BACKOFF[(self.failures - 1).min(BACKOFF.len() - 1)]);
         self.log(Event::Failed, started_at);
         if self.fall_back() {
@@ -438,6 +460,17 @@ impl<A: AppServer, F: Files, R: Clock> Codex<A, F, R> {
                     read_at: self.clock.now(),
                     buckets,
                 });
+                if self.detected == Some(false)
+                    || self.reading.as_ref().is_none_or(|r| {
+                        r.buckets
+                            .iter()
+                            .all(|b| b.primary.is_none() && b.secondary.is_none())
+                    })
+                {
+                    self.operations.finish(operation::State::Unavailable);
+                } else {
+                    self.operations.success();
+                }
                 self.failures = 0;
                 self.failure_since = None;
                 self.retry_at = 0;
@@ -469,11 +502,18 @@ fn restarted(reading: Option<Reading>, now: u64) -> Option<Reading> {
 
 /// The AI snapshot: Codex with the Claude part beside it.
 fn combine<S: Storage, P: Programs, W: Watch, R: Clock>(
-    mut snapshot: Snapshot,
+    snapshot: Snapshot,
     claude: &claude::Claude<S, P, W, R>,
 ) -> Snapshot {
-    snapshot.data["claude"] = claude.data();
-    snapshot.updated_at = snapshot.updated_at.max(claude.updated_at());
+    combine_data(snapshot, claude.data())
+}
+
+/// Compose both intermediate and final provider snapshots through one contract.
+fn combine_data(mut snapshot: Snapshot, claude: Value) -> Snapshot {
+    snapshot.updated_at = snapshot
+        .updated_at
+        .max(claude["reading"]["readAt"].as_u64());
+    snapshot.data["claude"] = claude;
     snapshot
 }
 
@@ -700,7 +740,8 @@ pub fn start(app: tauri::AppHandle) {
             crate::ports::SystemClock,
             locations,
         )
-        .with_usage(usage::AnthropicUsage);
+        .with_usage(usage::AnthropicUsage)
+        .with_lifecycle(app.state::<crate::lifecycle::Shared>().inner().clone());
         if let (Some(cache), Some(state)) = (dirs::cache_dir(), dirs::state_dir()) {
             use crate::persistence::{Cache, DiskStorage, LocalPersistence, Logs};
             let shared = SharedCache::new(LocalPersistence {
@@ -736,7 +777,12 @@ pub fn start(app: tauri::AppHandle) {
             claude.lifecycle(status);
             let visible = crate::collection::is_visible(&app, Module::Ai);
             changed |= codex.step(visible, manual).is_some();
-            changed |= claude.step(manual);
+            if changed {
+                crate::snapshot::publish(&app, combine(codex.snapshot(), &claude));
+            }
+            changed |= claude.step_with_progress(manual, |data| {
+                crate::snapshot::publish(&app, combine_data(codex.snapshot(), data));
+            });
             if changed {
                 crate::snapshot::publish(&app, combine(codex.snapshot(), &claude));
             }

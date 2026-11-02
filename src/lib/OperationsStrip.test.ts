@@ -98,3 +98,53 @@ it("announces identical results of distinct requested operations again", async (
   observer.disconnect();
   expect(delivered).toContain("GitHub · Telemetria atualizada.");
 });
+
+it("keeps concurrent AI providers independent before grouping their summaries", async () => {
+  vi.useFakeTimers();
+  const { rerender } = render(OperationsStrip, { snapshots: {}, ready: true });
+  const { default: transitions } = await import("./fixtures/operations/ai-transitions.json");
+  const first: Snapshot = { ...transitions[0], module: "ai" };
+  const second: Snapshot = { ...transitions[1], module: "ai" };
+  await rerender({ snapshots: { ai: first }, ready: true });
+  const strip = screen.getByLabelText("Faixa de bordo");
+  expect(strip).toHaveTextContent("Claude · Falha ao atualizar");
+  expect(strip).toHaveTextContent("Codex · Estabelecendo enlace");
+  await rerender({ snapshots: { ai: second }, ready: true });
+  expect(strip).toHaveTextContent("Claude · Falha ao atualizar");
+  expect(strip).toHaveTextContent("Codex · Telemetria atualizada");
+  expect(document.body).not.toHaveTextContent("SENTINEL");
+  await act(() => vi.advanceTimersByTime(4000));
+  expect(strip).toHaveTextContent("Bordo em repouso");
+});
+
+
+it("uses AI provider identities for recovery, pause, resume, repetition and reopening", async () => {
+  vi.useFakeTimers();
+  const { default: transitions } = await import("./fixtures/operations/ai-transitions.json");
+  const state = (index: number): Snapshot => ({ ...transitions[index], module: "ai" });
+  const { rerender, unmount } = render(OperationsStrip, { snapshots: {}, ready: true });
+  await rerender({ snapshots: { ai: state(2) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Claude · Atualização restabelecida");
+  expect(screen.getByRole("status")).not.toHaveTextContent("Codex");
+  await rerender({ snapshots: { ai: state(3) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Codex · Atualização pausada");
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Claude · Atualização pausada");
+  await act(() => vi.advanceTimersByTime(3000));
+  await rerender({ snapshots: { ai: state(3) }, ready: true });
+  await act(() => vi.advanceTimersByTime(1000));
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  await rerender({ snapshots: { ai: state(4) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Codex · Retomando atualização");
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Claude · Retomando atualização");
+  await act(() => vi.advanceTimersByTime(60_000));
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Retomando atualização");
+  // A discarded request has no fabricated result or accessible announcement.
+  await rerender({ snapshots: { ai: { module: "ai", updatedAt: null, data: { codex: {}, claude: {} } } }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  expect(screen.getByRole("status")).not.toHaveTextContent(/Telemetria|cancelada/);
+  unmount();
+  render(OperationsStrip, { snapshots: { ai: state(2) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  expect(screen.getByRole("status").textContent).toBe("");
+});

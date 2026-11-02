@@ -139,6 +139,17 @@ mod tests {
 
 pub type Shared = std::sync::Arc<std::sync::Mutex<Status>>;
 
+/// Current connectivity generation, injected into blocking collectors so obsolete
+/// responses can be discarded before changing readings or persistence.
+pub trait CurrentStatus: Send {
+    fn current(&self) -> Status;
+}
+impl CurrentStatus for Shared {
+    fn current(&self) -> Status {
+        *self.lock().unwrap()
+    }
+}
+
 pub fn start(app: &tauri::AppHandle) {
     use tauri::Manager;
     let shared = Shared::default();
