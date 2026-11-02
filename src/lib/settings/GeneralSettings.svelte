@@ -6,6 +6,7 @@
   import Switch from "./Switch.svelte";
 
   let { core }: { core: Core } = $props();
+  const uid = $props.id();
   let general = $state<GeneralSettings | null>(null);
   let pending = $state(false);
   let autostartError = $state(false);
@@ -70,8 +71,8 @@
   }
 </script>
 
-<section aria-labelledby="settings-general-title">
-  <h3 id="settings-general-title">{t.settings.general.title}</h3>
+<section aria-labelledby="{uid}-title">
+  <h3 id="{uid}-title">{t.settings.general.title}</h3>
   {#if loadError}
     <FieldError message={t.settings.general.loadFailed} />
     <button onclick={load}>{t.settings.general.retry}</button>
@@ -83,17 +84,19 @@
     <Switch label={t.settings.general.versionCheck} checked={general.versionCheck} disabled={pending}
       error={versionError ? t.settings.general.versionCheckFailed : undefined}
       onchange={(enabled) => change(enabled, core.setVersionCheck, (v) => (versionError = v))} />
+  {/if}
+  <button onclick={openLogs} aria-describedby={logsError ? `${uid}-logs-error` : undefined}>{t.settings.general.openLogs}</button>
+  {#if logsError}<FieldError id="{uid}-logs-error" message={t.settings.general.openLogsFailed} />{/if}
+  {#if general}
+    <p class="version num">{interpolate(t.settings.general.version, { version: general.version })}</p>
     {#if general.release}
       <button class="link" onclick={() => core.openRelease?.()}>{interpolate(t.settings.general.release, { version: general.release.version })}</button>
     {/if}
-    <p class="version num">{interpolate(t.settings.general.version, { version: general.version })}</p>
   {/if}
-  <button onclick={openLogs} aria-describedby={logsError ? "logs-error" : undefined}>{t.settings.general.openLogs}</button>
-  {#if logsError}<FieldError id="logs-error" message={t.settings.general.openLogsFailed} />{/if}
 </section>
 
 <style>
-  .version { color: var(--muted); font-size: 11px; }
+  .version { margin-top: 18px; color: var(--muted); font-size: 11px; }
   .link {
     display: block;
     padding: 0;

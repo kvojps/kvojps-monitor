@@ -227,6 +227,35 @@ describe("general settings", () => {
     expect(screen.getByRole("button", { name: "Versão 0.2.0 disponível · ver release" })).toBeInTheDocument();
   });
 
+  it("starts with the controls and ends with the version and the release line", async () => {
+    const { core } = fakeCore({}, { ...GENERAL, release: { version: "0.2.0", url: "https://github.com/Kvojps/kvojps-monitor/releases/tag/v0.2.0" } });
+    render(Panel, { core });
+    await openSettings();
+    const general = await screen.findByRole("region", { name: "Geral" });
+    await within(general).findByText("kvojps-monitor 0.1.0");
+
+    const order = [
+      within(general).getByRole("checkbox", { name: "Iniciar com o login" }),
+      within(general).getByRole("checkbox", { name: "Verificar nova versão diariamente" }),
+      within(general).getByRole("button", { name: "Abrir pasta de logs" }),
+      within(general).getByText("kvojps-monitor 0.1.0"),
+      within(general).getByRole("button", { name: "Versão 0.2.0 disponível · ver release" }),
+    ];
+    for (let i = 1; i < order.length; i++) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it("shows a failure to open the logs folder below its button", async () => {
+    const { core } = fakeCore();
+    core.openLogs.mockRejectedValueOnce("unavailable");
+    render(Panel, { core });
+    await openSettings();
+    const logs = await screen.findByRole("button", { name: "Abrir pasta de logs" });
+    await userEvent.click(logs);
+    await vi.waitFor(() => expect(logs).toHaveAccessibleDescription("Não foi possível abrir a pasta de logs"));
+  });
+
   it("opens the logs folder", async () => {
     const { core } = fakeCore();
     render(Panel, { core });
@@ -262,6 +291,28 @@ describe("appearance", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível salvar a aparência");
     expect(screen.getByRole("radio", { name: "Claro" })).toBeChecked();
     expect(document.documentElement.dataset.theme).toBe("light");
+  });
+
+  it("shows a failed motion save right below its switch", async () => {
+    const { core } = fakeCore(appearance({}));
+    core.setAppearance.mockRejectedValueOnce("unwritable");
+    render(Panel, { core });
+    await openSection("Aparência");
+    const reduce = screen.getByRole("checkbox", { name: "Reduzir animações" });
+    await userEvent.click(reduce);
+    await vi.waitFor(() => expect(reduce).toHaveAccessibleDescription("Não foi possível salvar a aparência"));
+    expect(reduce).not.toBeChecked();
+    expect(screen.getByRole("group", { name: "Tema" })).not.toHaveAccessibleDescription();
+  });
+
+  it("shows a failed theme save on the theme choices", async () => {
+    const { core } = fakeCore(appearance({ theme: "light" }));
+    core.setAppearance.mockRejectedValueOnce("unwritable");
+    render(Panel, { core });
+    await openSection("Aparência");
+    await userEvent.click(screen.getByRole("radio", { name: "Escuro" }));
+    await vi.waitFor(() => expect(screen.getByRole("group", { name: "Tema" })).toHaveAccessibleDescription("Não foi possível salvar a aparência"));
+    expect(screen.getByRole("checkbox", { name: "Reduzir animações" })).not.toHaveAccessibleDescription();
   });
 
   it("follows the desktop theme while the system theme is chosen", async () => {

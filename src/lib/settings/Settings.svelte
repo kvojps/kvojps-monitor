@@ -256,16 +256,6 @@
   .settings :global(h5) { margin: 16px 0 4px; font-size: 13px; font-weight: 600; color: var(--text); }
   .settings :global(p) { margin: 8px 0; }
   .settings :global(label) { display: block; margin: 12px 0 6px; color: var(--muted); }
-  /* Sections not yet on the shared Switch piece. */
-  .settings :global(label:has(> input[type="checkbox"])) {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 32px;
-    margin: 6px 0;
-    color: var(--text);
-    cursor: pointer;
-  }
   .settings :global(input:not([type="checkbox"]):not([type="radio"])) {
     width: 100%;
     min-height: 36px;
@@ -277,7 +267,6 @@
     border-radius: 6px;
   }
   .settings :global(input[aria-invalid="true"]) { border-color: var(--bad); }
-  .settings :global(input[type="checkbox"]),
   .settings :global(input[type="radio"]) { width: 18px; height: 18px; accent-color: var(--accent); }
   .settings :global(button) {
     display: inline-flex;
@@ -294,9 +283,6 @@
   .settings :global(button:hover:not(:disabled)) { border-color: var(--accent); }
   .settings :global(button:disabled) { opacity: 0.5; cursor: default; }
   .settings :global(:is(button, input):focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .settings :global([role="alert"]) { color: var(--bad); }
-  .settings :global(form [role="status"]),
-  .settings :global(p[role="status"]) { color: var(--ok); }
   .settings :global(.warning) { margin: 8px 0; padding: 12px; border: 1px solid var(--warn); }
   .settings :global(.warning b) { color: var(--warn); }
   .settings .back { border-radius: 18px; }

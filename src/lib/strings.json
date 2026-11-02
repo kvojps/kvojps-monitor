@@ -398,12 +398,15 @@
     "title": "Agentes",
     "waitingSetting": "Aguardando",
     "doneSetting": "Turno concluído",
-    "failedSetting": "Falha"
+    "failedSetting": "Falha",
+    "groupTitle": "Notificações"
   },
   "agentHooks": {
     "setting": "Detecção instantânea",
     "trust": "No Codex, abra /hooks e revise e confie nos hooks do kvojps-monitor para ativar a detecção instantânea.",
-    "error": "Não foi possível alterar os hooks. Verifique as permissões e o formato das configurações."
+    "error": "Não foi possível alterar os hooks. Verifique as permissões e o formato das configurações.",
+    "on": "Detecção instantânea ligada",
+    "off": "Detecção instantânea desligada"
   },
   "intelligence": {
     "title": "IA e Agentes"
