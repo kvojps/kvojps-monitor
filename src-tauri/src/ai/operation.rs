@@ -32,7 +32,7 @@ pub(super) struct Operations {
     failed: bool,
 }
 impl Operations {
-    fn new(&mut self, origin: Origin, state: State) {
+    fn record(&mut self, origin: Origin, state: State) {
         self.next_id += 1;
         self.current = Some(Operation {
             id: self.next_id,
@@ -49,7 +49,7 @@ impl Operations {
             Origin::Automatic
         };
         self.resume = false;
-        self.new(origin, State::Running);
+        self.record(origin, State::Running);
     }
     pub fn finish(&mut self, state: State) {
         if let Some(op) = &mut self.current {
@@ -76,7 +76,7 @@ impl Operations {
             .as_ref()
             .is_some_and(|op| op.state == State::Paused)
         {
-            self.new(Origin::Automatic, State::Paused);
+            self.record(Origin::Automatic, State::Paused);
         }
     }
     pub fn unavailable(&mut self) {
@@ -85,7 +85,7 @@ impl Operations {
             .as_ref()
             .is_some_and(|op| op.state == State::Unavailable)
         {
-            self.new(Origin::Automatic, State::Unavailable);
+            self.record(Origin::Automatic, State::Unavailable);
         }
         self.failed = true;
     }

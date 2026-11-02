@@ -74,6 +74,28 @@ A configuração atual gera `.deb` em `src-tauri/target/release/bundle/deb/` e A
 
 Não habilite `fixtures` em release: a compilação é recusada. Pacotes locais não recebem automaticamente os checksums e atestados de uma release publicada. Em um fork, revise nome, identificador, versão e ícones em `src-tauri/tauri.conf.json`, metadados em `src-tauri/Cargo.toml` e `package.json`, além de URLs do projeto e workflows de release antes de distribuir.
 
+## Release
+
+`src-tauri/tauri.conf.json` é a fonte da verdade da versão, inicialmente `0.1.0`. Atualize também `src-tauri/Cargo.toml`, `package.json` e os lockfiles correspondentes antes de criar a tag. Confira localmente com:
+
+```sh
+python3 scripts/check-release-version.py v0.1.0
+```
+
+Um push de tag `v*` dispara o [pipeline de release](../.github/workflows/release.yml). Ele recusa divergências entre tag e manifestos, reutiliza todo o CI e usa `tauri-action` em Ubuntu 24.04 para gerar `.deb` e AppImage. Em seguida, gera `SHA256SUMS`, atesta os três arquivos e verifica sua proveniência antes de criar o release em rascunho com notas automáticas. A publicação do rascunho é manual; não há `CHANGELOG.md` nem assinatura GPG.
+
+Após baixar os dois pacotes e `SHA256SUMS` para a mesma pasta, verifique:
+
+```sh
+sha256sum -c SHA256SUMS
+gh attestation verify SHA256SUMS --repo Kvojps/kvojps-monitor
+for artifact in *.deb *.AppImage; do
+  gh attestation verify "$artifact" --repo Kvojps/kvojps-monitor
+done
+```
+
+As attestations são registradas na API do GitHub pela action oficial [`actions/attest`](https://github.com/actions/attest), sem chave privada mantida no repositório. A validação local não substitui a primeira execução do workflow: emissão OIDC, permissões e criação do rascunho só podem ser comprovadas no GitHub. Se uma execução falhar depois de criar um rascunho, remova o rascunho incompleto antes de repetir a criação; o workflow não sobrescreve releases existentes.
+
 ## Protótipo B
 
 ```sh
@@ -122,4 +144,4 @@ Antes de copiar PNG/JSON para `docs/assets/`, abra a imagem, revise todos os tex
 
 ## Validação deste guia
 
-Com Rust 1.99.1, as duas verificações Clippy com `-D warnings` falharam em código preexistente (`src-tauri/src/ai/operation.rs:35`, lints `wrong_self_convention` e `new_ret_no_self`). Os demais resultados e as limitações de execução estão registrados no [ticket 42](../.scratch/kvojps-monitor/issues/42-guia-compilacao-forks.md). A integração do link deste guia e da política de forks no README da v1 pertence ao [ticket 23](../.scratch/kvojps-monitor/issues/23-readme.md).
+Na validação original com Rust 1.99.1, as duas verificações Clippy com `-D warnings` falharam em código preexistente (lints `wrong_self_convention` e `new_ret_no_self`). O método privado foi renomeado de `new` para `record` durante o [ticket 22](../.scratch/kvojps-monitor/issues/22-pipeline-de-release.md), e ambas as verificações passaram. Os demais resultados e as limitações da validação original estão registrados no [ticket 42](../.scratch/kvojps-monitor/issues/42-guia-compilacao-forks.md). A integração do link deste guia e da política de forks no README da v1 pertence ao [ticket 23](../.scratch/kvojps-monitor/issues/23-readme.md).
