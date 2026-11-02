@@ -612,6 +612,23 @@ describe("System module in the panel", () => {
 
 
 describe("Decorative choreography", () => {
+  it("stops all decoration in Settings and resumes on keyboard return with readings intact", async () => {
+    const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
+    render(Panel, { core });
+    const meter = await screen.findByRole("meter", { name: "Codex · janela de 5 h" });
+    const reading = meter.outerHTML;
+    await vi.waitFor(() => expect(document.documentElement.dataset.decoration).toBe("running"));
+    const settings = screen.getByRole("button", { name: "Configurações" });
+    settings.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+    screen.getByRole("button", { name: "Voltar ao Painel" }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(document.documentElement.dataset.decoration).toBe("running");
+    expect(settings).toHaveFocus();
+    expect(meter.outerHTML).toBe(reading);
+  });
+
   it("waits for native visibility, stops while hidden, and preserves instrument readings", async () => {
     const { core } = fakeCore({ snapshots: [{ module: "ai", updatedAt: 1, data: aiFull }] });
     let visibility: ((visible: boolean) => void) | undefined;

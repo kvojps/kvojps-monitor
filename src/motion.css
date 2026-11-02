@@ -1,39 +1,57 @@
-/* Decorative motion of prototype B only: ring orbits, top bar and card border glow.
-   No measurement, text, graph or alert animates. Runs only while the panel sets
-   data-decoration="running": native panel visible, appearance restored, motion not reduced. */
+/* Only decorative rings, top bands and a masked 2px border move.
+   Execution requires restored preferences and a visible, uncovered Panel. */
 :root[data-decoration="running"] .panel .orbit {
-  animation: decorative-orbit 48s linear infinite;
+  animation: decorative-orbit 32s linear infinite;
 }
-.panel .bridge span { position: relative; overflow: hidden; }
-.panel .bridge span::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent 20%, #ffffffa0 50%, transparent 80%);
-  transform: translateX(-100%);
-  pointer-events: none;
+:root[data-decoration="running"] .panel .bridge > span {
+  animation: decorative-band 6s ease-in-out infinite;
 }
-:root[data-decoration="running"] .panel .bridge span::after {
-  animation: decorative-flow 3.5s linear infinite;
-}
-:root[data-decoration="running"] .panel .bridge span:nth-child(2)::after { animation-delay: -2s; }
-:root[data-decoration="running"] .panel .bridge span:nth-child(3)::after { animation-delay: -3s; }
 .panel .card { position: relative; }
+:root[data-decoration="running"] .panel .card {
+  animation: decorative-border-entry 180ms ease-out;
+}
 .panel .card::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-right: 1px solid var(--line);
+  padding: 2px;
   pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(115deg, transparent 28%, var(--accent) 46%, var(--band-cyan) 50%, var(--accent) 54%, transparent 72%);
+  background-size: 300% 300%;
+  /* The mask excludes the entire interior, including text and measurements. */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
 }
 :root[data-decoration="running"] .panel .card::after {
-  animation: decorative-glow 7s ease-in-out infinite;
+  opacity: .75;
+  transition: opacity 180ms ease;
+  animation: decorative-glow 10s ease-in-out infinite alternate;
 }
-/* Covered modules cannot spend time animating underneath Settings. */
-.panel .scroller.covered *, .panel .scroller.covered *::after { animation: none !important; }
+:root[data-decoration="running"] .panel .card:nth-child(2)::after { animation-delay: -3s; }
+:root[data-decoration="running"] .panel .card:nth-child(3)::after { animation-delay: -6s; }
+:root[data-decoration="running"] .panel .card:nth-child(4)::after { animation-delay: -9s; }
+:root[data-decoration="running"] .panel .card:nth-child(5)::after { animation-delay: -3s; }
+:root[data-decoration="running"] .panel .card:is(:hover, :focus-within)::after {
+  opacity: 1;
+  transition-duration: 80ms;
+}
+@keyframes decorative-border-entry { from { border-top-color: transparent; } to { border-top-color: var(--module-band); } }
 @keyframes decorative-orbit { to { transform: rotate(360deg); } }
-@keyframes decorative-flow { to { transform: translateX(100%); } }
-@keyframes decorative-glow { 50% { border-color: var(--accent); } }
+@keyframes decorative-band { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@keyframes decorative-glow {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
+}
+/* Hidden or covered panels must not spend time on exit transitions either. */
+:root[data-decoration="paused"] .panel *,
+:root[data-decoration="paused"] .panel *::before,
+:root[data-decoration="paused"] .panel *::after {
+  animation: none !important;
+  transition: none !important;
+}
 /* Immediate fallback while a live media-query change reaches Svelte. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -41,4 +59,5 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
+  .panel .card::after { opacity: 0 !important; }
 }

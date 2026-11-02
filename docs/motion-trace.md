@@ -1,8 +1,8 @@
-# Trace da Coreografia combinada
+# Trace da Órbita contínua
 
 A decoração usa exclusivamente animações CSS. Não há `requestAnimationFrame`,
-intervalos ou temporizadores decorativos em JavaScript. Apenas anéis de marcação,
-brilho, faixas, bordas e fundo dos títulos se movem; medições, gráficos, textos e
+intervalos ou temporizadores decorativos em JavaScript. Apenas anéis decorativos,
+faixas superiores e brilho nas bordas se movem; medições, gráficos, textos e
 alertas recebem alterações somente dos snapshots reais.
 
 ## Controle de execução
@@ -15,8 +15,8 @@ animação e só a habilita depois de restaurar visibilidade e preferências.
 
 `document.hidden` é uma restrição adicional, nunca a prova de visibilidade nativa.
 Redução manual ou do sistema remove animações, transições e rolagem suave; mudanças
-do sistema são acompanhadas em execução. Os Módulos cobertos pelas Configurações
-também não animam.
+do sistema são acompanhadas em execução. Abrir Configurações pausa toda a decoração do Painel, inclusive as faixas
+superiores. O brilho itinerante desaparece enquanto a decoração está pausada.
 
 ## Medição no ticket 11
 
@@ -42,3 +42,24 @@ também não animam.
 Os testes automatizados de UI validam a política de execução, suas mudanças,
 limpeza das inscrições, recriação e estabilidade do instrumento com fixture.
 Eles não executam o compositor CSS nem substituem as medições nativas.
+
+## Repertório do ticket 32
+
+- Anéis: volta linear em 32 s; somente os círculos decorativos recebem transformação.
+- Faixas superiores: opacidade entre 100% e 55% em ciclo suave de 6 s; assinatura estática.
+- Bordas: máscara exclui o interior e limita o gradiente a 2 px, opacidade inicial de 75%,
+  percurso suave de 10 s por trecho (20 s de ida e volta), defasagens de −3/−6/−9 s.
+- Entrada da borda superior: 180 ms. Hover e foco dentro do cartão respondem em 80 ms,
+  com realce do brilho; outlines de foco existentes permanecem disponíveis sem movimento.
+- Não há marcador animado na Faixa de bordo, animação de conclusão ou controle de duração/intensidade.
+
+Inspeção de CSS com fixtures na WebKitGTK: órbitas de 32000 ms, faixas de 6000 ms,
+gradientes alternados de 10000 ms e defasagens conferidas via `document.getAnimations()`.
+Em 600 × 700, documento com 600 px e cartões com 592 px, sem transbordamento horizontal;
+foco por teclado com resposta de 80 ms e brilho em opacidade 1.
+Máscara `exclude`, padding de 2 px e opacidade de 0,75 conferidos nos temas claro e escuro;
+faixa amostrada no meio do ciclo com opacidade de 0,55. Configurações e ocultação removem
+as animações; retomada restaura o movimento e o foco sem alterar o instrumento. Redução
+remove também o brilho. A suíte de UI cobre redução manual e mudanças da preferência do
+sistema. Essa inspeção não mede CPU, fps ou memória; a evidência nativa integrada permanece
+no ticket 33 e segue `docs/desempenho.md`.

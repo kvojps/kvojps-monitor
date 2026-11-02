@@ -29,7 +29,7 @@
   let appearanceRestored = $state(false);
   let pageVisible = $state(!document.hidden);
   $effect(() => {
-    const state = appearanceRestored && nativeVisible && pageVisible && !appearance.reduced ? "running" : "paused";
+    const state = appearanceRestored && nativeVisible && pageVisible && area === "panel" && !appearance.reduced ? "running" : "paused";
     document.documentElement.dataset.decoration = state;
     // Bounded in-memory trace: no source data or per-frame callbacks.
     performance.clearMarks?.("panel-decoration");

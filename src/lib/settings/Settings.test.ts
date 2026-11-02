@@ -343,7 +343,7 @@ describe("appearance", () => {
     const { core } = fakeCore({ ...appearance({}), panelVisible: true });
     render(Panel, { core });
     await openSection("Aparência");
-    expect(document.documentElement.dataset.decoration).toBe("running");
+    expect(document.documentElement.dataset.decoration).toBe("paused");
     expect(document.documentElement.dataset.motion).toBe("full");
 
     const reduce = screen.getByRole("checkbox", { name: "Reduzir animações" });
@@ -357,9 +357,13 @@ describe("appearance", () => {
     expect(document.documentElement.dataset.motion).toBe("reduced");
     expect(document.documentElement.dataset.decoration).toBe("paused");
     await act(() => setMedia("(prefers-reduced-motion: reduce)", false));
-    expect(document.documentElement.dataset.decoration).toBe("running");
+    expect(document.documentElement.dataset.decoration).toBe("paused");
     await act(() => setMedia("(prefers-reduced-motion: reduce)", true));
     expect(reduce).toHaveAccessibleDescription("O sistema já pede menos animações; essa preferência prevalece.");
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao Painel" }));
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+    await act(() => setMedia("(prefers-reduced-motion: reduce)", false));
+    expect(document.documentElement.dataset.decoration).toBe("running");
   });
 });
 
