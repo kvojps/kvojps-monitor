@@ -1,0 +1,9 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><body><div id="app"></div><script type="module">
+import { mount } from 'svelte';
+import Validation from './Validation.svelte';
+import '/src/tokens.css';
+const params = new URLSearchParams(location.search);
+document.documentElement.dataset.theme = params.get('theme') ?? 'dark';
+document.body.style.cssText = `margin:24px;width:${params.get('width') ?? 1400}px;background:var(--bg);color:var(--text)`;
+mount(Validation, {target: document.getElementById('app'), props: {scenario: params.get('case') ?? 'two', font: Number(params.get('font') ?? 12)}});
+</script></body></html>

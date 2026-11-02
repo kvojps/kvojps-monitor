@@ -225,7 +225,7 @@
 <style>
   .operations { display: flex; align-items: center; gap: 12px; flex: none; min-width: 0; min-height: 40px; margin: 6px -18px -10px; padding: 8px 18px; border-top: 1px solid var(--accent); background: var(--surface); color: var(--text); font: 12px monospace; }
   .summaries { display: flex; flex: 1; gap: 16px; min-width: 0; }
-  .summaries span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .summaries span { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .overflow { flex: none; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   @media (max-width: 650px) { .operations { margin: 6px -4px -4px; padding: 8px; } }

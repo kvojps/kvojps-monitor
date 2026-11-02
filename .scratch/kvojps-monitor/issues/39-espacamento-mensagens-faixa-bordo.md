@@ -4,7 +4,7 @@
 
 **Blocked by:** nenhum.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Problema observado
 
@@ -12,12 +12,12 @@ Com mais de uma mensagem, a primeira aparece no começo da faixa e outra pode co
 
 ## Critérios de aceite
 
-- [ ] Exibir dois ou mais resumos lado a lado, ocupando somente a largura necessária e separados por um espaçamento fixo consistente; não distribuir espaço restante entre mensagens.
-- [ ] Preservar agrupamento por Módulo, ordenação por prioridade e permanência dos eventos conforme a spec.
-- [ ] Respeitar o espaço disponível e preservar o resumo de excedentes, como “+3 Módulos”, sem expandir a grade, sobrepor mensagens ou provocar transbordamento horizontal.
-- [ ] Verificar uma, duas e várias mensagens, textos de comprimentos diferentes, entrada e saída de resumos, largura reduzida, texto ampliado e temas claro e escuro.
-- [ ] Validar com fixtures de snapshots/transições da UI e inspeção visual; registrar evidência de mensagens curtas consecutivas e de excedentes. Manter anúncios acessíveis e conteúdo limitado aos metadados operacionais já permitidos.
-- [ ] Preservar o movimento decorativo Órbita contínua e a redução de movimento existentes, mantendo os textos estáticos e sem carrossel, conforme a spec.
+- [x] Exibir dois ou mais resumos lado a lado, ocupando somente a largura necessária e separados por um espaçamento fixo consistente; não distribuir espaço restante entre mensagens.
+- [x] Preservar agrupamento por Módulo, ordenação por prioridade e permanência dos eventos conforme a spec.
+- [x] Respeitar o espaço disponível e preservar o resumo de excedentes, como “+3 Módulos”, sem expandir a grade, sobrepor mensagens ou provocar transbordamento horizontal.
+- [x] Verificar uma, duas e várias mensagens, textos de comprimentos diferentes, entrada e saída de resumos, largura reduzida, texto ampliado e temas claro e escuro.
+- [x] Validar com fixtures de snapshots/transições da UI e inspeção visual; registrar evidência de mensagens curtas consecutivas e de excedentes. Manter anúncios acessíveis e conteúdo limitado aos metadados operacionais já permitidos.
+- [x] Preservar o movimento decorativo Órbita contínua e a redução de movimento existentes, mantendo os textos estáticos e sem carrossel, conforme a spec.
 
 ## Referências
 
@@ -30,3 +30,7 @@ Com mais de uma mensagem, a primeira aparece no começo da faixa e outra pode co
 ### 02/11/2026 — escopo aprovado
 
 O usuário confirmou mensagens consecutivas com espaçamento fixo, eliminando grandes espaços vazios e preservando a ordem atual. A preservação do movimento refere-se à decoração existente; a spec mantém os textos estáticos, sem carrossel. Este ticket trata da distribuição visual das mensagens.
+
+### 02/11/2026 — implementação
+
+Resumos passam a ocupar a largura do conteúdo, com intervalo fixo de 16 px e redução com reticências quando necessário. Agrupamento, prioridade, permanência, anúncios e movimento preservados. Regressão visual reproduzida antes da correção e validada em 24 cenários no WebKitGTK. Evidências e roteiro de reprodução: [validação do ticket 39](../validation/39/README.md).
