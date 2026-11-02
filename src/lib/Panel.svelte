@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick, type Snippet } from "svelte";
+  import { onMount, tick, untrack, type Snippet } from "svelte";
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
   import OperationsStrip from "./OperationsStrip.svelte";
   import AgentsModule from "./agents/AgentsModule.svelte";
@@ -13,7 +13,7 @@
   import Settings from "./settings/Settings.svelte";
   import { t } from "./strings";
 
-  let { core }: { core: Core } = $props();
+  let { core, prepared = () => {}, failed = () => {}, recovery = false, presented = true }: { core: Core; prepared?: () => void; failed?: () => void; recovery?: boolean; presented?: boolean } = $props();
 
   let area = $state<"panel" | "settings">("panel");
   /** Last anchor chosen through module interaction; independent from what is visible. */
@@ -29,7 +29,7 @@
   let appearanceRestored = $state(false);
   let pageVisible = $state(!document.hidden);
   $effect(() => {
-    const state = appearanceRestored && nativeVisible && pageVisible && area === "panel" && !appearance.reduced ? "running" : "paused";
+    const state = presented && appearanceRestored && nativeVisible && pageVisible && area === "panel" && !appearance.reduced ? "running" : "paused";
     document.documentElement.dataset.decoration = state;
     // Bounded in-memory trace: no source data or per-frame callbacks.
     performance.clearMarks?.("panel-decoration");
@@ -58,7 +58,7 @@
 
   /** Report the visible set to the core only when it changes. */
   function syncVisibility() {
-    const modules = area === "panel" && nativeVisible && pageVisible ? MODULES.filter((m) => intersecting.has(m)) : [];
+    const modules = presented && area === "panel" && nativeVisible && pageVisible ? MODULES.filter((m) => intersecting.has(m)) : [];
     const key = modules.join();
     if (key === reported) return;
     reported = key;
@@ -176,14 +176,15 @@
     let disposed = false;
     let visibilityReceived = false;
     const stopVisibility = core.listenPanelVisibility?.((visible) => {
+      if (disposed) return;
       visibilityReceived = true;
       nativeVisible = visible;
       syncVisibility();
     });
-    const stop = core.listenSnapshots(receive);
-    const stopTarget = core.listenAgentTarget?.((session) => void target(session));
+    const stop = Promise.resolve().then(() => core.listenSnapshots((snapshot) => { if (!disposed) receive(snapshot); }));
+    const stopTarget = core.listenAgentTarget?.((session) => { if (!disposed) void target(session); });
     const stopMedia = appearance.watch();
-    const stopTheme = core.listenSystemTheme?.((theme) => (appearance.desktop = theme));
+    const stopTheme = core.listenSystemTheme?.((theme) => { if (!disposed) appearance.desktop = theme; });
     core.initialState().then(async (initial) => {
       if (disposed) return;
       if (!visibilityReceived) nativeVisible = initial.panelVisible ?? false;
@@ -194,6 +195,7 @@
       agentTarget ??= initial.agentTarget ?? null;
       anchor ??= initial.lastAnchor;
       await tick();
+      if (disposed) return;
       if (area === "panel") reveal(agentTarget ? "agents" : anchor, false);
       syncVisibility();
       if (initial.welcome && !agentTarget) {
@@ -201,17 +203,28 @@
         core.completeWelcome?.();
         await openSettings();
       }
-    });
+      if (!disposed) prepared();
+    }).catch(() => { if (!disposed) failed(); });
+    const subscriptions = [stopVisibility, stop, stopTarget, stopTheme];
+    for (const subscription of subscriptions) void subscription?.catch(() => { if (!disposed) failed(); });
     return () => {
       disposed = true;
       document.documentElement.dataset.decoration = "paused";
-      void stopVisibility?.then((stop) => stop());
+      void stopVisibility?.then((stop) => stop(), () => {});
       stopMedia();
-      void stopTheme?.then((p) => p());
+      void stopTheme?.then((p) => p(), () => {});
       observer?.disconnect();
-      void stop.then((p) => p());
-      void stopTarget?.then((p) => p());
+      void stop.then((p) => p(), () => {});
+      void stopTarget?.then((p) => p(), () => {});
     };
+  });
+
+  $effect(() => {
+    if (!presented) return;
+    untrack(() => {
+      syncVisibility();
+      if (area === "settings") void settings?.focus();
+    });
   });
 
   function onKeyDown(e: KeyboardEvent) {
@@ -256,6 +269,7 @@
   <section id="module-{module}" data-module={module} class="module {module}" class:card={!inCard}
     aria-label={inCard ? t.modules[module] : undefined} aria-labelledby={inCard ? undefined : `module-${module}-title`}
     tabindex="-1" onfocusin={(event) => remember(module, event)} bind:this={sections[module]}>
+    {#if recovery && !snapshots[module]}<p role="status">Restauração local indisponível. Exibindo os dados disponíveis.</p>{/if}
     {@render body?.()}
   </section>
 {/snippet}
@@ -268,6 +282,7 @@
     </div>
   </header>
 
+  {#if recovery}<p role="status">Preferências não restauradas; usando valores padrão.</p>{/if}
   <div class="workspace">
     <main class="scroller" bind:this={scroller} class:covered={area === "settings"}
       inert={area === "settings"} aria-hidden={area === "settings" ? "true" : undefined}>
@@ -286,7 +301,7 @@
       <Settings bind:this={settings} {core} {snapshots} {welcome} {appearance} back={backToPanel} />
     {/if}
   </div>
-  <OperationsStrip {snapshots} ready={appearanceRestored && nativeVisible && pageVisible} />
+  <OperationsStrip {snapshots} ready={presented && appearanceRestored && nativeVisible && pageVisible} />
 </div>
 
 <style>
