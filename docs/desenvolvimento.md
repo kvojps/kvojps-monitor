@@ -139,9 +139,3 @@ Gera `<prefixo>.png` e `<prefixo>.json` e sai com erro se a captura falhar. A in
 ## Imagens sanitizadas
 
 Para imagens do app nativo com dados de exemplo, inicie `npm run dev:fixtures` e use a captura nativa acima, com saída temporária fora do repositório. Isso captura a UI real do Tauri alimentada por snapshots de exemplo; identifique esse modo na legenda, sem apresentar o protótipo HTML como versão distribuída.
-
-Antes de copiar PNG/JSON para `docs/assets/`, abra a imagem, revise todos os textos visíveis e metadados dos dois arquivos conforme [sanitização](agents/sanitizacao.md). Não publique caminhos pessoais, contas, sessões, endereços de rede reais ou conteúdo privado. A captura não substitui essa revisão. Se uma imagem precisar mostrar coleta real, sanitize os dados na origem antes de capturar; não grave nem imprima dados brutos no repositório ou terminal compartilhado.
-
-## Validação deste guia
-
-Na validação original com Rust 1.99.1, as duas verificações Clippy com `-D warnings` falharam em código preexistente (lints `wrong_self_convention` e `new_ret_no_self`). O método privado foi renomeado de `new` para `record` durante o [ticket 22](../.scratch/kvojps-monitor/issues/22-pipeline-de-release.md), e ambas as verificações passaram. Os demais resultados e as limitações da validação original estão registrados no [ticket 42](../.scratch/kvojps-monitor/issues/42-guia-compilacao-forks.md). A integração do link deste guia e da política de forks no README da v1 pertence ao [ticket 23](../.scratch/kvojps-monitor/issues/23-readme.md).

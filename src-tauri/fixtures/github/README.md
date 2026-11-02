@@ -8,6 +8,6 @@ Capturadas em 31/10/2026 nesta máquina com `gh api graphql`, usando a autentica
 
 As fixtures de UI em `src/lib/github/fixtures/` são publicadas pelo núcleo e conferidas nos testes. Para regravá-las: `UPDATE_FIXTURES=1 cargo test --manifest-path src-tauri/Cargo.toml github`.
 
-Snapshots ficam somente em memória nesta fatia. A política de cache/backoff pertence ao ticket 09; nenhum título de commit deve ser persistido no cache em disco.
+Snapshots ficam somente em memória nesta fatia. A política do adapter usa cache/backoff; títulos de commits não são persistidos em cache no disco.
 
 - `validation.json`: captura de `gh api --include graphql -f 'query=query { viewer { login } }'` em 31/10/2026. Preserva o valor real de `X-OAuth-Scopes` e o corpo da resposta, com login anonimizado para `exemplo`. Os testes derivam escopos ausentes/parciais e corpos inválidos como variantes controladas desta captura.

@@ -4,8 +4,8 @@ App pessoal de bandeja para Ubuntu/GNOME/Wayland (Tauri v2: núcleo Rust + UI Sv
 
 ## Fonte da verdade
 
-- **Implementando a v1**: siga a spec em `.scratch/kvojps-monitor/spec.md` (tickets em `.scratch/kvojps-monitor/issues/`). O visual segue o protótipo B (seção "Visual do Painel"); os porquês ficam na seção "Decisões e porquês" e em `docs/adr/`.
-- **Divergindo da spec**: pare e pergunte antes de seguir; registre a mudança no ticket de origem.
+- **v1 publicada**: `.scratch/kvojps-monitor/spec.md` preserva o contrato original de produto; confira a implementação e os guias atuais ao alterar comportamento. O visual aprovado e os porquês seguem registrados na spec e em `docs/adr/`.
+- **Mudando comportamento documentado**: confira as decisões existentes e registre mudanças de domínio em `docs/adr/`; use o tracker local em `.scratch/` quando a tarefa exigir acompanhamento por ticket.
 
 ## Idioma
 
@@ -32,7 +32,7 @@ Um único seam no núcleo: toda E/S (processos, HTTP, sistema de arquivos, D-Bus
 
 ## Git
 
-Branches `research/*` e `prototype/*` são locais: nunca faça push delas. `.scratch/` é versionada até a v1 ficar pronta.
+Branches `research/*` e `prototype/*` são locais: nunca faça push delas. A spec v1 e o registro sanitizado da revisão pública permanecem em `.scratch/`; material novo ali também é publicado e deve seguir a sanitização.
 
 ## Agent skills
 

@@ -18,7 +18,7 @@ Redução manual ou do sistema remove animações, transições e rolagem suave;
 do sistema são acompanhadas em execução. Abrir Configurações pausa toda a decoração do Painel, inclusive as faixas
 superiores. O brilho itinerante desaparece enquanto a decoração está pausada.
 
-## Medição no ticket 11
+## Medição nativa
 
 1. No mesmo build, tema, dimensões, fontes e alimentação, abra o inspetor da
    webview e grave o timeline de quadros/animações. Registre separadamente a coleta
@@ -36,14 +36,14 @@ superiores. O brilho itinerante desaparece enquanto a decoração está pausada.
    requisito. Registre também a memória dos processos e CPU do app/webview.
 5. Reabra e confira restauração das preferências, âncora e movimentos permitidos.
    Repita com redução ativa e após mudá-la com o Painel fechado.
-6. Execute os três pares de 60 s, alternando a ordem, e demais medições descritas
-   no ticket 11. Registre versões, hardware e limitações no relatório daquele ticket.
+6. Execute os três pares de 60 s, alternando a ordem, e as demais medições descritas
+   em `docs/desempenho.md`. Registre versões, hardware e limitações junto ao relatório da rodada.
 
 Os testes automatizados de UI validam a política de execução, suas mudanças,
 limpeza das inscrições, recriação e estabilidade do instrumento com fixture.
 Eles não executam o compositor CSS nem substituem as medições nativas.
 
-## Repertório do ticket 32
+## Parâmetros da decoração
 
 - Anéis: volta linear em 32 s; somente os círculos decorativos recebem transformação.
 - Faixas superiores: opacidade entre 100% e 55% em ciclo suave de 6 s; assinatura estática.
@@ -61,5 +61,5 @@ Máscara `exclude`, padding de 2 px e opacidade de 0,75 conferidos nos temas cla
 faixa amostrada no meio do ciclo com opacidade de 0,55. Configurações e ocultação removem
 as animações; retomada restaura o movimento e o foco sem alterar o instrumento. Redução
 remove também o brilho. A suíte de UI cobre redução manual e mudanças da preferência do
-sistema. Essa inspeção não mede CPU, fps ou memória; a evidência nativa integrada permanece
-no ticket 33 e segue `docs/desempenho.md`.
+sistema. Essa inspeção não mede CPU, fps ou memória; use o roteiro de `docs/desempenho.md`
+para medições nativas.

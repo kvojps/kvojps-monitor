@@ -20,6 +20,6 @@ Se o formulário privado não estiver disponível, não use um relato público c
 
 Em 02/11/2026, a API do GitHub confirmou a habilitação do canal privado neste repositório (`enabled: true`). A visibilidade do repositório não foi alterada nessa operação.
 
-O canal habilitado e verificado é requisito para a abertura pública prevista para a v1. Na verificação acima, o repositório já estava público; o canal estava desabilitado e foi habilitado durante a execução do ticket 41.
+O canal habilitado e verificado foi requisito para a abertura pública da v1. Na verificação acima, o repositório já estava público; o canal estava desabilitado e foi habilitado durante a preparação do lançamento.
 
 Se for necessário reativá-lo, o mantenedor deve acessar **Settings → Advanced Security → Private vulnerability reporting → Enable** e verificar novamente a habilitação. Confira as [instruções oficiais do GitHub](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).

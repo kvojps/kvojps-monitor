@@ -1,4 +1,4 @@
-//! Open and close the panel. Keeping a hidden webview exceeded 150 MB PSS (ticket 01),
+//! Open and close the panel. Keeping a hidden webview exceeded 150 MB PSS,
 //! so create the window on open and destroy it on close.
 //!
 //! The panel targets a visible area of 1100 × 700 logical pixels, bounded by the monitor

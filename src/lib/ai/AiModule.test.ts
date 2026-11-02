@@ -416,7 +416,7 @@ it.each([true, false])("keeps missing-token guidance and an action after the str
   expect(within(provider("Codex")).getByRole("meter", { name: "Codex · janela de 5 h" })).toHaveAttribute("aria-valuenow", "91");
 });
 
-// Snapshot fixtures are also exercised in the browser for geometry (ticket 38).
+// Snapshot fixtures are also exercised in the browser for geometry.
 it.each(asymmetric)("preserves unknown usage and the other provider in $name", ({ provider: key, slot, state, data }) => {
   render(AiModule, { data: data as AiData, refresh: vi.fn() });
   const name = key === "codex" ? "Codex" : "Claude";

@@ -1,6 +1,6 @@
 # Medição de desempenho e memória
 
-Protocolo para os critérios do Painel ainda não medidos no app nativo (pendência no [ticket 25](../.scratch/kvojps-monitor/issues/25-validacao-nativa-pendente.md)). Nenhuma medição foi feita até 2026-11-01; a única referência é a do primeiro esqueleto (~298 MB de PSS com núcleo e WebKit, sem Codex), que motivou destruir a webview ao fechar.
+Protocolo para medir critérios do Painel que não têm resultados registrados no app nativo. A validação da versão atual não mediu CPU, latência, quadros ou memória em ambiente GNOME/Wayland controlado. A única referência histórica é a do primeiro esqueleto (~298 MB de PSS com núcleo e WebKit, sem Codex), que motivou destruir a webview ao fechar.
 
 Alvos: acréscimo médio de CPU da decoração ≤ 2 pontos percentuais **de um núcleo** (não 2 % da máquina); resposta visual ≤ 100 ms; 60 fps em tela de 60 Hz; nenhum trabalho de animação com o Painel oculto.
 
