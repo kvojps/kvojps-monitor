@@ -67,7 +67,11 @@ function fakeCore(initial: { lastAnchor?: Module; snapshots?: Snapshot[]; agentT
     chooseAnchor: vi.fn(),
     closePanel: vi.fn(),
   } satisfies Core;
-  return { core, publish: (s: Snapshot) => act(() => listener?.(s)) };
+  return {
+    core,
+    publish: (s: Snapshot) => act(() => listener?.(s)),
+    publishAll: (snapshots: Snapshot[]) => act(() => { snapshots.forEach(s => listener?.(s)); }),
+  };
 }
 
 // The outer module section comes first; some modules label an inner region too.
@@ -779,6 +783,58 @@ it("keeps GitHub failure details and keyboard focus after the strip result expir
     expect(within(github).getByRole("button", { name: "Atualizar GitHub" })).toBeEnabled();
     expect(github).toHaveTextContent("Falha ao atualizar");
     expect(github).toHaveFocus();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("keeps six modules accessible while simultaneous results expire independently of a long query", async () => {
+  vi.useFakeTimers();
+  try {
+    const { default: githubFailure } = await import("./github/fixtures/failure.json");
+    const { default: trelloOffline } = await import("./trello/fixtures/offline.json");
+    const { default: systemWarning } = await import("./system/fixtures/warning.json");
+    const { core, publishAll } = fakeCore({ snapshots: [
+      { module: "ai", updatedAt: 1793460871000, data: aiFull },
+      { module: "agents", updatedAt: 1793460871000, data: { ...waitingAgents, sessions: [], closed: [] } },
+      { module: "github", updatedAt: 1793460871000, data: githubFull },
+      { module: "trello", updatedAt: 1793460871000, data: trelloFull },
+      { module: "network", updatedAt: 1793460871000, data: networkFull.data },
+      { module: "system", updatedAt: 1793460871000, data: notebook.data },
+    ] });
+    render(Panel, { core });
+    await act(() => Promise.resolve());
+    const github = section("GitHub");
+    github.focus();
+    await publishAll([
+      { module: "ai", updatedAt: 1793460871000, data: { ...aiFull, codex: { ...aiFull.codex, operation: { id: 100, origin: "user", state: "running" } } } },
+      { module: "agents", updatedAt: 1793460871000, data: waitingAgents },
+      { module: "github", updatedAt: 1793460871000, data: githubFailure },
+      { module: "trello", updatedAt: 1793460871000, data: trelloOffline },
+      { module: "network", updatedAt: 1793460871000, data: { ...networkFull.data, speedOperation: { id: 100, origin: "user", state: "cancelled" } } },
+      { module: "system", updatedAt: 1793460871000, data: systemWarning.data },
+    ]);
+    await act(() => Promise.resolve());
+    const strip = screen.getByLabelText("Faixa de bordo");
+    expect(strip).toHaveTextContent("GitHub · Falha ao atualizar");
+    expect(strip).toHaveTextContent("+3 Módulos");
+    const announcement = screen.getAllByRole("status").find(element => element.getAttribute("aria-live") === "polite");
+    expect(announcement).toHaveAttribute("aria-atomic", "true");
+    expect(announcement).toHaveTextContent("GitHub");
+    expect(announcement).toHaveTextContent("Sistema");
+    expect(github).toHaveFocus();
+    await act(() => vi.advanceTimersByTime(3999));
+    expect(strip).toHaveTextContent("GitHub · Falha ao atualizar");
+    await act(() => vi.advanceTimersByTime(1));
+    expect(strip).toHaveTextContent("Codex");
+    expect(strip).not.toHaveTextContent("GitHub");
+    expect(github).toHaveTextContent("Falha ao atualizar");
+    expect(within(github).getByRole("button", { name: "Atualizar GitHub" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Abrir quadro completo" })).toBeEnabled();
+    expect(github).toHaveFocus();
+    await act(() => vi.advanceTimersByTime(60_000));
+    expect(strip).toHaveTextContent("Codex");
+    expect(strip).not.toHaveTextContent("Telemetria atualizada");
   } finally {
     vi.useRealTimers();
   }
