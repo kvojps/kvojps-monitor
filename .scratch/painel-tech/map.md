@@ -22,6 +22,7 @@ Definir melhorias incrementais do visual atual do Painel: assinatura KVOJPS, men
 - [Como mostrar operações reais com mensagens de bordo?](issues/02-mensagens-de-bordo.md): aprovada A — Faixa de bordo, operações reais agrupadas por fonte, resultado por 4 segundos, sem histórico e anúncios não interruptivos apenas para mudanças relevantes.
 
 - [Que movimentos tornam o Painel mais expressivo sem atrapalhar a leitura?](issues/03-movimento.md): aprovada A — Órbita contínua, com brilho suave itinerante nas bordas; redução de movimento e pausa preservadas.
+- [Quais eventos reais alimentam a Faixa de bordo?](issues/05-eventos-de-bordo.md): aprovados eventos por Módulo, atualizações automáticas silenciosas em sucesso, operações pontuais com resultados reais e anúncios agrupados; lacunas do contrato identificadas para consolidação.
 
 ## Not yet specified
 
