@@ -23,10 +23,11 @@ Definir melhorias incrementais do visual atual do Painel: assinatura KVOJPS, men
 
 - [Que movimentos tornam o Painel mais expressivo sem atrapalhar a leitura?](issues/03-movimento.md): aprovada A — Órbita contínua, com brilho suave itinerante nas bordas; redução de movimento e pausa preservadas.
 - [Quais eventos reais alimentam a Faixa de bordo?](issues/05-eventos-de-bordo.md): aprovados eventos por Módulo, atualizações automáticas silenciosas em sucesso, operações pontuais com resultados reais e anúncios agrupados; lacunas do contrato identificadas para consolidação.
+- [Como consolidar as melhorias aprovadas na spec da v1?](issues/04-consolidacao.md): aprovados excedentes por resumo, indisponibilidade explícita e aceite integrado; proposta de revisão pronta, com contrato, composição, movimento e validação encaminhados para implementação.
 
 ## Not yet specified
 
-- Ajustes adicionais de acabamento que a comparação com os protótipos revelar, sem redesenhar o Painel.
+Nenhuma decisão pendente para o destino deste mapa. Proposta consolidada em [Proposta de revisão do visual do Painel](proposta-revisao-spec.md); acabamento e composição integrada serão verificados pelos critérios de aceite, sem redesenhar o Painel.
 
 ## Out of scope
 
