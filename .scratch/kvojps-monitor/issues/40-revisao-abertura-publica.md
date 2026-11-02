@@ -7,7 +7,7 @@
 - [x] Delimitar quais branches, tags e histórico ficarão públicos; preservar a regra de nunca enviar branches `research/*` e `prototype/*`
 - [ ] Revisar arquivos atuais e histórico alcançável pelas referências que serão publicadas para credenciais, dados pessoais e conteúdo de prompts, respostas, commits e cards
 - [x] Incluir fixtures em `src-tauri/fixtures/`, pesquisas em `docs/research/`, tickets e validações em `.scratch/`, imagens em `docs/assets/` e skills versionadas na revisão
-- [x] Distinguir dados sintéticos/sanitizados de capturas reais; revisar visualmente as imagens destinadas ao README
+- [ ] Distinguir dados sintéticos/sanitizados de capturas reais; revisar visualmente as imagens destinadas ao README
 - [x] Registrar escopo, método, limitações e pendências em `.scratch/kvojps-monitor/validation/40/README.md`, usando apenas caminhos e categorias, nunca reproduzindo segredos ou conteúdo privado
 - [x] Se houver exposição, registrar a correção necessária e bloquear a abertura até a resolução; não reescrever histórico nem revogar credenciais sem autorização específica
 - [x] Conferir a presença de `LICENSE` MIT (ticket 22), README (23), documentação de segurança (41) e guia para compilar/fazer fork (42) antes da abertura

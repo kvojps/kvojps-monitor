@@ -57,3 +57,14 @@ Os achados de dados reais acima bloqueiam a abertura até sanitização e decis�
 5. Inventariar o servidor e registrar aqui o SHA final, todas as referências e superfícies realmente expostas, método, resultados, limitações e ausência de pendências bloqueantes.
 
 A revisão final permanece pendente até esses passos. Nenhum push ou alteração de visibilidade foi realizado.
+
+## Verificação desta entrega
+
+`npm run check`: zero erros e avisos. `npm test`: 376 testes em 16 arquivos passaram. `cargo test --manifest-path src-tauri/Cargo.toml --locked --quiet`: 305 testes unitários e três de integração passaram. A primeira execução no sandbox impediu dois testes de socket; a repetição autorizada fora dele passou. `git diff --check` passou. Nenhum teste novo foi criado para esta alteração documental.
+
+Revisão pela skill `code-review`, comparando `447c220...cf8c335`:
+
+- **Standards:** zero achados. Documentação em pt-BR, status canônico, registro por caminhos/categorias e restrição de branches preservados.
+- **Spec:** dois requisitos parciais. A revisão semântica/visual histórica continua incompleta e pode avançar com os arquivos locais, independentemente das dependências externas. O checklist de inspeção das capturas finais estava marcado prematuramente; foi reaberto. A entrega é inicial e não encerra o ticket.
+
+A inspeção do histórico restante não depende de autorização para leitura. A autorização específica só será necessária para eventual expurgo; a revisão final também depende dos documentos e capturas ainda ausentes.
