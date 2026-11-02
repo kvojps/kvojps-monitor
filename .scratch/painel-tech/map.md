@@ -18,7 +18,7 @@ Definir melhorias incrementais do visual atual do Painel: assinatura KVOJPS, men
 
 ## Decisions so far
 
-Nenhum ticket resolvido nesta sessão de criação do mapa.
+- [Como integrar a assinatura KVOJPS ao visual atual?](issues/01-assinatura-kvojps.md): aprovada C — Assinatura na faixa, com KVOJPS na faixa superior e linha de ações livre, também no tema claro e em largura reduzida.
 
 ## Not yet specified
 
