@@ -2,24 +2,26 @@
 
 **What to build:** uma revisão documentada dos arquivos e do histórico Git que serão expostos ao tornar o repositório público, sem registrar os próprios dados sensíveis encontrados.
 
-**Status:** needs-info
+**Status:** resolved
 
 - [x] Delimitar quais branches, tags e histórico ficarão públicos; preservar a regra de nunca enviar branches `research/*` e `prototype/*`
 - [x] Revisar os arquivos e o histórico da base examinada para credenciais, dados pessoais e conteúdo de prompts, respostas, commits e cards; incluir versões textuais, imagens e binários históricos
 - [x] Corrigir os achados históricos e verificar a `main` pública resultante por clone novo
 - [x] Incluir fixtures em `src-tauri/fixtures/`, pesquisas em `docs/research/`, tickets e validações em `.scratch/`, imagens em `docs/assets/` e skills versionadas na revisão
 - [x] Distinguir dados sintéticos/sanitizados de capturas reais e revisar visualmente as imagens existentes, incluindo o protótipo destinado ao README
-- [ ] Revisar visualmente as capturas finais do README quando forem produzidas no ticket 23; o protótipo não substitui capturas da versão distribuída
+- [x] Revisar visualmente as capturas finais do README quando forem produzidas no ticket 23; o protótipo não substitui capturas da versão distribuída
 - [x] Registrar escopo, método, limitações e pendências em `.scratch/kvojps-monitor/validation/40/README.md`, usando apenas caminhos e categorias, nunca reproduzindo segredos ou conteúdo privado
 - [x] Se houver exposição, registrar a correção necessária e bloquear a abertura até a resolução; não reescrever histórico nem revogar credenciais sem autorização específica
 - [x] Inventariar a presença e as ausências de `LICENSE` MIT, README, documentação de segurança e guia para compilar/fazer fork
 - [x] Registrar a decisão do mantenedor de não acionar o Support; manter explícito que o expurgo dos objetos antigos no servidor não foi comprovado
-- [ ] Conferir os documentos finais entregues pelos tickets 22, 23, 41 e 42, incluindo links e orientações de instalação, privacidade, segurança e forks
-- [ ] Registrar a revisão final depois que documentos e capturas estiverem prontos; não alterar a visibilidade do repositório como parte deste ticket
+- [x] Conferir os documentos finais entregues pelos tickets 22, 23, 41 e 42, incluindo links e orientações de instalação, privacidade, segurança e forks
+- [x] Registrar a revisão final depois que documentos e capturas estiverem prontos; não alterar a visibilidade do repositório como parte deste ticket
 
 ## Comments
 
-Estado atual: revisão e limpeza históricas concluídas. Restam os documentos e capturas finais dos tickets 22/23/41/42 e seu registro de revisão. Não há solicitação de Support a enviar nem retorno de suporte aguardado; o acesso residual por SHA permanece documentado como limitação conhecida.
+Estado atual: revisão e limpeza históricas concluídas; revisão final dos documentos e da captura do README registrada em `validation/40/README.md`. Não há solicitação de Support a enviar nem retorno de suporte aguardado; o acesso residual por SHA permanece documentado como limitação conhecida.
+
+- 2026-11-02 — Revisão final concluída após os tickets 22, 23, 41 e 42. Conferidos `LICENSE`, `README.md`, `SECURITY.md`, `docs/desenvolvimento.md`, links relativos e orientações de instalação, privacidade, segurança e forks; captura final do README inspecionada visualmente e identificada como demonstração sintética, não como captura da versão distribuída. Registro e limitações em [validation/40/README.md](../validation/40/README.md). A revisão confirma os documentos locais e a base histórica já verificada; não confirma acesso ao SHA antigo no servidor como removido. Nenhuma alteração de visibilidade foi feita. Status resolvido sem aguardar Support, conforme decisão do mantenedor.
 
 - 2026-11-02 — Aprovado pelo mantenedor na preparação da abertura pública e lançamento da v1. Este ticket não afirma que exista vazamento; formaliza a revisão do material que será publicado. A implementação dos documentos pode ocorrer em paralelo à revisão inicial.
 

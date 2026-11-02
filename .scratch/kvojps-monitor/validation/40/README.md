@@ -1,10 +1,14 @@
 # Revisão antes da abertura pública
 
-Revisão inicial em 02/11/2026. **Este documento não é uma aprovação de publicação.**
+Revisão inicial e revisão final em 02/11/2026. Este registro documenta escopo, verificações e limitações; não altera a visibilidade do repositório.
 
-Decisão posterior do mantenedor: não enviar solicitação ao Support. Não há retorno de suporte aguardado como etapa de fechamento. O acesso residual por SHA permanece uma limitação conhecida; seguem pendentes os documentos e capturas finais da v1 e sua revisão. Os registros anteriores de suporte abaixo preservam o estado observado à época.
+Decisão do mantenedor: não enviar solicitação ao Support. Não há retorno de suporte aguardado como etapa de fechamento. O acesso residual por SHA permanece uma limitação conhecida. Os registros anteriores de suporte abaixo preservam o estado observado à época.
 
-Estado mais recente: a [segunda sanitização](segunda-sanitizacao.md) corrigiu os achados textuais e expurgou as duas imagens históricas. A `main` pública e um clone novo foram conferidos; o expurgo físico local foi confirmado. O GitHub ainda responde ao SHA anterior, portanto o expurgo do servidor e a revisão final da v1 continuam pendentes. Os relatórios e inventários abaixo preservam o diagnóstico das bases anteriores.
+Estado da revisão final: a [segunda sanitização](segunda-sanitizacao.md) corrigiu os achados textuais e expurgou as duas imagens históricas. A `main` pública e um clone novo foram conferidos; o expurgo físico local foi confirmado. O GitHub ainda responde ao SHA anterior, portanto o expurgo do servidor não foi comprovado. Os relatórios e inventários abaixo preservam o diagnóstico das bases anteriores.
+
+Em 02/11/2026 foram conferidos os documentos finais dos tickets 22, 23, 41 e 42: `LICENSE`, `README.md`, `SECURITY.md` e `docs/desenvolvimento.md`. Os links locais entre README, licença, política de segurança e guia de desenvolvimento/forks apontam para os destinos existentes. As orientações de instalação, verificações de hashes e attestations, conexões e opt-in, armazenamento de credenciais, desinstalação, canal privado de segurança e política de forks foram revisadas. O recurso de relatos privados consta como habilitado, conforme confirmação da API registrada no ticket 41. A captura `docs/assets/painel-fixtures.png` foi inspecionada visualmente; exibe somente exemplos sintéticos e a legenda do README informa que não é uma captura da versão distribuída. A origem e a sanitização estão documentadas em `docs/assets/README.md`.
+
+Resultado: não foram encontrados bloqueios documentais ou visuais adicionais nesta revisão final. A revisão não declara expurgo completo do servidor: a API ainda respondeu ao SHA anterior à sanitização, e o mantenedor decidiu não acionar o Support. Também não houve verificação de referências remotas nesta execução, pois a consulta ao GitHub falhou por indisponibilidade de DNS. A evidência anterior de clone novo e inventário de referências está registrada em [segunda-sanitizacao.md](segunda-sanitizacao.md). Nenhuma alteração de visibilidade foi realizada.
 
 Atualização da revisão histórica: ver [revisao-historica.md](revisao-historica.md) e [revisao-textual.md](revisao-textual.md). A inspeção das 88 imagens e dos cinco binários de dados encontrou duas capturas históricas com identificadores de sessão/projeto ainda visíveis. A revisão semântica foi ampliada aos 1.633 blobs textuais e encontrou atividade privada do GitHub associável entre pesquisa, fixture e exemplos derivados. Os inventários registram a cobertura; ambos os achados bloqueiam a aprovação do histórico. Os limites descritos abaixo pertencem à revisão inicial e são complementados pelos relatórios posteriores.
 
@@ -31,6 +35,8 @@ Não houve correspondência às assinaturas de credenciais pesquisadas. Isso nã
 
 ## Origem dos dados e achados
 
+As avaliações e ações na tabela abaixo descrevem a base inicial `447c220` e são evidência histórica. Os achados foram corrigidos na limpeza posterior registrada em [segunda-sanitizacao.md](segunda-sanitizacao.md); não devem ser interpretados como estado da árvore atual.
+
 | Caminhos / categoria | Avaliação e ação necessária |
 | --- | --- |
 | `src-tauri/fixtures/agents/recorded.json` | Captura real com caminho pessoal, identificadores e nome de sessão/projeto. Sanitizar mantendo o contrato; verificar expectativas nos testes e todas as versões históricas. Conteúdo de metadados também pode identificar trabalho privado. |
@@ -51,28 +57,26 @@ Os achados de dados reais acima bloqueiam a abertura até sanitização e decis�
 
 | Requisito | Estado observado |
 | --- | --- |
-| `LICENSE` MIT — ticket 22 | Ausente; declaração MIT no Cargo não substitui o arquivo. |
-| `README.md` e capturas reais sanitizadas — ticket 23 | Ausentes. |
-| `SECURITY.md` e canal privado verificado — ticket 41 | Documento ausente; habilitação do canal não verificada nesta atividade. |
-| `docs/desenvolvimento.md` — ticket 42 | Presente, restrito a protótipo, fixtures e captura; guia de clone limpo, build e forks ainda pendente. |
+| `LICENSE` MIT — ticket 22 | Presente; conferida. |
+| `README.md` e captura — ticket 23 | Presente; links e orientações conferidos. Captura sintética inspecionada visualmente e identificada como demonstração. |
+| `SECURITY.md` e canal privado — ticket 41 | Presente; canal habilitado conforme confirmação registrada no ticket 41. |
+| `docs/desenvolvimento.md` — ticket 42 | Presente; clone, instalação, execução, verificações, build e forks documentados; link no README conferido. |
 
-## Fechamento pendente
+## Limitações mantidas
 
-1. Sanitizar os caminhos e categorias acima e conferir testes derivados; decidir explicitamente sobre exposição de identidades e metadados reais.
-2. Obter autorização específica caso seja necessário expurgar histórico; revisar novamente todos os objetos ainda alcançáveis após a correção.
-3. Concluir a revisão semântica dos textos e a inspeção dos binários/imagens históricos, incluindo `.scratch/` e objetos removidos da árvore atual.
-4. Concluir tickets 22, 23, 41 e 42; revisar visualmente cada captura final do README.
-5. Inventariar o servidor e registrar aqui o SHA final, todas as referências e superfícies realmente expostas, método, resultados, limitações e ausência de pendências bloqueantes.
+- O GitHub ainda responde ao SHA anterior à segunda sanitização. O expurgo dos objetos antigos no servidor não foi comprovado e não haverá solicitação ao Support, por decisão do mantenedor.
+- A revisão de referências remotas nesta execução não foi possível por falha de DNS; o inventário e clone novo registrados em [segunda-sanitizacao.md](segunda-sanitizacao.md) são a evidência remota mais recente disponível.
+- Nenhuma tag está aprovada; a referência de publicação prevista continua sendo somente `main`. Branches `research/*` e `prototype/*` permanecem locais.
 
-A revisão final permanece pendente até esses passos. Nenhum push ou alteração de visibilidade foi realizado.
+A revisão final dos documentos e da captura está concluída. Nenhum push ou alteração de visibilidade foi realizado como parte deste ticket.
 
-## Verificação desta entrega
+## Verificação da revisão inicial (histórica)
 
 `npm run check`: zero erros e avisos. `npm test`: 376 testes em 16 arquivos passaram. `cargo test --manifest-path src-tauri/Cargo.toml --locked --quiet`: 305 testes unitários e três de integração passaram. A primeira execução no sandbox impediu dois testes de socket; a repetição autorizada fora dele passou. `git diff --check` passou. Nenhum teste novo foi criado para esta alteração documental.
 
-Revisão pela skill `code-review`, comparando `447c220...cf8c335`:
+Revisão pela skill `code-review`, comparando `447c220...cf8c335`, na etapa inicial:
 
 - **Standards:** zero achados. Documentação em pt-BR, status canônico, registro por caminhos/categorias e restrição de branches preservados.
-- **Spec:** dois requisitos parciais. A revisão semântica/visual histórica continua incompleta e pode avançar com os arquivos locais, independentemente das dependências externas. O checklist de inspeção das capturas finais estava marcado prematuramente; foi reaberto. A entrega é inicial e não encerra o ticket.
+- **Spec:** dois requisitos parciais naquela etapa. A revisão semântica/visual histórica foi concluída depois, e a inspeção da captura final do README consta nesta atualização.
 
-A inspeção do histórico restante não depende de autorização para leitura. A autorização específica só será necessária para eventual expurgo; a revisão final também depende dos documentos e capturas ainda ausentes.
+Na etapa inicial, a inspeção do histórico restante não dependia de autorização para leitura; a autorização específica foi obtida antes do expurgo documentado. Documentos e captura, então ausentes, foram entregues e conferidos na revisão final acima.

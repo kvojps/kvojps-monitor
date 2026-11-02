@@ -4,7 +4,7 @@
 
 **Blocked by:** 06, 07, 10, 13, 16, 20, 21, 22
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] O que é + imagem real do app em execução, incluindo o Painel; armazenada em `docs/assets/`, com texto alternativo e dados sanitizados, sem apresentar o protótipo B como captura da versão distribuída
 - [x] Requisitos (Ubuntu 24.04+, GNOME, extensão AppIndicator) e como ativar a extensão
