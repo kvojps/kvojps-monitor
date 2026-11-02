@@ -204,7 +204,8 @@ it("names the security state when the core gives no reason", () => {
 it("shows test progress and a metadata-only failure as lines", async () => {
   const view = render(NetworkModule, { data: dataOf(running) });
   expect(screen.getByRole("button", { name: "Testando velocidade…" })).toBeDisabled();
-  expect(screen.getByRole("status")).toHaveTextContent("Testando velocidade…");
+  expect(screen.getByText("Testando velocidade…")).toBeInTheDocument();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
   await view.rerender({ data: dataOf(failed) });
   expect(screen.getByRole("status")).toHaveTextContent("⚠ Não foi possível medir a velocidade");
   expect(screen.getByRole("button", { name: "Testar velocidade" })).toBeEnabled();
@@ -307,4 +308,14 @@ it("keeps the speed test slot with dashes and the reason before the first test",
   const speed = screen.getByRole("button", { name: "Testar velocidade" });
   expect(speed).toHaveTextContent("↓ — · ↑ — Mbps · testar ↻ Sem teste ainda");
   expect(speed).toHaveAccessibleDescription("Sem teste de velocidade");
+});
+
+it("keeps the cancellation explanation and retry action until the next speed operation", async () => {
+  const { default: transitions } = await import("../fixtures/operations/network-speed-transitions.json");
+  const cancelled = dataOf(transitions[7]);
+  const { rerender } = render(NetworkModule, { data: cancelled });
+  expect(screen.getByText("Teste cancelado após suspensão do sistema")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Testar velocidade" })).toBeEnabled();
+  await rerender({ data: dataOf(transitions[6]) });
+  expect(screen.queryByText("Teste cancelado após suspensão do sistema")).not.toBeInTheDocument();
 });

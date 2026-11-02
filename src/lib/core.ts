@@ -169,7 +169,13 @@ export const tauriCore: Core = {
 
 export interface NetworkMeasurements { latency: number | null; jitter: number | null; loss: number | null }
 export interface NetworkTraffic { download: number; upload: number }
+export interface SpeedOperation extends Operation {
+  reason?: "connectionChanged" | "disconnected" | "metered" | "unavailable" | "suspended";
+}
+
 export interface NetworkData {
+  connectionRevision?: number;
+  speedOperation?: SpeedOperation;
   processTraffic: { apps: { name: string; download: number; upload: number }[]; others: NetworkTraffic } | null;
   speed: { download: number; upload: number; measuredAt: number; networkId: string } | null;
   speedAvailable: boolean;

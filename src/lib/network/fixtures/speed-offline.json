@@ -3,6 +3,11 @@
   "updatedAt": 1793457122000,
   "data": {
     "processTraffic": null,
+    "speedOperation": {
+      "id": 1,
+      "origin": "automatic",
+      "state": "succeeded"
+    },
     "speed": {
       "download": 8.0,
       "upload": 3.0,

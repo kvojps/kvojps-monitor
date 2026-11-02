@@ -27,7 +27,42 @@ pub trait Transport: Send {
     fn start(&mut self, full: bool);
     fn poll(&mut self) -> Option<Output>;
 }
+/// Closed, transient vocabulary; never included in the speed cache.
+#[derive(Debug, Clone, Serialize)]
+pub struct Operation {
+    id: u64,
+    origin: Origin,
+    state: State,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<Cancellation>,
+}
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum Origin {
+    User,
+    Automatic,
+}
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum State {
+    Running,
+    Succeeded,
+    Failed,
+    Cancelled,
+}
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum Cancellation {
+    ConnectionChanged,
+    Disconnected,
+    Metered,
+    Unavailable,
+    Suspended,
+}
 pub struct SpeedTests {
+    pub operation: Option<Operation>,
+    operation_id: u64,
+    publish_cancellation: bool,
     transport: Box<dyn Transport>,
     persistence: Box<dyn Persistence>,
     pub last: Option<SpeedResult>,
@@ -51,6 +86,9 @@ impl SpeedTests {
             .and_then(|s| serde_json::from_value::<SpeedResult>(s.data["speed"].clone()).ok())
             .filter(SpeedResult::valid);
         Self {
+            operation: None,
+            operation_id: 0,
+            publish_cancellation: false,
             transport: Box::new(transport),
             persistence: Box::new(persistence),
             last,
@@ -82,8 +120,21 @@ impl SpeedTests {
             );
         }
     }
-    pub fn resume(&mut self) {
+    fn cancel(&mut self, reason: Cancellation) {
         self.transport.cancel();
+        self.running = false;
+        self.pending = None;
+        self.failed = false;
+        if let Some(operation) = &mut self.operation {
+            operation.state = State::Cancelled;
+            operation.reason = Some(reason);
+        }
+    }
+    pub fn resume(&mut self) {
+        if self.running {
+            self.cancel(Cancellation::Suspended);
+            self.publish_cancellation = true;
+        }
         self.running = false;
         self.pending = None;
         self.next = 0;
@@ -108,8 +159,25 @@ impl SpeedTests {
                 .pending
                 .as_ref()
                 .is_some_and(|(generation, _)| *generation != self.generation);
+        if self.publish_cancellation {
+            self.publish_cancellation = false;
+            let _ = self.transport.poll();
+            return;
+        }
         if self.running && interrupted {
-            self.transport.cancel();
+            let reason = if !c.connected() {
+                Cancellation::Disconnected
+            } else if c.metered {
+                Cancellation::Metered
+            } else if c.connectivity != 4 {
+                Cancellation::Unavailable
+            } else {
+                Cancellation::ConnectionChanged
+            };
+            self.cancel(reason);
+            let _ = self.transport.poll();
+            self.manual = false;
+            return;
         }
         if let Some(result) = self.transport.poll() {
             self.running = false;
@@ -137,6 +205,15 @@ impl SpeedTests {
                         }
                         Err(()) => self.failed = true,
                     }
+                    if let Some(operation) = &mut self.operation {
+                        operation.state = if self.failed {
+                            State::Failed
+                        } else {
+                            State::Succeeded
+                        };
+                    }
+                    // Publish the actual terminal outcome before a subsequent scheduled test.
+                    return;
                 }
             }
         }
@@ -146,6 +223,17 @@ impl SpeedTests {
             return;
         }
         if manual || (self.automatic && now >= self.next) {
+            self.operation_id += 1;
+            self.operation = Some(Operation {
+                id: self.operation_id,
+                origin: if manual {
+                    Origin::User
+                } else {
+                    Origin::Automatic
+                },
+                state: State::Running,
+                reason: None,
+            });
             self.transport.start(manual);
             self.running = true;
             self.failed = false;
@@ -254,9 +342,10 @@ impl<H> Worker<H> {
 impl<H: Http + 'static> Transport for Worker<H> {
     fn cancel(&mut self) {
         // Aborting drops the HTTP future, including pending sends and body reads.
-        if let Some(task) = &self.task {
+        if let Some(task) = self.task.take() {
             task.abort();
         }
+        self.pending = None;
     }
     fn start(&mut self, full: bool) {
         let (tx, rx) = std::sync::mpsc::channel();

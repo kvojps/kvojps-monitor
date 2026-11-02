@@ -74,7 +74,11 @@ pub struct Traffic {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkData {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connection_revision: Option<u64>,
     pub process_traffic: Option<process::ProcessTraffic>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speed_operation: Option<speed::Operation>,
     pub speed: Option<SpeedResult>,
     pub speed_available: bool,
     pub speed_running: bool,
@@ -107,6 +111,7 @@ pub struct Network<A, N, S, R, V = NoopCheck, T = NoopNotifier> {
     next: u64,
     next_ping: u64,
     connection: Connection,
+    connection_revision: u64,
     samples: VecDeque<(u64, Option<f64>, Option<f64>)>,
     previous: Option<(u64, Counters)>,
     history: VecDeque<Traffic>,
@@ -126,6 +131,7 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
             next: 0,
             next_ping: 0,
             connection: Connection::default(),
+            connection_revision: 0,
             samples: VecDeque::new(),
             previous: None,
             history: VecDeque::new(),
@@ -146,6 +152,7 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock> Network<A, N, S, R> {
             next: self.next,
             next_ping: self.next_ping,
             connection: self.connection,
+            connection_revision: self.connection_revision,
             samples: self.samples,
             previous: self.previous,
             history: self.history,
@@ -225,6 +232,13 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
             self.previous = None;
             self.history.clear();
             self.next_ping = 0;
+        }
+        // Publish an opaque revision only when a known connected identity really changes.
+        if self.connection.connected()
+            && connection.connected()
+            && self.connection.network_identity() != connection.network_identity()
+        {
+            self.connection_revision += 1;
         }
         let next = self.connection.id != connection.id
             || self.connection.interface != connection.interface;
@@ -310,7 +324,10 @@ impl<A: Files, N: NetworkManager, S: Probe, R: Clock, V: Check, T: crate::ports:
         Some((
             now,
             NetworkData {
+                connection_revision: (self.connection_revision > 0)
+                    .then_some(self.connection_revision),
                 process_traffic: self.processes.as_ref().and_then(|p| p.data.clone()),
+                speed_operation: self.speed.as_ref().and_then(|s| s.operation.clone()),
                 speed: self.speed.as_ref().and_then(|s| s.last.clone()),
                 speed_available: connected
                     && self.connection.connectivity == 4
@@ -462,6 +479,8 @@ pub fn start(app: tauri::AppHandle) {
         }
         // Publish the cached speed before the first live probe can block.
         let initial = NetworkData {
+            connection_revision: None,
+            speed_operation: None,
             process_traffic: None,
             connected: false,
             wired: false,

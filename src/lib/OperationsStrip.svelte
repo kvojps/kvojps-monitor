@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick, untrack } from "svelte";
-  import { MODULES, type Module, type Snapshot, type Operation } from "./core";
+  import { MODULES, type Module, type Snapshot, type Operation, type NetworkData } from "./core";
   import { t } from "./strings";
 
   interface Clock {
@@ -10,6 +10,7 @@
     const timer = setTimeout(callback, delay);
     return () => clearTimeout(timer);
   } } }: { snapshots: Partial<Record<Module, Snapshot>>; ready: boolean; clock?: Clock } = $props();
+  type Source = { module: Module; source: string; provider?: "codex" | "claude"; kind?: "movement" | "speed"; message?: string; operation?: Operation };
   type Entry = { module: Module; operation: Operation; text: string; priority: number };
   let entries = $state<Record<string, Entry | undefined>>({});
   let announcement = $state("");
@@ -19,6 +20,29 @@
   const seen = new Map<string, string>();
   const timers = new Map<string, () => void>();
   const pendingAnnouncements = new Map<string, string>();
+  const networkReference = new Map<string, unknown>();
+  const networkChanges = new Map<string, { operation: Operation; message: string }>();
+  let networkId = 0;
+  function networkSources(data?: NetworkData) {
+    const messages = t.operations.network;
+    const categories = [
+      ["identity", data?.connectionRevision ?? 0, messages.changed, true],
+      ["connection", data?.connected, data?.connected ? messages.connected : messages.disconnected, data?.connected],
+      ["vpn", data?.vpn, data?.vpn ? messages.vpnOn : messages.vpnOff, !data?.vpn],
+      ["quality", data?.quality, data?.quality && Object.hasOwn(messages, data.quality) ? messages[data.quality] : messages.qualityUnavailable, data?.quality === "good"],
+      ["security", data?.security, data?.security && Object.hasOwn(messages, data.security) ? messages[data.security] : messages.securityUnavailable, data?.security === "noAlerts"],
+    ] as const;
+    return categories.map(([category, value, message, recovered]) => {
+      const source = `network:${category}`;
+      if (value !== undefined) {
+        if (networkReference.has(source) && networkReference.get(source) !== value) {
+          networkChanges.set(source, { operation: { id: ++networkId, origin: "automatic", state: recovered ? "recovered" : "attention" }, message });
+        }
+        networkReference.set(source, value);
+      }
+      return { module: "network" as const, source, ...networkChanges.get(source) };
+    });
+  }
   let announcing = false;
   let disposed = false;
 
@@ -35,34 +59,52 @@
   onDestroy(() => { disposed = true; timers.forEach(cancel => cancel()); });
 
   // Only the closed operational vocabulary reaches the strip; source payload content is never rendered.
-  function describe(module: Module, operation: Operation, provider?: "codex" | "claude", movement = false): Entry | null {
+  function describe({ module, operation, provider, kind, message }: Source & { operation: Operation }): Entry | null {
+    const speed = kind === "speed";
     const state = operation.state;
-    if (state === "running" && operation.origin === "automatic") return null;
-    if (state === "succeeded" && operation.origin !== "user") return null;
-    const messages = movement ? t.operations.movement : t.operations.messages;
+    if (!speed && state === "running" && operation.origin === "automatic") return null;
+    if (!speed && state === "succeeded" && operation.origin !== "user") return null;
+    const messages = speed ? { ...t.operations.messages, ...t.operations.speed } : kind === "movement" ? t.operations.movement : t.operations.messages;
     if (!Object.hasOwn(messages, state)) return null;
-    const text = state === "running" && operation.origin === "resume" ? t.operations.resume : messages[state];
+    const text = message ?? (state === "running" && operation.origin === "resume" ? t.operations.resume : messages[state]);
     const priority = state === "failed" ? 0 : state === "paused" ? 1 : state === "attention" || state === "unavailable" ? 2 : state === "running" ? 3 : 4;
     return { module, operation, text: `${provider ? t.operations.providers[provider] : t.modules[module]} · ${text}`, priority };
   }
 
   $effect(() => {
-    if (!ready) return;
-    const current = MODULES.flatMap<{ module: Module; source: string; provider?: "codex" | "claude"; movement?: boolean; operation?: Operation }>(module => {
+    if (!ready) {
+      untrack(() => {
+        timers.forEach(cancel => cancel());
+        timers.clear();
+        entries = {};
+        announcement = "";
+        pendingAnnouncements.clear();
+        seen.clear();
+        networkReference.clear();
+        networkChanges.clear();
+        initialized = false;
+      });
+      return;
+    }
+    const current = MODULES.flatMap<Source>(module => {
       const data = snapshots[module]?.data as { operation?: Operation; movement?: Operation; codex?: { operation?: Operation }; claude?: { operation?: Operation } } | undefined;
       if (module === "ai" && (data?.codex || data?.claude)) {
         return (["codex", "claude"] as const).map(provider => ({ module, source: `ai:${provider}`, provider, operation: data[provider]?.operation }));
       }
+      if (module === "network" && data) {
+        const network = snapshots.network?.data as NetworkData;
+        return [...networkSources(network), { module, source: "network:speed", kind: "speed", operation: network.speedOperation }];
+      }
       if (module === "trello") {
         return [
           { module, source: "trello:refresh", operation: data?.operation },
-          { module, source: "trello:movement", movement: true, operation: data?.movement },
+          { module, source: "trello:movement", kind: "movement", operation: data?.movement },
         ];
       }
       return [{ module, source: module, provider: undefined, operation: data?.operation }];
     });
     untrack(() => {
-      for (const { module, source, provider, movement, operation } of current) {
+      for (const { module, source, provider, kind, message, operation } of current) {
         if (!operation) {
           timers.get(source)?.();
           timers.delete(source);
@@ -75,7 +117,7 @@
         if (!initialized) continue;
         timers.get(source)?.();
         timers.delete(source);
-        const entry = describe(module, operation, provider, movement);
+        const entry = describe({ module, source, operation, provider, kind, message });
         entries[source] = entry ?? undefined;
         if (!entry) continue;
         if (operation.state !== "running") {

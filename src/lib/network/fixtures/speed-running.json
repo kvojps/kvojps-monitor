@@ -3,6 +3,11 @@
   "updatedAt": 1793457120000,
   "data": {
     "processTraffic": null,
+    "speedOperation": {
+      "id": 1,
+      "origin": "automatic",
+      "state": "running"
+    },
     "speed": null,
     "speedAvailable": true,
     "speedRunning": true,

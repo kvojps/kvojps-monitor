@@ -189,3 +189,94 @@ it("shows fast Trello failures recovery and cancellation and establishes a fresh
   expect(screen.getByRole("status").textContent).toBe("");
   expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
 });
+
+it("communicates network categories without replaying samples or exposing source content", async () => {
+  vi.useFakeTimers();
+  const { default: good } = await import("./network/fixtures/good.json");
+  const baseline: Snapshot = { ...good, module: "network" };
+  const { rerender } = render(OperationsStrip, { snapshots: { network: baseline }, ready: true });
+  const changed: Snapshot = { ...baseline, data: { ...good.data, vpn: true, quality: "poor", security: "risk", reasons: ["SENTINEL"] } };
+  await rerender({ snapshots: { network: changed }, ready: true });
+  await act(() => tick());
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("VPN conectada");
+  expect(screen.getByRole("status")).toHaveTextContent("Qualidade: Ruim");
+  expect(screen.getByRole("status")).toHaveTextContent("Segurança: Risco");
+  expect(document.body).not.toHaveTextContent("SENTINEL");
+  await act(() => vi.advanceTimersByTime(4000));
+  await rerender({ snapshots: { network: { ...changed, updatedAt: 99999 } }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+});
+
+it("tracks real speed outcomes, keeps long tests active, and silences automatic starts only", async () => {
+  vi.useFakeTimers();
+  const { default: transitions } = await import("./fixtures/operations/network-speed-transitions.json");
+  const state = (index: number): Snapshot => ({ ...transitions[index], module: "network" });
+  const { rerender } = render(OperationsStrip, { snapshots: {}, ready: true });
+  await rerender({ snapshots: { network: state(0) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Testando velocidade");
+  expect(screen.getByRole("status").textContent).toBe("");
+  await act(() => vi.advanceTimersByTime(120_000));
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Testando velocidade");
+  await rerender({ snapshots: { network: state(1) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Teste de velocidade concluído");
+  expect(screen.getByRole("status")).not.toHaveTextContent("Teste de velocidade concluído");
+  // A fast operation can deliver its real failure without an observed start.
+  await rerender({ snapshots: { network: state(3) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Falha no teste de velocidade");
+  await rerender({ snapshots: { network: state(6) }, ready: true });
+  await act(() => vi.advanceTimersByTime(60_000));
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Testando velocidade");
+  await rerender({ snapshots: { network: state(7) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Teste de velocidade cancelado");
+  expect(screen.getByLabelText("Faixa de bordo")).not.toHaveTextContent("concluído");
+  await act(() => vi.advanceTimersByTime(4000));
+  await rerender({ snapshots: { network: state(7) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+});
+
+it("baselines connection VPN and categories on actual reopening and ignores continuous readings", async () => {
+  vi.useFakeTimers();
+  const { default: good } = await import("./network/fixtures/good.json");
+  const data = { ...good.data, connected: true, vpn: false };
+  const state = (patch = {}): Snapshot => ({ module: "network", updatedAt: 1, data: { ...data, ...patch } });
+  const { rerender } = render(OperationsStrip, { snapshots: { network: state() }, ready: true });
+  await rerender({ snapshots: { network: state({ internet: { latency: 999 }, traffic: { download: 999 }, networkId: "SENTINEL" }) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  await rerender({ snapshots: { network: state({ connected: false, vpn: true, quality: null, security: null }) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Conexão perdida");
+  expect(screen.getByRole("status")).toHaveTextContent("Qualidade indisponível");
+  await rerender({ snapshots: { network: state() }, ready: false });
+  await rerender({ snapshots: { network: state() }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  expect(screen.getByRole("status").textContent).toBe("");
+  await rerender({ snapshots: { network: state({ vpn: true, quality: "regular", security: "warning" }) }, ready: true });
+  await rerender({ snapshots: { network: state() }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("VPN desconectada");
+  expect(screen.getByRole("status")).toHaveTextContent("Qualidade: Boa");
+  expect(screen.getByRole("status")).toHaveTextContent("Segurança: Sem alertas");
+  expect(document.body).not.toHaveTextContent("SENTINEL");
+});
+
+it("announces a real connection revision while remaining connected and ignores unchanged revisions", async () => {
+  vi.useFakeTimers();
+  const { default: good } = await import("./network/fixtures/good.json");
+  const initial: Snapshot = { ...good, module: "network" };
+  const { rerender } = render(OperationsStrip, { snapshots: { network: initial }, ready: true });
+  const switched: Snapshot = { ...initial, data: { ...good.data, connectionRevision: 1 } };
+  await rerender({ snapshots: { network: switched }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Conexão alterada");
+  await act(() => vi.advanceTimersByTime(4000));
+  await rerender({ snapshots: { network: { ...switched, updatedAt: 2000 } }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  await rerender({ snapshots: { network: { ...initial, data: { ...good.data, connected: false, connectionRevision: 1 } } }, ready: true });
+  await rerender({ snapshots: { network: switched }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Conexão estabelecida");
+  expect(screen.getByRole("status")).not.toHaveTextContent("Conexão alterada");
+});

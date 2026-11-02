@@ -724,11 +724,19 @@ fn speed_cache_restores_only_numeric_result_and_age_even_offline() {
             updated_at: Some(1000),
             data: serde_json::json!({"speed": {"download": 8.0, "upload": 3.0, "measuredAt":1000,
             "networkId":"known-network", "token":"secret", "prompt":"private"},
-            "token":"secret", "history":[123]}),
+            "token":"secret", "history":[123], "speedOperation":{"id":1,"state":"running","reason":"OPERATION_SENTINEL"}}),
         })
         .unwrap();
     let bytes = std::fs::read_to_string(dir.path().join("network.json")).unwrap();
-    for forbidden in ["secret", "private", "token", "history", "prompt"] {
+    for forbidden in [
+        "secret",
+        "private",
+        "token",
+        "history",
+        "prompt",
+        "speedOperation",
+        "OPERATION_SENTINEL",
+    ] {
         assert!(!bytes.contains(forbidden));
     }
     let c = scenario();
@@ -1654,4 +1662,192 @@ fn full_ui_fixture_is_a_snapshot_published_by_core() {
     } else {
         assert_eq!(std::fs::read_to_string(file).unwrap(), json);
     }
+}
+
+#[test]
+fn speed_operation_correlates_actual_result_and_never_completes_by_elapsed_time() {
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    let http = FakeSpeed::default();
+    let mut network = c
+        .network
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    network.automatic_speed(false);
+    network.request_speed();
+    let first = serde_json::to_value(network.step().unwrap().1).unwrap();
+    assert_eq!(
+        first["speedOperation"],
+        serde_json::json!({"id":1,"origin":"user","state":"running"})
+    );
+    c.clock.advance(120_000);
+    let pending = serde_json::to_value(network.step().unwrap().1).unwrap();
+    assert_eq!(pending["speedOperation"], first["speedOperation"]);
+    http.0.lock().unwrap().1 = Some(Ok((8.0, 3.0)));
+    c.clock.advance(1000);
+    let done = serde_json::to_value(network.step().unwrap().1).unwrap();
+    assert_eq!(
+        done["speedOperation"],
+        serde_json::json!({"id":1,"origin":"user","state":"succeeded"})
+    );
+}
+
+#[test]
+fn speed_cancellation_reports_reason_and_discards_obsolete_results() {
+    for reason in [
+        "connectionChanged",
+        "disconnected",
+        "metered",
+        "unavailable",
+        "suspended",
+    ] {
+        let c = scenario();
+        c.nm.0.lock().unwrap().metered = false;
+        let http = FakeSpeed::default();
+        let mut network = c
+            .network
+            .with_speed(http.clone(), crate::persistence::Volatile);
+        network.automatic_speed(false);
+        network.request_speed();
+        network.step();
+        match reason {
+            "connectionChanged" => c.nm.0.lock().unwrap().id.push_str("SENTINEL"),
+            "disconnected" => *c.nm.0.lock().unwrap() = Connection::default(),
+            "metered" => c.nm.0.lock().unwrap().metered = true,
+            "unavailable" => c.nm.0.lock().unwrap().connectivity = 2,
+            "suspended" => network.resume(),
+            _ => unreachable!(),
+        }
+        http.0.lock().unwrap().1 = Some(Ok((8.0, 3.0)));
+        c.clock.advance(1000);
+        let data = network.step().unwrap().1;
+        assert!(!data.speed_running);
+        assert!(!data.speed_failed);
+        assert!(data.speed.is_none());
+        let operation = serde_json::to_value(data).unwrap()["speedOperation"].clone();
+        assert_eq!(
+            operation,
+            serde_json::json!({"id":1,"origin":"user","state":"cancelled","reason":reason})
+        );
+        // A late result after cancellation cannot become success on a later collection.
+        http.0.lock().unwrap().1 = Some(Ok((99.0, 99.0)));
+        c.clock.advance(1000);
+        let data = network.step().unwrap().1;
+        assert!(data.speed.is_none());
+        assert_eq!(
+            serde_json::to_value(data).unwrap()["speedOperation"],
+            operation
+        );
+    }
+}
+
+#[test]
+fn speed_transition_fixtures_include_actual_failures_and_distinct_operations() {
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    let http = FakeSpeed::default();
+    let mut network = c
+        .network
+        .with_speed(http.clone(), crate::persistence::Volatile);
+    let mut transitions = Vec::new();
+    let result = network.step().unwrap();
+    transitions.push(snapshot(result.0, &result.1));
+    for result in [Ok((8.0, 3.0)), Err(()), Ok((f64::NAN, 3.0))] {
+        http.0.lock().unwrap().1 = Some(result);
+        c.clock.advance(1000);
+        let (now, data) = network.step().unwrap();
+        let json = serde_json::to_value(&data).unwrap();
+        assert_eq!(
+            json["speedOperation"]["state"],
+            if result.is_ok_and(|r| r.0.is_finite()) {
+                "succeeded"
+            } else {
+                "failed"
+            }
+        );
+        transitions.push(snapshot(now, &data));
+        network.request_speed();
+        c.clock.advance(1000);
+        let (now, data) = network.step().unwrap();
+        transitions.push(snapshot(now, &data));
+    }
+    network.resume();
+    let (now, data) = network.step().unwrap();
+    transitions.push(snapshot(now, &data));
+    let json = serde_json::to_string_pretty(&transitions).unwrap() + "\n";
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../src/lib/fixtures/operations/network-speed-transitions.json");
+    if std::env::var_os("UPDATE_FIXTURES").is_some() {
+        std::fs::write(path, json).unwrap();
+    } else {
+        assert_eq!(std::fs::read_to_string(path).unwrap(), json);
+    }
+}
+
+#[test]
+fn speed_operations_are_transient_and_never_persist_source_content() {
+    use crate::persistence::{Cache, DiskStorage, LocalPersistence, Logs};
+    let dir = tempfile::tempdir().unwrap();
+    let c = scenario();
+    c.nm.0.lock().unwrap().metered = false;
+    if let Some(wifi) = c.nm.0.lock().unwrap().wifi.as_mut() {
+        wifi.key_mgmt = "SOURCE_SENTINEL".into();
+    }
+    let http = FakeSpeed::default();
+    let mut network = c.network.with_speed(
+        http.clone(),
+        LocalPersistence {
+            cache: Cache(DiskStorage(dir.path().join("cache"))),
+            logs: Logs(DiskStorage(dir.path().join("logs"))),
+        },
+    );
+    network.step();
+    http.0.lock().unwrap().1 = Some(Ok((8.0, 3.0)));
+    c.clock.advance(1000);
+    let data = network.step().unwrap().1;
+    assert!(data.speed_operation.is_some());
+    let cached = std::fs::read_to_string(dir.path().join("cache/network.json")).unwrap();
+    for forbidden in [
+        "SOURCE_SENTINEL",
+        "speedOperation",
+        "running",
+        "succeeded",
+        "history",
+    ] {
+        assert!(!cached.contains(forbidden));
+    }
+    assert!(!dir.path().join("logs").exists());
+    // Restoring the last numeric measurement never restores an old operation.
+    let c = scenario();
+    let mut restored = c.network.with_speed(
+        FakeSpeed::default(),
+        LocalPersistence {
+            cache: Cache(DiskStorage(dir.path().join("cache"))),
+            logs: Logs(DiskStorage(dir.path().join("logs"))),
+        },
+    );
+    restored.automatic_speed(false);
+    assert!(restored.step().unwrap().1.speed_operation.is_none());
+}
+
+#[test]
+fn connection_revision_identifies_real_switches_without_exposing_network_identity() {
+    let c = scenario();
+    let mut network = c.network;
+    let initial = serde_json::to_value(network.step().unwrap().1).unwrap();
+    assert!(initial.get("connectionRevision").is_none());
+    c.clock.advance(1000);
+    assert!(serde_json::to_value(network.step().unwrap().1)
+        .unwrap()
+        .get("connectionRevision")
+        .is_none());
+    c.nm.0.lock().unwrap().network_id = "NETWORK_SENTINEL".into();
+    c.clock.advance(1000);
+    let changed = serde_json::to_value(network.step().unwrap().1).unwrap();
+    assert_eq!(changed["connectionRevision"], 1);
+    assert!(!changed.to_string().contains("NETWORK_SENTINEL"));
+    c.clock.advance(1000);
+    assert_eq!(
+        serde_json::to_value(network.step().unwrap().1).unwrap()["connectionRevision"],
+        1
+    );
 }

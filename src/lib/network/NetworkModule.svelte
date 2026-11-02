@@ -124,7 +124,10 @@
         <small class="line {alert}"><span aria-hidden="true">⚠&nbsp;</span>{reason}</small>
       {/each}
     {/if}
-    {#if data.speedRunning}<small class="line" role="status">{t.network.testingSpeed}</small>{/if}
+    {#if data.speedRunning}<small class="line" role={data.speedOperation?.origin === "automatic" ? undefined : "status"}>{t.network.testingSpeed}</small>{/if}
+    {#if data.speedOperation?.state === "cancelled" && data.speedOperation.reason && Object.hasOwn(t.network.speedCancelled, data.speedOperation.reason)}
+      <small class="line alert">{t.network.speedCancelled[data.speedOperation.reason]}</small>
+    {/if}
     {#if data.speedFailed}<small class="line alert" role="status"><span aria-hidden="true">⚠&nbsp;</span>{t.network.speedFailed}</small>{/if}
     {#if connected && !data.speedAvailable && !data.speedRunning}
       <small class="line"><span aria-hidden="true">⊘&nbsp;</span>{t.network.speedUnavailable}</small>

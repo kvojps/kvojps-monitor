@@ -125,6 +125,13 @@
     "testingSpeed": "Testando velocidade…",
     "test": "testar",
     "speedAt": "Teste · {time}",
+    "speedCancelled": {
+      "connectionChanged": "Teste cancelado após mudança de conexão",
+      "disconnected": "Teste cancelado por perda de conexão",
+      "metered": "Teste cancelado em conexão limitada",
+      "unavailable": "Teste cancelado por indisponibilidade da internet",
+      "suspended": "Teste cancelado após suspensão do sistema"
+    },
     "speedFailed": "Não foi possível medir a velocidade",
     "speedUnavailable": "Teste indisponível sem internet ou em conexão limitada",
     "automaticSpeed": "Teste de velocidade automático",
@@ -421,6 +428,27 @@
     "providers": { "codex": "Codex", "claude": "Claude" },
     "rest": "Bordo em repouso",
     "resume": "Retomando atualização…",
+    "network": {
+      "changed": "Conexão alterada.",
+      "connected": "Conexão estabelecida.",
+      "disconnected": "Conexão perdida.",
+      "vpnOn": "VPN conectada.",
+      "vpnOff": "VPN desconectada.",
+      "good": "Qualidade: Boa.",
+      "regular": "Qualidade: Regular.",
+      "poor": "Qualidade: Ruim.",
+      "qualityUnavailable": "Qualidade indisponível.",
+      "noAlerts": "Segurança: Sem alertas.",
+      "warning": "Segurança: Atenção.",
+      "risk": "Segurança: Risco.",
+      "securityUnavailable": "Segurança indisponível."
+    },
+    "speed": {
+      "running": "Testando velocidade…",
+      "succeeded": "Teste de velocidade concluído.",
+      "failed": "Falha no teste de velocidade. Confira o Módulo.",
+      "cancelled": "Teste de velocidade cancelado."
+    },
     "movement": {
       "running": "Movendo card…",
       "succeeded": "Card movido.",

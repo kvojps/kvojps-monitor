@@ -286,7 +286,7 @@
       <Settings bind:this={settings} {core} {snapshots} {welcome} {appearance} back={backToPanel} />
     {/if}
   </div>
-  <OperationsStrip {snapshots} ready={appearanceRestored} />
+  <OperationsStrip {snapshots} ready={appearanceRestored && nativeVisible && pageVisible} />
 </div>
 
 <style>
