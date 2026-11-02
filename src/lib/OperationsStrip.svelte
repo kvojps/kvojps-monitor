@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick, untrack } from "svelte";
-  import { MODULES, type Module, type Snapshot, type Operation, type NetworkData } from "./core";
+  import { MODULES, type Module, type Snapshot, type Operation, type AgentsData, type AgentSession, type SystemData, type NetworkData } from "./core";
   import { t } from "./strings";
 
   interface Clock {
@@ -10,7 +10,7 @@
     const timer = setTimeout(callback, delay);
     return () => clearTimeout(timer);
   } } }: { snapshots: Partial<Record<Module, Snapshot>>; ready: boolean; clock?: Clock } = $props();
-  type Source = { module: Module; source: string; provider?: "codex" | "claude"; kind?: "movement" | "speed"; message?: string; operation?: Operation };
+  type Source = { module: Module; source: string; provider?: "codex" | "claude"; kind?: "movement" | "speed" | "transition"; message?: string; operation?: Operation };
   type Entry = { module: Module; operation: Operation; text: string; priority: number };
   let entries = $state<Record<string, Entry | undefined>>({});
   let announcement = $state("");
@@ -42,6 +42,62 @@
       }
       return { module: "network" as const, source, ...networkChanges.get(source) };
     });
+  }
+  const agentReference = new Map<string, AgentSession["state"]>();
+  const systemReference = new Map<string, boolean>();
+  const transitionChanges = new Map<string, Source>();
+  let transitionId = 0;
+  let agentsInitialized = false;
+  let systemInitialized = false;
+  function agentSources(data: AgentsData): Source[] {
+    const counts = { waiting: 0, done: 0, failed: 0, closed: 0 };
+    if (!data.failed) {
+      const current = new Map<string, AgentSession["state"]>();
+      for (const session of [...data.sessions, ...data.closed]) {
+        const identity = `${session.provider ?? "claude"}:${session.id}:${session.startedAt}`;
+        current.set(identity, session.state);
+        const previous = agentReference.get(identity);
+        if (agentsInitialized && previous !== session.state && (previous !== undefined || session.state !== "closed") && session.state !== "working") counts[session.state]++;
+      }
+      agentsInitialized = true;
+      agentReference.clear();
+      current.forEach((state, identity) => agentReference.set(identity, state));
+    }
+    for (const state of ["failed", "waiting", "done", "closed"] as const) {
+      const source = `agents:${state}`;
+      if (counts[state]) transitionChanges.set(source, {
+        module: "agents", source, kind: "transition", message: `${t.operations.agents[state]}: ${counts[state]}.`,
+        operation: { id: ++transitionId, origin: "automatic", state: state === "failed" ? "failed" : state === "waiting" ? "attention" : "cancelled" },
+      });
+    }
+    return [...transitionChanges.values()].filter(source => source.module === "agents");
+  }
+  function systemSources(data: SystemData): Source[] {
+    const readings: [string, keyof typeof t.operations.system, boolean][] = [];
+    if (data.cpu.temperature) readings.push(["temperature", "temperature", data.cpu.temperature.warning]);
+    if (data.battery) readings.push(["battery", "battery", data.battery.warning]);
+    for (const disk of data.disks) readings.push([`disk:${disk.mount}`, "disk", disk.warning]);
+    const current = new Map<string, boolean>();
+    const changes = new Map<string, { category: keyof typeof t.operations.system; warning: boolean; count: number }>();
+    for (const [identity, category, warning] of readings) {
+      current.set(identity, warning);
+      const previous = systemReference.get(identity);
+      if (systemInitialized && previous !== warning && (previous !== undefined || warning)) {
+        const key = `${category}:${warning}`;
+        changes.set(key, { category, warning, count: (changes.get(key)?.count ?? 0) + 1 });
+      }
+    }
+    systemInitialized = true;
+    systemReference.clear();
+    current.forEach((warning, identity) => systemReference.set(identity, warning));
+    for (const [key, { category, warning, count }] of changes) {
+      const source = `system:${key}`;
+      transitionChanges.set(source, { module: "system", source,
+        message: `${t.operations.system[category][warning ? "warning" : "recovered"]}${count > 1 ? ` (${count})` : ""}`,
+        operation: { id: ++transitionId, origin: "automatic", state: warning ? "attention" : "recovered" },
+      });
+    }
+    return [...transitionChanges.values()].filter(source => source.module === "system");
   }
   let announcing = false;
   let disposed = false;
@@ -80,6 +136,11 @@
         announcement = "";
         pendingAnnouncements.clear();
         seen.clear();
+        agentsInitialized = false;
+        systemInitialized = false;
+        agentReference.clear();
+        systemReference.clear();
+        transitionChanges.clear();
         networkReference.clear();
         networkChanges.clear();
         initialized = false;
@@ -95,6 +156,8 @@
         const network = snapshots.network?.data as NetworkData;
         return [...networkSources(network), { module, source: "network:speed", kind: "speed", operation: network.speedOperation }];
       }
+      if (module === "agents" && data && "sessions" in data) return agentSources(data as unknown as AgentsData);
+      if (module === "system" && data && "cpu" in data) return systemSources(data as unknown as SystemData);
       if (module === "trello") {
         return [
           { module, source: "trello:refresh", operation: data?.operation },
@@ -125,7 +188,7 @@
             entries[source] = undefined;
             timers.delete(source);
           }));
-          if (operation.origin === "user" || ["failed", "recovered", "paused", "attention", "unavailable"].includes(operation.state)) {
+          if (kind === "transition" || operation.origin === "user" || ["failed", "recovered", "paused", "attention", "unavailable"].includes(operation.state)) {
             pendingAnnouncements.set(source, entry.text);
           }
         }

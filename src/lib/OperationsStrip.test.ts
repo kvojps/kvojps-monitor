@@ -280,3 +280,92 @@ it("announces a real connection revision while remaining connected and ignores u
   expect(screen.getByRole("status")).toHaveTextContent("Conexão estabelecida");
   expect(screen.getByRole("status")).not.toHaveTextContent("Conexão alterada");
 });
+
+it("groups actual agent transitions without content or inferred turns", async () => {
+  vi.useFakeTimers();
+  const { default: fixture } = await import("./agents/fixtures/states.json");
+  const state = (working: boolean): Snapshot => ({ module: "agents", updatedAt: null, data: {
+    ...fixture, sessions: fixture.sessions.map(session => ({ ...session,
+      state: working ? "working" : session.state, interrupted: !working && session.state === "done", name: "NAME_SENTINEL", project: "PROJECT_SENTINEL",
+      branch: "BRANCH_SENTINEL", waitingFor: "PROMPT_SENTINEL",
+    })),
+  } });
+  const { rerender } = render(OperationsStrip, { snapshots: { agents: state(true) }, ready: true });
+  await rerender({ snapshots: { agents: state(false) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Aguardando você: 1");
+  expect(screen.getByRole("status")).toHaveTextContent("Turno concluído: 1");
+  expect(screen.getByRole("status")).toHaveTextContent("Com falha: 1");
+  expect(document.body).not.toHaveTextContent("SENTINEL");
+  await act(() => vi.advanceTimersByTime(4000));
+  await rerender({ snapshots: { agents: state(false) }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+});
+
+it("reports closure only when observed and resets agent references on reopening", async () => {
+  const { default: fixture } = await import("./agents/fixtures/states.json");
+  const initial: Snapshot = { module: "agents", updatedAt: 1, data: fixture };
+  const closed: Snapshot = { ...initial, data: { ...fixture, sessions: [], closed: [
+    ...fixture.closed, ...fixture.sessions.map(session => ({ ...session, state: "closed" })),
+  ] } };
+  const { rerender } = render(OperationsStrip, { snapshots: { agents: initial }, ready: true });
+  await rerender({ snapshots: { agents: closed }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Encerrada: 4");
+  expect(screen.getByRole("status")).not.toHaveTextContent("Turno concluído");
+  await rerender({ snapshots: { agents: closed }, ready: false });
+  await rerender({ snapshots: { agents: closed }, ready: true });
+  expect(screen.getByRole("status").textContent).toBe("");
+});
+
+it("reports existing system alert edges and never treats missing sensors as recovery", async () => {
+  vi.useFakeTimers();
+  const { default: warning } = await import("./system/fixtures/warning.json");
+  const { default: desktop } = await import("./system/fixtures/desktop.json");
+  const sample = (data: unknown): Snapshot => ({ module: "system", updatedAt: 1, data });
+  const normal = { ...warning.data,
+    cpu: { ...warning.data.cpu, temperature: { celsius: 40, warning: false } },
+    disks: warning.data.disks.map(disk => ({ ...disk, warning: false })),
+    battery: { ...warning.data.battery, warning: false },
+  };
+  const { rerender } = render(OperationsStrip, { snapshots: { system: sample(normal) }, ready: true });
+  await rerender({ snapshots: { system: warning as Snapshot }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Temperatura alta");
+  expect(screen.getByRole("status")).toHaveTextContent("Disco com pouco espaço");
+  expect(screen.getByRole("status")).toHaveTextContent("Bateria baixa");
+  await act(() => vi.advanceTimersByTime(4000));
+  await rerender({ snapshots: { system: warning as Snapshot }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  await rerender({ snapshots: { system: sample(normal) }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Alerta de temperatura encerrado");
+  expect(screen.getByRole("status")).toHaveTextContent("Alerta de disco encerrado");
+  expect(screen.getByRole("status")).toHaveTextContent("Alerta de bateria encerrado");
+  await rerender({ snapshots: { system: warning as Snapshot }, ready: false });
+  await rerender({ snapshots: { system: warning as Snapshot }, ready: true });
+  await rerender({ snapshots: { system: sample({ ...desktop.data, cpu: { ...desktop.data.cpu, temperature: null }, disks: [], battery: null }) }, ready: true });
+  expect(screen.getByRole("status").textContent).toBe("");
+});
+
+
+it("announces a real system alert when a missing sensor returns already warning", async () => {
+  const { default: fixture } = await import("./system/fixtures/warning.json");
+  const missing: Snapshot = { module: "system", updatedAt: null, data: {
+    ...fixture.data, cpu: { ...fixture.data.cpu, temperature: null }, battery: null, disks: [],
+  } };
+  const { rerender } = render(OperationsStrip, { snapshots: { system: missing }, ready: true });
+  await rerender({ snapshots: { system: fixture as Snapshot }, ready: true });
+  await act(() => tick());
+  expect(screen.getByRole("status")).toHaveTextContent("Temperatura alta");
+  expect(screen.getByRole("status")).toHaveTextContent("Bateria baixa");
+});
+
+it("baselines delayed first readings without replaying existing agent states or system alerts", async () => {
+  const { default: agents } = await import("./agents/fixtures/states.json");
+  const { default: system } = await import("./system/fixtures/warning.json");
+  const { rerender } = render(OperationsStrip, { snapshots: {}, ready: true });
+  await rerender({ snapshots: { agents: { module: "agents", updatedAt: null, data: agents }, system: system as Snapshot }, ready: true });
+  expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+  expect(screen.getByRole("status").textContent).toBe("");
+});

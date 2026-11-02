@@ -425,7 +425,10 @@
     "reconnect": "Reconectar"
   },
   "operations": {
-    "providers": { "codex": "Codex", "claude": "Claude" },
+    "providers": {
+      "codex": "Codex",
+      "claude": "Claude"
+    },
     "rest": "Bordo em repouso",
     "resume": "Retomando atualização…",
     "network": {
@@ -468,6 +471,26 @@
       "unavailable": "Atualização indisponível. Confira o Módulo.",
       "cancelled": "Operação cancelada.",
       "attention": "Atenção. Confira o Módulo."
+    },
+    "agents": {
+      "waiting": "Aguardando você",
+      "done": "Turno concluído",
+      "failed": "Com falha",
+      "closed": "Encerrada"
+    },
+    "system": {
+      "temperature": {
+        "warning": "Temperatura alta.",
+        "recovered": "Alerta de temperatura encerrado."
+      },
+      "disk": {
+        "warning": "Disco com pouco espaço.",
+        "recovered": "Alerta de disco encerrado."
+      },
+      "battery": {
+        "warning": "Bateria baixa.",
+        "recovered": "Alerta de bateria encerrado."
+      }
     }
   }
 }
