@@ -4,7 +4,7 @@
 
 **Blocked by:** 28 — Comunicar consultas por Provedor de IA; 29 — Comunicar atualizações e movimentações do Trello; 30 — Comunicar mudanças de Rede e teste de velocidade; 31 — Comunicar transições de Agentes e alertas de Sistema; 32 — Aplicar o movimento Órbita contínua.
 
-**Status:** ready-for-human
+**Status:** done
 
 - [ ] Validar em GNOME/Wayland e WebKitGTK a composição nos temas claro, escuro e do sistema, largura reduzida, 1100 × 700, 1000 × 700 e texto ampliado; preservar responsividade e acesso a métricas, alertas, detalhes e ações.
 - [ ] Exercitar os seis Módulos simultâneos com prioridade e resumo de excedentes, sem carrossel ou expansão da grade, incluindo operações rápidas/longas, falha, pausa, recuperação, cancelamento e indisponibilidade total/parcial.
@@ -26,3 +26,8 @@ de tela, texto ampliado e medições/traces do protocolo com build release e fon
 reais. A sessão D-Bus isolada usada nas capturas não valida Indicador ou portal da
 sessão pessoal. `ready-for-human` indica essa necessidade concreta, sem aprovação
 do aceite nativo e sem alteração ou encerramento do ticket 25.
+
+02/11/2026 — Encerrado por decisão explícita do usuário: “Pode marcar como
+resolvido”. As limitações e verificações sem evidência permanecem documentadas;
+o encerramento não representa novas medições ou aprovação técnica dos critérios
+não verificados. O ticket 25 permanece inalterado.

@@ -1,6 +1,6 @@
 # Validação integrada do Painel — ticket 33
 
-Registro de 02/11/2026, aproximadamente 03:23–03:26 UTC. **Aceite parcial; ticket aberto.**
+Registro de 02/11/2026, aproximadamente 03:23–03:26 UTC. **Validação parcial; ticket encerrado por decisão explícita do usuário em 02/11/2026.** As limitações abaixo permanecem registradas, sem novas evidências de aceite nativo.
 Não há alteração de código de produção nesta rodada. O ticket 25 permanece intacto.
 
 ## Ambiente e reprodução
