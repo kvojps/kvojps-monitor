@@ -4,20 +4,31 @@
 
 **Blocked by:** 35 — Implementar prontidão e ciclo de abertura do Painel.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Compor fundo escuro, malha de linhas luminosas em perspectiva e identidade inferior esquerda, conforme Arquitetura (C). Exibir exatamente “kvojps monitor”.
-- [ ] Usar como fonte visual a branch local `prototype/panel-opening`, commit `91d27bf`, entrada `opening-prototype.html`, variante C. Não incorporar controles de simulação, variantes alternativas ou portas falsas ao app.
-- [ ] Vincular “Preparando o Painel…” e “Carregando Módulos…” às atividades reais correspondentes. Se tudo estiver pronto antes do mínimo, manter apenas a composição, sem mensagem alegando atividade.
-- [ ] Fazer a passagem suave para os Módulos dentro da duração contratada, sem reiniciar o mínimo após preparo demorado. Respeitar prontidão/recuperação antes de revelar conteúdo.
-- [ ] Manter abertura escura nos temas claro, escuro e do sistema, revelando o tema restaurado ao entrar no Painel sem flashes intermediários de tema incorreto.
-- [ ] Respeitar redução manual e do sistema: mesma composição estática, mensagens e duração mínima, sem linhas em movimento ou transição animada. Preferência do sistema prevalece.
-- [ ] Garantir legibilidade, responsividade, texto ampliado, contraste e operação por teclado; conteúdo coberto não recebe foco/interação. Mensagens não roubam foco nem provocam anúncios repetidos a cada frame.
-- [ ] Preservar a decoração existente dos Módulos, sem executá-la indevidamente sob a abertura ou após fechar. Não criar preferências de produto para duração ou intensidade.
-- [ ] Verificar com fixtures de snapshot os estados do ciclo, temas, movimento reduzido e falhas; executar check, testes pertinentes e build. Evidência nativa integrada pertence ao ticket Validar a abertura no app nativo.
+- [x] Compor fundo escuro, malha de linhas luminosas em perspectiva e identidade inferior esquerda, conforme Arquitetura (C). Exibir exatamente “kvojps monitor”.
+- [x] Usar como fonte visual a branch local `prototype/panel-opening`, commit `91d27bf`, entrada `opening-prototype.html`, variante C. Não incorporar controles de simulação, variantes alternativas ou portas falsas ao app.
+- [x] Vincular “Preparando o Painel…” e “Carregando Módulos…” às atividades reais correspondentes. Se tudo estiver pronto antes do mínimo, manter apenas a composição, sem mensagem alegando atividade.
+- [x] Fazer a passagem suave para os Módulos dentro da duração contratada, sem reiniciar o mínimo após preparo demorado. Respeitar prontidão/recuperação antes de revelar conteúdo.
+- [x] Manter abertura escura nos temas claro, escuro e do sistema, revelando o tema restaurado ao entrar no Painel sem flashes intermediários de tema incorreto.
+- [x] Respeitar redução manual e do sistema: mesma composição estática, mensagens e duração mínima, sem linhas em movimento ou transição animada. Preferência do sistema prevalece.
+- [x] Garantir legibilidade, responsividade, texto ampliado, contraste e operação por teclado; conteúdo coberto não recebe foco/interação. Mensagens não roubam foco nem provocam anúncios repetidos a cada frame.
+- [x] Preservar a decoração existente dos Módulos, sem executá-la indevidamente sob a abertura ou após fechar. Não criar preferências de produto para duração ou intensidade.
+- [x] Verificar com fixtures de snapshot os estados do ciclo, temas, movimento reduzido e falhas; executar check, testes pertinentes e build. Evidência nativa integrada pertence ao ticket Validar a abertura no app nativo.
 
 ## Fontes aprovadas
 
 - [Definir prontidão e ciclo de abertura do Painel](../../panel-opening/issues/01-opening-readiness.md).
 - [Validar sequência visual cinematográfica de abertura](../../panel-opening/issues/02-opening-visual.md).
 - [Abertura cinematográfica do Painel](../../panel-opening/map.md).
+
+
+## Implementação e validação
+
+Composição de produção em `src/lib/PanelOpening.svelte`, reescrita a partir da referência C do commit `91d27bf`: fundo escuro, malha em perspectiva e identidade inferior esquerda. Mensagens usam as etapas reais existentes; durante a espera mínima após prontidão, a região de status fica vazia.
+
+A passagem de 240 ms começa após prontidão e após os primeiros 960 ms de apresentação: preparo rápido completa a sequência em 1,2 s; preparo demorado acrescenta apenas a passagem, sem repetir o mínimo. O conteúdo permanece inerte e fora da árvore de acessibilidade até o fim. Movimento reduzido conserva a abertura opaca e estática até a revelação. Linhas aguardam a restauração das preferências antes de animar.
+
+Validação: `npm run check` sem erros/avisos; 367 testes de UI, incluindo 14 da abertura com fixtures (ciclo, recuperação, falha, temas, redução manual e do sistema, decoração); `npm run build`; suíte Rust com 305 testes unitários e 3 de integração. Os testes de socket exigiram execução fora do sandbox. A validação visual integrada e de desempenho nativo permanece no ticket de validação nativa, conforme o escopo.
+
+Revisão em dois eixos pela skill code-review, base `4f8cb99d8fba528a29ad700dab46c3eb1fff11b0`: Standards sem violações documentadas; sugestão de centralizar cancelamento aplicada. Spec identificou desaparecimento prematuro com redução de movimento; corrigido mantendo opacidade até a revelação.

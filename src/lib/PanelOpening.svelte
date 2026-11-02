@@ -18,6 +18,9 @@
   let { core, clock = browserClock }: { core: Core; clock?: OpeningClock } = $props();
   let stage = $state<"local" | "modules" | "ready" | "failed">("local");
   let minimumElapsed = $state(false);
+  let fading = $state(false);
+  let finished = $state(false);
+  let cancelTransition = () => {};
   let recovered = $state(false);
   let openingActive = $state(true);
   let attempt = $state(0);
@@ -26,7 +29,13 @@
   let minimumStarted = false;
   let cancelPresentation = () => {};
   let cancelRestore = () => {};
-  const revealed = $derived(stage === "ready" && minimumElapsed);
+  const revealed = $derived(stage === "ready" && finished);
+  $effect(() => {
+    if (openingActive && stage === "ready" && minimumElapsed && !fading) {
+      fading = true;
+      cancelTransition = clock.after(240, () => { finished = true; });
+    }
+  });
 
   // Panel subscribes to live snapshots before requesting this local-only restore.
   const openingCore: Core = $derived({
@@ -47,12 +56,18 @@
       Promise.resolve().then(() => core.initialState()).then((value) => finish(value), () => finish());
     }),
   });
-  function fail() { if (!openingActive) return; cancelRestore(); cancelMinimum(); cancelPresentation(); stage = "failed"; }
-  function retry() {
+  function cancelOpening() {
     cancelRestore();
     cancelMinimum();
     cancelPresentation();
+    cancelTransition();
+  }
+  function fail() { if (!openingActive) return; cancelOpening(); stage = "failed"; }
+  function retry() {
+    cancelOpening();
     minimumElapsed = false;
+    fading = false;
+    finished = false;
     recovered = false;
     stage = "local";
     attempt += 1;
@@ -62,9 +77,7 @@
   function close() {
     if (!openingActive) return;
     openingActive = false;
-    cancelRestore();
-    cancelMinimum();
-    cancelPresentation();
+    cancelOpening();
     core.closePanel();
   }
   function startMinimum() {
@@ -73,13 +86,13 @@
     cancelPresentation = clock.presented(() => {
       if (!openingActive) return;
       if (document.hidden) { minimumStarted = false; return; }
-      cancelMinimum = clock.after(1200, () => { minimumElapsed = true; });
+      cancelMinimum = clock.after(960, () => { minimumElapsed = true; });
     });
   }
   onMount(() => {
     minimumStarted = false;
     startMinimum();
-    return () => { openingActive = false; cancelRestore(); cancelMinimum(); cancelPresentation(); };
+    return () => { openingActive = false; cancelOpening(); };
   });
 </script>
 
@@ -89,27 +102,54 @@
 {#if openingActive && stage !== "failed"}
 {#key attempt}
   <svelte:boundary onerror={fail}>
-    <div class:concealed={!revealed} inert={!revealed} aria-hidden={!revealed ? "true" : undefined}>
+    <div class:concealed={!revealed && !fading} inert={!revealed} aria-hidden={!revealed ? "true" : undefined}>
       <Panel core={openingCore} recovery={recovered} presented={revealed} prepared={() => { if (openingActive && stage !== "failed") stage = "ready"; }} failed={fail} />
     </div>
     {#snippet failed()}{/snippet}
   </svelte:boundary>
 {/key}
 {/if}
-{#if openingActive && stage === "failed"}
-  <div class="opening" role="alert">
-    <p>Não foi possível abrir o Painel.</p>
-    <button onclick={retry}>Tentar novamente</button>
-    <button onclick={close}>Fechar</button>
-  </div>
-{:else if openingActive && !revealed}
-  <div class="opening" role="status" aria-live="polite">
-    {#if stage === "local"}Preparando o Painel…{:else if stage === "modules"}Carregando Módulos…{:else}Painel pronto.{/if}
+{#if openingActive && !revealed}
+  <div class="opening" class:fading={fading && stage !== "failed"}>
+    <div class="geometry" class:paused={stage === "local" || stage === "failed"} aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="identity">
+      <h1>kvojps monitor</h1>
+      {#if stage === "failed"}
+        <p role="alert">Não foi possível abrir o Painel.</p>
+        <div class="actions"><button onclick={retry}>Tentar novamente</button><button onclick={close}>Fechar</button></div>
+      {:else}
+        <p role="status" aria-live="polite">{#if stage === "local"}Preparando o Painel…{:else if stage === "modules"}Carregando Módulos…{/if}</p>
+      {/if}
+    </div>
   </div>
 {/if}
 
 <style>
   div:has(> :global(.panel)) { height: 100%; }
   .concealed { visibility: hidden; }
-  .opening { position: fixed; inset: 0; display: grid; place-content: center; gap: 12px; background: #10131b; color: #eef0f7; }
+  .opening {
+    position: fixed; inset: 0; z-index: 10; box-sizing: border-box;
+    display: flex; align-items: flex-end; padding: clamp(20px, 8vw, 96px);
+    overflow: auto; isolation: isolate; background: #02070d; color: #d8f5ff;
+    transition: opacity 240ms ease;
+  }
+  .fading { opacity: 0; }
+  .geometry { position: absolute; inset: 12%; z-index: -1; pointer-events: none;
+    border: 1px solid #24465b; transform: perspective(500px) rotateX(25deg); }
+  .geometry i { position: absolute; display: block; width: 1px; height: 100%; left: 25%;
+    background: #4ce5ff; box-shadow: 0 0 18px #4ce5ff88; animation: illuminate 1.8s ease-in-out infinite alternate; }
+  .geometry i:nth-child(2) { left: 75%; }
+  .geometry i:nth-child(3) { width: 100%; height: 1px; left: 0; top: 28%; background: #b9a0e8; }
+  .geometry i:nth-child(4) { width: 100%; height: 1px; left: 0; top: 65%; }
+  .identity { min-width: 0; max-width: 100%; margin-top: auto; text-shadow: 0 2px 8px #02070d; }
+  h1 { font: 300 clamp(1.5rem, 4vw, 3.25rem) system-ui; letter-spacing: .2em; overflow-wrap: anywhere; margin: 14px 0; }
+  p { min-height: 1.5em; color: #bbd2df; font: 1rem/1.5 system-ui; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  button { background: #253344; color: #edf9ff; border: 1px solid #7690a4; padding: 8px 12px; border-radius: 6px; font: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid #4ce5ff; outline-offset: 3px; }
+  .geometry.paused i { animation: none; }
+  :global([data-motion="reduced"]) .geometry i { animation: none; }
+  :global([data-motion="reduced"]) .opening { transition: none; opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .geometry i { animation: none; } .opening { transition: none; opacity: 1; } }
+  @keyframes illuminate { from { opacity: .3; filter: brightness(.7); } to { opacity: 1; filter: brightness(1.5); } }
 </style>

@@ -19,14 +19,15 @@ it("presents local fixtures only after the visible minimum, without inventing wo
   render(PanelOpening, { core: core(async () => initial) });
   await act(() => vi.advanceTimersByTimeAsync(0));
   expect(screen.queryByRole("region", { name: "GitHub" })).not.toBeInTheDocument();
-  expect(screen.getByRole("status")).not.toHaveTextContent("Preparando");
-  await act(() => vi.advanceTimersByTime(1199));
+  expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  expect(screen.getByRole("heading", { name: "kvojps monitor" })).toBeVisible();
+  await act(() => vi.advanceTimersByTimeAsync(1199));
   expect(screen.queryByRole("region", { name: "GitHub" })).not.toBeInTheDocument();
-  await act(() => vi.advanceTimersByTime(1));
+  await act(() => vi.advanceTimersByTimeAsync(1));
   expect(screen.getAllByRole("region", { name: "GitHub" })[0]).toBeVisible();
 });
 
-it("reveals slow local preparation immediately when ready after the minimum", async () => {
+it("reveals slow local preparation with only the transition after readiness", async () => {
   vi.useFakeTimers();
   let resolve!: (state: InitialState) => void;
   render(PanelOpening, { core: core(() => new Promise((done) => { resolve = done; })) });
@@ -34,6 +35,8 @@ it("reveals slow local preparation immediately when ready after the minimum", as
   expect(screen.getByRole("status")).toHaveTextContent("Preparando o Painel");
   await act(async () => { resolve(initial); });
   await act(() => vi.advanceTimersByTimeAsync(0));
+  expect(screen.queryByRole("region", { name: "GitHub" })).not.toBeInTheDocument();
+  await act(() => vi.advanceTimersByTimeAsync(240));
   expect(screen.getAllByRole("region", { name: "GitHub" })[0]).toBeVisible();
 });
 
@@ -42,7 +45,7 @@ it.each(["timeout", "rejection"])("recovers from %s with defaults and ignores la
   let resolve!: (state: InitialState) => void;
   const source = core(failure === "timeout" ? () => new Promise((done) => { resolve = done; }) : async () => { throw new Error("sensitive source detail"); });
   render(PanelOpening, { core: source });
-  await act(() => vi.advanceTimersByTimeAsync(5000));
+  await act(() => vi.advanceTimersByTimeAsync(5240));
   expect(screen.getAllByRole("region", { name: "IA" })[0]).toBeVisible();
   expect(screen.getByText(/Preferências não restauradas/)).toHaveTextContent("valores padrão");
   expect(document.body).not.toHaveTextContent("sensitive source detail");
@@ -131,7 +134,7 @@ it("recovers missing areas while retaining live local fixtures", async () => {
   render(PanelOpening, { core: source });
   await act(() => vi.advanceTimersByTimeAsync(100));
   await act(() => publish(initial.snapshots[0]));
-  await act(() => vi.advanceTimersByTimeAsync(4900));
+  await act(() => vi.advanceTimersByTimeAsync(5140));
   const githubModule = screen.getAllByRole("region", { name: "GitHub" })[0];
   expect(githubModule).toBeVisible();
   expect(within(githubModule).queryByText(/Restauração local indisponível/)).not.toBeInTheDocument();
@@ -149,4 +152,33 @@ it("counts the minimum from presentation rather than mounting", async () => {
   expect(screen.queryByRole("region", { name: "GitHub" })).not.toBeInTheDocument();
   await act(() => vi.advanceTimersByTimeAsync(1));
   expect(screen.getAllByRole("region", { name: "GitHub" })[0]).toBeVisible();
+});
+
+
+it.each([
+  ["light", false, false, "light", "full"],
+  ["dark", true, false, "dark", "reduced"],
+  ["system", false, true, "light", "reduced"],
+] as const)("restores %s appearance behind the opening (manual=%s, system=%s)", async (theme, reduceMotion, systemReduced, effectiveTheme, motion) => {
+  vi.useFakeTimers();
+  vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduced-motion") ? systemReduced : true, addEventListener() {}, removeEventListener() {} }));
+  try {
+    const source = core(async () => ({ ...initial, appearance: { theme, reduceMotion } }));
+    const view = render(PanelOpening, { core: source });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(document.documentElement.dataset.theme).toBe(effectiveTheme);
+    expect(document.documentElement.dataset.motion).toBe(motion);
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+    expect(screen.getByRole("heading", { name: "kvojps monitor" })).toBeVisible();
+    expect(view.container.querySelector("[aria-hidden='true']")).toHaveProperty("inert", true);
+    await act(() => vi.advanceTimersByTimeAsync(960));
+    expect(screen.queryByRole("region", { name: "GitHub" })).not.toBeInTheDocument();
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+    await act(() => vi.advanceTimersByTimeAsync(240));
+    expect(screen.queryByRole("heading", { name: "kvojps monitor" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("region", { name: "GitHub" })[0]).toBeVisible();
+    expect(document.documentElement.dataset.decoration).toBe(motion === "reduced" ? "paused" : "running");
+    view.unmount();
+    expect(document.documentElement.dataset.decoration).toBe("paused");
+  } finally { vi.unstubAllGlobals(); }
 });
