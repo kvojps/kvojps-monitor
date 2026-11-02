@@ -4,14 +4,14 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** done
 
-- [ ] Janela real: dimensões lógicas/escala, monitor, área útil, detalhes contidos na janela; abertura pelo Indicador (menu, duplo clique, clique do meio); ocultação por Esc e perda de foco; segunda instância abrindo o Painel existente; troca de tema pelo portal; texto ampliado do GNOME
-- [ ] Trello real: mover card, reversão na falha, resumo sincronizado, seleção preservada, arraste no WebKitGTK, alternativa por teclado, listas fora da área visível, Esc com o seletor nativo aberto, abertura externa
-- [ ] Notificação real de Agentes abrindo o detalhe com a sessão direcionada, incluindo alvo encerrado retido e alvo indisponível
-- [ ] Resposta ≤ 100 ms e 60 fps com traces de quadros, incluindo listas densas e ações
-- [ ] A/B de CPU da decoração (três pares de 60 s, ≤ 2 p.p. de um núcleo)
-- [ ] Painel oculto sem trabalho de animação; redução manual e do sistema; PSS aberto/fechado e reabertura
+- [x] Janela real: dimensões lógicas/escala, monitor, área útil, detalhes contidos na janela; abertura pelo Indicador (menu, duplo clique, clique do meio); ocultação por Esc e perda de foco; segunda instância abrindo o Painel existente; troca de tema pelo portal; texto ampliado do GNOME
+- [x] Trello real: mover card, reversão na falha, resumo sincronizado, seleção preservada, arraste no WebKitGTK, alternativa por teclado, listas fora da área visível, Esc com o seletor nativo aberto, abertura externa
+- [x] Notificação real de Agentes abrindo o detalhe com a sessão direcionada, incluindo alvo encerrado retido e alvo indisponível
+- [x] Resposta ≤ 100 ms e 60 fps com traces de quadros, incluindo listas densas e ações
+- [x] A/B de CPU da decoração (três pares de 60 s, ≤ 2 p.p. de um núcleo)
+- [x] Painel oculto sem trabalho de animação; redução manual e do sistema; PSS aberto/fechado e reabertura
 
 ## Comments
 
