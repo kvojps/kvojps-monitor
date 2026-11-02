@@ -17,6 +17,27 @@ Em 02/11/2026, o mantenedor autorizou executar a limpeza consolidada dos achados
 
 A preparação da reescrita usa clone bare isolado sem hardlinks, transformação dos blobs nos seis caminhos textuais e remoção dos dois caminhos de imagens em todas as referências locais. Branch/tag de protótipo permanece somente local. A ponta reescrita deve conservar exatamente a árvore já testada. A atualização remota usa somente `refs/heads/main` e lease sobre o SHA remoto inventariado, sem enviar outras branches ou tags.
 
-Estado inicial do servidor: somente `main`, coincidente com a base revisada. Execução, conferência por clone novo e expurgo local serão registrados após a validação de cada etapa. A remoção de objetos antigos dos caches do GitHub continua sendo uma pendência separada: reescrita e clone novo não comprovam garbage collection do servidor. Nenhum contato com terceiros foi feito.
+Estado inicial do servidor: somente `main`, coincidente com a base revisada. A remoção de objetos antigos dos caches do GitHub continua sendo uma pendência separada: reescrita e clone novo não comprovam garbage collection do servidor. Nenhum contato com terceiros foi feito.
+
+## Resultado da execução
+
+- Reescritos 19 blobs textuais originais; removidas as duas imagens históricas. Todas as referências locais de branches/tags foram tratadas para evitar reintrodução acidental, preservando nomes, modos e symlinks dos demais arquivos.
+- Verificação de todas as referências locais: 180 commits e 1.748 blobs únicos; nenhum blob original alterado nem imagem expurgada alcançável. Zero ocorrências dos horários privados identificados nos blobs, e nenhum par de contagens privado nos caminhos textuais afetados. Todas as versões da fixture omitem os metadados extras de branch.
+- A árvore da ponta reescrita ficou idêntica à do commit de sanitização já testado. Não foi necessário executar novamente as suítes sobre bytes idênticos.
+- `main` pública atualizada para `cbe706922495ea68d27c51ab5d4b2bd9c2621f86`, usando lease explícito sobre a base remota inventariada. Nenhuma branch/tag de protótipo foi publicada.
+- Clone mirror novo do GitHub: somente `refs/heads/main`, 176 commits e 1.732 blobs únicos. Repetidas as verificações dos blobs originais, horários privados, pares de contagens nos caminhos afetados, fixture e ausência dos dois caminhos de imagens em todas as árvores: aprovadas.
+- Reflogs locais expirados e garbage collection executado. Inspeção de todos os objetos físicos locais, inclusive os não alcançáveis: nenhum dos 19 blobs textuais originais alterados nem das duas imagens permanece. Não há ponteiro `ORIG_HEAD` antigo.
+
+O commit deste resultado acrescenta somente documentação e será publicado por atualização normal da `main`. Os inventários anteriores continuam como evidência da revisão da base antiga; não devem ser usados como lista de objetos da base atual.
+
+### Pendência do servidor confirmada novamente
+
+Após o force-push, uma consulta silenciosa à API Git retornou sucesso para o commit da base anterior à segunda limpeza. Portanto, o acesso residual por SHA continua confirmado, mesmo que o clone novo não transfira esses objetos. Não se afirma remoção completa dos dados do GitHub.
+
+Complemento preparado para o relato **privado** ao Support, junto do texto já registrado em [sanitizacao.md](sanitizacao.md):
+
+> Houve uma segunda limpeza autorizada em `Kvojps/kvojps-monitor`: foram removidas duas imagens históricas com identificadores de sessão/projeto e substituídos resultados privados de atividade GitHub em pesquisa, fixture e exemplos derivados. A única referência pública continua sendo `main`; nenhuma tag ou branch de protótipo foi enviada. Um clone novo confirmou a limpeza das referências. A API ainda responde ao commit da base anterior à segunda limpeza, `a02568bef300b3820742fd7d125b3d16cab8b6f2`. Solicito incluir os objetos órfãos e caches dessa segunda história na avaliação de expurgo. Não foi identificada credencial utilizável nesses novos achados.
+
+Esse texto não foi enviado. O acompanhamento depende do canal de suporte e da avaliação do provedor; a revisão final da v1 permanece separada.
 
 Esta limpeza não encerra o ticket 40: documentos e capturas finais dos tickets 22/23/41/42 ainda exigem revisão, e o retorno de expurgo do servidor permanece pendente.

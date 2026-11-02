@@ -1,5 +1,7 @@
 # Revisão semântica dos textos históricos
 
+Atualização posterior: a [segunda sanitização](segunda-sanitizacao.md) tratou os achados descritos abaixo e verificou a `main` pública por clone novo. Este diagnóstico e seu inventário preservam a base anterior à correção; não representam pendências textuais ainda abertas nessa base reescrita. Expurgo do servidor e revisão final da v1 permanecem pendentes.
+
 Revisão em 02/11/2026 da `main` em `a02568bef300b3820742fd7d125b3d16cab8b6f2`: 175 commits e 1.633 blobs textuais UTF-8, incluindo arquivos removidos e nomes antigos. **A revisão encontrou atividade privada do GitHub ainda identificável por associação entre documentos. O histórico não está aprovado.**
 
 ## Cobertura e método

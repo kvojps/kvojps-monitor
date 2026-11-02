@@ -1,5 +1,7 @@
 # Revisão do histórico após a sanitização
 
+Atualização posterior: os achados deste diagnóstico foram tratados na [segunda sanitização](segunda-sanitizacao.md), com atualização da `main` pública e verificação por clone novo. Este relatório e o inventário representam a base anterior. O acesso residual a objetos no servidor e a revisão final da v1 continuam pendentes.
+
 Revisão local em 02/11/2026, sobre `main` em `a02568bef300b3820742fd7d125b3d16cab8b6f2`. **Resultado: há bloqueios de privacidade em imagens e textos; o histórico não está aprovado.** Este registro complementa o relatório inicial e a sanitização, sem substituí-los. Não houve consulta ao servidor, push, reescrita ou contato com terceiros nesta etapa.
 
 ## Escopo e método
