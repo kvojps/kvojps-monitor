@@ -1,7 +1,9 @@
 # Validação da abertura nativa — ticket 37
 
-Rodada de 02/11/2026. **Validação incompleta, sem aceite nativo.** O ticket
-permanece `ready-for-human`; nenhum item do checklist foi encerrado. Não houve
+Rodada de 02/11/2026. **Ticket aprovado e encerrado por decisão explícita do
+usuário em 02/11/2026**, com todo o checklist marcado. A validação técnica desta
+rodada permanece incompleta; a aprovação aceita as limitações abaixo e não
+acrescenta evidências nativas. Não houve
 alteração de produção nem de testes. As pendências dos tickets 25 e 33 permanecem
 intactas.
 
@@ -78,10 +80,10 @@ componentes com fixtures/relógio na UI):
   token Claude em memória e sem renovação. A aprovação é dos contratos sob
   fixtures, não uma inspeção de credenciais pessoais.
 
-## Aceite pendente
+## Evidências nativas não coletadas
 
 Todos os cenários do [ticket 37](../../issues/37-validacao-abertura-nativa.md)
-continuam exigindo execução integrada:
+não foram comprovados integralmente nesta rodada:
 
 | Área | Evidência necessária |
 | --- | --- |
