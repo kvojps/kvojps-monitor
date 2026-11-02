@@ -44,10 +44,28 @@ Revisão `code-review` nos dois eixos, sobre o diff da sanitização antes da re
 
 Reescrita local concluída: 176 commits processados nas referências locais; 172 commits na `main`, preservando sua quantidade. Foram transformados 58 blobs originais em 28 caminhos históricos e renomeados três caminhos de rollout. A busca posterior nos 1.735 blobs únicos alcançáveis, caminhos e objetos de commit/tag retornou zero correspondências aos literais identificados. Nenhum dos 58 blobs originais alterados permaneceu alcançável. O tree da ponta da `main` foi preservado exatamente em relação ao commit de sanitização já testado.
 
-Ajustes de documentação e da validação IPv4 link-local posteriores à reescrita não contêm valores de origem. A conferência do GitHub e a remoção dos objetos locais não referenciados serão registradas a seguir.
+Ajustes de documentação e da validação IPv4 link-local posteriores à reescrita não contêm valores de origem. A conferência do GitHub e a remoção dos objetos locais não referenciados estão registradas a seguir.
 
 ## Limites que permanecem
 
 A limpeza cobre os dados identificados; não substitui a revisão semântica e visual histórica completa nem os documentos e capturas pendentes nos tickets 22/23/41/42.
 
 Reescrever referências não apaga cópias feitas por terceiros. O GitHub também pode manter commits antigos acessíveis por SHA ou em caches; a remoção desses objetos do servidor pode exigir avaliação pelo [GitHub Support](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository). Não foi enviado relato a terceiros nesta atividade. Não reutilizar branches/clones antigos com merge ou push: eles podem reintroduzir o histórico removido.
+
+## Resultado da publicação e expurgo local
+
+A `main` pública foi atualizada para `714a147` com lease explícito sobre a referência inventariada. Um clone mirror novo obtido do GitHub confirmou somente a `main` e zero ocorrências dos literais identificados nos 1.721 blobs únicos do histórico publicado, caminhos e metadados de commit. Nenhuma branch ou tag de protótipo foi publicada. O commit deste registro acrescenta apenas documentação a essa revisão.
+
+No clone de trabalho, os reflogs antigos foram expirados e os objetos não referenciados removidos com `git gc --prune=now`. O ponteiro antigo e inválido `ORIG_HEAD` também foi removido. A conferência inclui todos os objetos físicos, não apenas as referências: zero correspondências aos literais identificados e nenhum dos 58 blobs originais alterados presente. A configuração local de e-mail usa noreply. Os mapas temporários e a cópia usada na preparação serão removidos após a verificação final.
+
+### Pendência confirmada no GitHub
+
+Após o force-push, a API do GitHub ainda respondeu à consulta de um commit da história anterior pelo SHA. Portanto, a limpeza das referências publicadas está concluída, mas **o expurgo dos objetos antigos no servidor não está comprovado e ainda há acesso residual confirmado**. Essa pendência impede declarar que os dados foram completamente removidos do GitHub. O clone novo não transfere esses objetos antigos.
+
+A API Git não oferece comando para forçar o garbage collection do GitHub. O próximo passo é solicitar avaliação pelo [portal do GitHub Support](https://support.github.com/), conforme a [documentação oficial](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository). O GitHub decide se os dados se qualificam para remoção; não há promessa de expurgo ou prazo. Não foi enviado relato a terceiros.
+
+Texto preparado para o relato privado:
+
+> Solicito avaliação de expurgo dos objetos órfãos e caches de `Kvojps/kvojps-monitor`, após reescrita da única referência publicada, `main`. O repositório já estava público. Foram removidos e-mails pessoais dos metadados de commits, caminhos e identificadores de sessão/projeto privado e identificadores reais de rede e armazenamento presentes em fixtures e pesquisas. Não identificamos uma credencial válida que possa ser simplesmente revogada. A API ainda permite consultar um commit da história anterior por SHA após a atualização. Inventário: zero pull requests, forks, releases e artefatos do Actions. Primeiro commit alterado da história anterior: `3f0a013949909d974c94e66bc8ac31304c2a31da`. Nenhum objeto LFS foi identificado no inventário; as imagens são blobs Git comuns. Favor avaliar garbage collection e remoção de caches.
+
+Não anexar mapas de substituição nem os valores removidos ao relato. Depois da resposta do suporte, repetir a consulta aos commits antigos e registrar o resultado; clones externos, se existirem, precisam ser substituídos ou sanitizados separadamente.
