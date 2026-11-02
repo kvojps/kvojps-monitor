@@ -29,7 +29,7 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 9. Como usuário, quero um badge discreto no Indicador quando a Segurança da rede estiver em Risco, para não ficar numa rede perigosa sem saber.
 10. Como usuário, quero que abrir o app de novo enquanto ele já roda só abra o Painel, para nunca ter duas instâncias.
 11. Como usuário, quero a linguagem visual LCARS do protótipo B (preto profundo, ciano e azul elétrico), temas escuro/claro/sistema, números em monoespaçada tabular, movimento decorativo discreto com opção de reduzir, e estados nunca indicados só por cor.
-12. Como usuário, quero que o Painel mostre o dado em cache imediatamente ao abrir e atualize em segundo plano com um indicador discreto, sem tela de carregamento.
+12. Como usuário, quero que o Painel apresente uma sequência de abertura durante o preparo local, com duração mínima de 1,2 segundo, e depois mostre os dados locais disponíveis, atualizando os Módulos em segundo plano com um indicador discreto, sem depender da rede para abrir (ver [Abertura do Painel](#abertura-do-painel)).
 
 ### Módulo IA
 
@@ -140,6 +140,27 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 - **Cada fonte atrás de um adapter** próprio: formatos de `~/.claude`, `~/.codex`, SQLite do Codex e rollouts não são interfaces estáveis.
 - **Textos da UI** num único arquivo de strings, em pt-BR, sem i18n.
 
+### Abertura do Painel
+
+Contrato aprovado em [Definir prontidão e ciclo de abertura do Painel](../panel-opening/issues/01-opening-readiness.md#answer), incorporado pelo [ticket 34](issues/34-spec-abertura-painel.md).
+
+- A sequência acontece dentro do Painel em toda abertura, inclusive na primeira após iniciar o app. O login automático continua silencioso.
+- Prontidão significa estrutura do Painel, Âncora restaurada e dados locais disponíveis apresentados. Consultas à rede não bloqueiam a abertura: a atualização dos Módulos acontece em segundo plano.
+- Sem cache, cada Módulo apresenta um estado explícito de carregamento, indisponibilidade ou configuração pendente, conforme o caso.
+- A duração mínima é de 1,2 segundo desde a primeira apresentação visível da sequência, incluindo a transição. Se o preparo levar mais tempo, não se acrescenta outro intervalo mínimo ao final.
+- “Preparando o Painel…” acompanha a restauração local; “Carregando Módulos…” aparece somente durante o preparo real dos Módulos. Se o preparo terminar antes do mínimo, o visual permanece sem mensagens que aleguem atividade em andamento.
+- A espera pelo preparo local fica limitada a 5 segundos. Falha ou demora em dados ou preferências leva à abertura com valores padrão e indicação do problema na área afetada. Se a própria interface não conseguir abrir, a sequência dá lugar a uma mensagem com “Tentar novamente” e “Fechar”.
+- Fechar durante a sequência cancela aquela abertura. Outra solicitação enquanto a janela está aberta apenas a traz à frente, sem reiniciar a sequência. Reabrir depois de fechar inicia uma nova sequência.
+- Após a transição, os Módulos recebem atualizações normalmente, preservando a estrutura e a posição de leitura, sem reconstruir o Painel inteiro.
+- Com movimento reduzido, permanecem fundo escuro, mensagens e duração mínima, em apresentação estática, sem linhas em movimento nem transições animadas.
+
+
+A redução manual ou do sistema segue as regras de movimento existentes; a redução do sistema prevalece. Fechar durante a sequência preserva Esc, perda de foco e destruição da webview. Atualizações continuam sem roubar foco nem desfazer seleção.
+
+Permanecem os fluxos existentes: boas-vindas somente na primeira abertura; notificação abre o detalhe de Sessões com a sessão destacada, sem alterar a Âncora; instância única encaminha a solicitação à janela existente. A sequência não substitui esses destinos.
+
+Permanecem as exigências de teclado, foco, leitura e contraste e as metas nativas de desempenho. Resposta visual ≤ 100 ms não significa conclusão da abertura nesse prazo: o mínimo de 1,2 segundo rege a sequência visível, incluindo a transição. A espera local de até 5 segundos não autoriza bloquear a resposta visual ou depender da rede.
+
 ### Ritmo de coleta (núcleo)
 
 | Fonte | Painel fechado / Módulo não visível | Módulo visível |
@@ -161,7 +182,7 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 | Sistema · disco | não coleta | 30 s |
 | Sistema · bateria | não coleta | sinal do UPower |
 
-- **Abrir Painel / Módulo passa a ficar visível**: mostra cache; se o dado passou do intervalo "visível", atualiza em segundo plano com indicador discreto.
+- **Abrir Painel / Módulo passa a ficar visível**: apresenta cache disponível respeitando o contrato de [Abertura do Painel](#abertura-do-painel); se o dado passou do intervalo "visível", atualiza em segundo plano com indicador discreto.
 - **↻ manual** em IA, GitHub e Trello, por Módulo, com espera de 10 s entre cliques. Agentes, Rede e Sistema sem ↻.
 - **Sem rede** (conectividade do NetworkManager): pausa GitHub, Trello, `oauth/usage` e consulta do Codex; mostra último dado com idade, sem faixa de erro. Ao voltar, atualiza tudo uma vez, escalonado.
 - **Suspensão/retomada** (sinal do logind): espera conectividade, atualiza tudo escalonado, zera relógios, reinicia subprocessos mortos.
@@ -242,6 +263,14 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 ## Visual do Painel
 
 Aprovado pelo usuário em 2026-10-31 e conferido no app nativo. Substitui o visual original da v1 (Painel ~440×600 com trilho de ícones, um Módulo por vez, acento verde-água) e a fase intermediária "cinematográfica" (janela de 95% da área útil em três Estações). Revisão incremental aprovada em 01/11/2026, adotada no [ticket 26](issues/26-adotar-revisao-visual.md): assinatura KVOJPS, Faixa de bordo e Órbita contínua. Fontes, coleta, privacidade, credenciais, notificações e regras de negócio continuam as das seções acima.
+
+### Sequência de abertura — Arquitetura (C)
+
+Direção aprovada em [Validar sequência visual cinematográfica de abertura](../panel-opening/issues/02-opening-visual.md#answer): malha de linhas luminosas em perspectiva sobre fundo escuro, ocupando a janela, com identidade na região inferior esquerda e a grafia exata **kvojps monitor**. Essa identidade não renomeia o conceito de domínio **Painel**.
+
+A abertura permanece escura também quando o Painel usa tema claro; a passagem suave para os Módulos revela o tema escolhido. Mensagens acompanham o preparo real e seguem o contrato completo de [Abertura do Painel](#abertura-do-painel). Com movimento reduzido, manter a mesma composição estática, mensagens e duração mínima, sem animação das linhas nem transição animada. Aplicam-se os requisitos existentes de contraste, teclado e foco.
+
+Esta direção complementa o visual B do conteúdo. O protótipo preservado na branch local `prototype/panel-opening` é referência descartável de composição, não implementação do ciclo real de prontidão nem comprovação de desempenho nativo; não promover esse código a produção.
 
 ### Fonte da verdade
 
@@ -387,7 +416,7 @@ Resumo dos tickets de planejamento apagados em 2026-11-01 (recuperáveis no git,
 - **GitHub** — Repo em destaque conta só seus commits na branch padrão com o token do `gh`, sem pedir `read:user`; estado vazio sem substituto. Calendário via GraphQL.
 - **Trello** — key + token próprios do usuário no plano Free; polling, sem webhook (exigiria servidor público).
 - **Credenciais** — GitHub via `gh` em tempo de execução (fallback token clássico no keyring); validar antes de salvar; credencial inválida mostra faixa "Reconectar" sem notificação.
-- **Cadência** — ritmo lento com Painel fechado e rápido para Módulos visíveis; cache mostrado na hora, backoff até 15 min, pausa sem rede.
+- **Cadência** — ritmo lento com Painel fechado e rápido para Módulos visíveis; dados locais apresentados após o preparo de abertura, rede em segundo plano, backoff até 15 min, pausa sem rede.
 - **Sistema** — sem notificação, só cor de atenção; coleta só com o Módulo visível.
 - **Release** — repo público MIT, release em rascunho publicado à mão, `SHA256SUMS` + attestations, sem GPG; só aviso diário de nova versão, sem auto-update.
 - **Visual** — o primeiro protótipo (trilho, um Módulo por vez) deu lugar ao Painel cinematográfico (três Estações em 95 % da tela), depois ao Painel compacto (todos os resumos sem rolagem em ~1100 × 700). A primeira implementação compacta podou os Módulos cinematográficos e saiu com excessos; a correção foi reescrever cada resumo a partir do protótipo B, que virou a fonte da verdade visual. Cada Módulo foi aprovado pelo usuário no app nativo.
@@ -400,3 +429,9 @@ A [proposta aprovada](../painel-tech/proposta-revisao-spec.md) foi incorporada n
 Implementação em fatias: [27 — assinatura, faixa e GitHub](issues/27-faixa-bordo-github.md), [28 — IA](issues/28-faixa-bordo-ia.md), [29 — Trello](issues/29-faixa-bordo-trello.md), [30 — Rede](issues/30-faixa-bordo-rede.md), [31 — Agentes e Sistema](issues/31-faixa-bordo-agentes-sistema.md), [32 — Órbita contínua](issues/32-orbita-continua.md) e [33 — validação integrada e nativa](issues/33-validacao-painel-integrado.md). As dependências são as registradas nesses tickets; o ticket 33 reaproveita as verificações pertinentes do ticket 25 sem encerrá-lo.
 
 A revisão preserva grade, fontes de dados, privilégios, coleta em segundo plano, cadências, estados canônicos, notificações e configurações existentes. Controles de intensidade e duração continuam exclusivos dos protótipos. Ajustes de encaixe e contraste são verificados na implementação; mudanças que contrariem as escolhas aprovadas voltam ao usuário antes de execução. A adoção documental não comprova implementação nem validação nativa.
+
+### Revisão da abertura do Painel (02/11/2026)
+
+O [ticket 34](issues/34-spec-abertura-painel.md) incorpora o contrato de [prontidão e ciclo de abertura](../panel-opening/issues/01-opening-readiness.md#answer) e a direção visual [Arquitetura (C)](../panel-opening/issues/02-opening-visual.md#answer), consolidados no [mapa de abertura](../panel-opening/map.md). O usuário autorizou substituir a história 12: em vez de cache imediato sem tela de carregamento, uma sequência dentro do Painel acompanha o preparo local, com mínimo total de 1,2 segundo incluindo a transição. O objetivo aprovado é a abertura tech e cinematográfica, sem depender da rede nem simular atividade para preencher o mínimo.
+
+Prontidão local, limite de espera de 5 segundos e recuperação parcial distinguem preparo da interface de atualização dos Módulos. A composição escura revela depois o tema escolhido; “kvojps monitor” não altera o termo de domínio Painel. Permanecem os contratos de Âncora, boas-vindas, notificações, login silencioso, acessibilidade e desempenho. A adoção é documental: implementação e validação da experiência ficam para trabalho posterior, sem promover o protótipo descartável a produção.
