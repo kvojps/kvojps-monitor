@@ -23,3 +23,5 @@
 - 2026-11-02 — Escopo confirmado pelo mantenedor: preparar a documentação para a abertura pública junto do lançamento da v1. Manter este ticket como README da versão distribuída, sem criar uma etapa de README pré-v1. Usar imagens reais do app com dados sanitizados. Não receber contribuições externas; permitir forks conforme MIT. Complementos registrados nos tickets 40–42.
 
 - 2026-11-02 — Ticket 41 implementou a [política de segurança](../../../SECURITY.md) e confirmou o canal privado habilitado pela API. Ao criar o README da v1, incluir links para a política e para https://github.com/kvojps/kvojps-monitor/security/advisories/new. Integração permanece pendente neste ticket.
+
+- 2026-11-02 — Ticket 42 preparou o [guia de desenvolvimento e forks](../../../docs/desenvolvimento.md). Ao criar o README da v1, incluir o link e a política de não receber contribuições externas. Integração permanece pendente neste ticket.
