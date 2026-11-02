@@ -1,0 +1,43 @@
+{
+  "module": "system",
+  "updatedAt": 1793401200000,
+  "data": {
+    "cpu": {
+      "usage": 18.0,
+      "history": [
+        12.0,
+        16.0,
+        14.0,
+        20.0,
+        18.0
+      ],
+      "temperature": {
+        "celsius": 52.0,
+        "warning": false
+      }
+    },
+    "ram": {
+      "used": 4294967296,
+      "total": 17179869184
+    },
+    "swap": {
+      "used": 536870912,
+      "total": 4294967296
+    },
+    "disks": [
+      {
+        "mount": "/",
+        "used": 64424509440,
+        "total": 128849018880,
+        "free": 64424509440,
+        "warning": false
+      }
+    ],
+    "battery": {
+      "percentage": 76.0,
+      "state": "discharging",
+      "secondsRemaining": 7200,
+      "warning": false
+    }
+  }
+}

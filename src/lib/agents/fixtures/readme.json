@@ -1,0 +1,39 @@
+{
+  "sessions": [
+    {
+      "id": "example-session-1",
+      "provider": "codex",
+      "project": "example-project",
+      "name": "Example session",
+      "state": "working",
+      "waitingFor": null,
+      "startedAt": 1793400000000,
+      "closedAt": null
+    },
+    {
+      "id": "example-session-2",
+      "provider": "claude",
+      "project": "sample-app",
+      "name": "Documentation task",
+      "state": "waiting",
+      "waitingFor": "permission prompt",
+      "startedAt": 1793399000000,
+      "closedAt": null
+    },
+    {
+      "id": "example-session-3",
+      "provider": "codex",
+      "project": "sample-app",
+      "name": "Tests",
+      "state": "done",
+      "waitingFor": null,
+      "startedAt": 1793398000000,
+      "closedAt": null
+    }
+  ],
+  "closed": [],
+  "accentDot": true,
+  "failed": false,
+  "observedAt": 1793401200000,
+  "lastSuccessAt": 1793401200000
+}

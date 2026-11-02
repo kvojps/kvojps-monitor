@@ -1,0 +1,75 @@
+{
+  "account": {
+    "login": "exemplo"
+  },
+  "board": {
+    "id": "example-board",
+    "name": "Projeto de exemplo"
+  },
+  "boards": [
+    {
+      "id": "example-board",
+      "name": "Projeto de exemplo"
+    }
+  ],
+  "lists": [
+    {
+      "id": "example-list-1",
+      "name": "A fazer",
+      "cards": [
+        {
+          "id": "example-card-1",
+          "name": "Revisar documentação",
+          "due": null,
+          "dueComplete": false,
+          "labels": [
+            "blue"
+          ],
+          "overdue": false,
+          "url": "https://trello.com/c/example1"
+        }
+      ]
+    },
+    {
+      "id": "example-list-2",
+      "name": "Em andamento",
+      "cards": [
+        {
+          "id": "example-card-2",
+          "name": "Preparar release",
+          "due": null,
+          "dueComplete": false,
+          "labels": [
+            "blue"
+          ],
+          "overdue": false,
+          "url": "https://trello.com/c/example2"
+        }
+      ]
+    },
+    {
+      "id": "example-list-3",
+      "name": "Concluído",
+      "cards": [
+        {
+          "id": "example-card-3",
+          "name": "Atualizar interface",
+          "due": null,
+          "dueComplete": true,
+          "labels": [
+            "blue"
+          ],
+          "overdue": false,
+          "url": "https://trello.com/c/example3"
+        }
+      ]
+    }
+  ],
+  "operation": {
+    "id": 1,
+    "origin": "automatic",
+    "state": "succeeded"
+  },
+  "refreshing": false,
+  "state": "ready"
+}
