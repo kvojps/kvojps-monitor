@@ -10,7 +10,7 @@ Em 02/11/2026, após a revisão inicial, o mantenedor autorizou sanitizar os dad
 - Montagens mantêm a estrutura de captura e os tipos de sistema de arquivos, com aliases para dispositivos, IDs de montagem, pacotes snap e namespaces. Os testes de deduplicação usam o mesmo dispositivo de exemplo da fixture.
 - SQLite reconstruído em um arquivo novo a partir do schema e das linhas sanitizadas, evitando copiar páginas livres ou bytes residuais.
 - Netlink de loopback mantém formato, atributos e contadores; portas, PID, interface, cookie, proprietário, cgroup e inode foram substituídos. Arquivos auxiliares de processo/proprietário usam apenas exemplos mínimos.
-- E-mails de autor e committer substituídos por endereço noreply, preservando nome público, datas, mensagens e sequência dos commits, salvo substituições de dados identificados. Configuração local de novos commits também deve usar noreply.
+- E-mails de autor e committer substituídos por endereço noreply, preservando nome público, datas, mensagens e sequência dos commits, salvo substituições de dados identificados. Configuração local de novos commits ajustada para usar noreply.
 - Helpers de captura de endereços e TCP sanitizam os campos antes de gravar. Nenhuma credencial foi revogada: não foi identificada credencial válida pelos métodos empregados.
 
 Os mapas com valores de origem foram usados somente em diretório temporário privado. Não são parte do repositório nem do relatório.
@@ -38,7 +38,13 @@ A verificação da árvore atual retornou zero ocorrências dos literais identif
 
 A validação dos helpers em diretório temporário confirmou a sanitização dos endereços tanto na lista quanto na saída D-Bus textual, e a sanitização de quatro mensagens TCP reais de loopback, incluindo atributos de cgroup e consistência com o proprietário sintético. Nenhum arquivo real de configuração de agentes foi alterado.
 
-Resultados completos, revisão e estado da publicação serão registrados após a reescrita e a conferência do remoto.
+Resultados: `npm run check` sem erros/avisos; `npm test` com 376 testes aprovados; suíte Rust com 305 testes unitários e três de integração aprovados; `cargo fmt --check` e `git diff --check` aprovados.
+
+Revisão `code-review` nos dois eixos, sobre o diff da sanitização antes da reescrita: Standards sem violações documentadas, Spec sem achados. Uma observação adicional identificou que IPv4 link-local poderia receber alias IPv6 no helper; corrigido e validado com entrada IPv4 link-local.
+
+Reescrita local concluída: 176 commits processados nas referências locais; 172 commits na `main`, preservando sua quantidade. Foram transformados 58 blobs originais em 28 caminhos históricos e renomeados três caminhos de rollout. A busca posterior nos 1.735 blobs únicos alcançáveis, caminhos e objetos de commit/tag retornou zero correspondências aos literais identificados. Nenhum dos 58 blobs originais alterados permaneceu alcançável. O tree da ponta da `main` foi preservado exatamente em relação ao commit de sanitização já testado.
+
+Ajustes de documentação e da validação IPv4 link-local posteriores à reescrita não contêm valores de origem. A conferência do GitHub e a remoção dos objetos locais não referenciados serão registradas a seguir.
 
 ## Limites que permanecem
 

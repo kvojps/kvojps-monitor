@@ -38,7 +38,7 @@ for address in addresses:
     if address in aliases:
         continue
     parsed = ipaddress.ip_address(address)
-    category = "link" if parsed.is_link_local else str(parsed.version)
+    category = "link" if parsed.version == 6 and parsed.is_link_local else str(parsed.version)
     counts[category] += 1
     aliases[address] = (
         f"192.0.2.{counts[category]}" if category == "4"
