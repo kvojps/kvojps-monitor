@@ -182,3 +182,19 @@ it.each([
     expect(document.documentElement.dataset.decoration).toBe("paused");
   } finally { vi.unstubAllGlobals(); }
 });
+
+
+it("replaces the initial HTML composition without leaving duplicate identity", async () => {
+  vi.useFakeTimers();
+  const bootstrap = document.createElement("div");
+  bootstrap.id = "opening-bootstrap";
+  bootstrap.innerHTML = "<h1>kvojps monitor</h1>";
+  document.body.append(bootstrap);
+  render(PanelOpening, { core: core(async () => initial) });
+  await act(() => vi.advanceTimersByTimeAsync(0));
+  expect(bootstrap).not.toBeInTheDocument();
+  expect(screen.getAllByRole("heading", { name: "kvojps monitor" })).toHaveLength(1);
+  await act(() => vi.advanceTimersByTimeAsync(1200));
+  expect(screen.queryByRole("heading", { name: "kvojps monitor" })).not.toBeInTheDocument();
+  expect(screen.getAllByRole("region", { name: "GitHub" })[0]).toBeVisible();
+});

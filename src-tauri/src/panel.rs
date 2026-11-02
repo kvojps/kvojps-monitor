@@ -34,9 +34,12 @@ pub fn open(app: &AppHandle) {
     collection::visibility_changed(app);
     if let Some(window) = app.get_webview_window(LABEL) {
         fit(&window);
-        let _ = window.show();
-        let _ = window.emit("panel-visibility", true);
-        let _ = window.set_focus();
+        // A repeated request during page loading must not expose an empty webview.
+        if window.is_visible().unwrap_or(false) {
+            let _ = window.show();
+            let _ = window.emit("panel-visibility", true);
+            let _ = window.set_focus();
+        }
         return;
     }
     let config = app
@@ -47,7 +50,13 @@ pub fn open(app: &AppHandle) {
         .find(|j| j.label == LABEL)
         .expect("panel window missing from tauri.conf.json");
     let mut builder = match WebviewWindowBuilder::from_config(app, config) {
-        Ok(builder) => builder,
+        Ok(builder) => builder.on_page_load(|window, payload| {
+            // The first visible frame already contains the opening composition.
+            if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }),
         Err(e) => return eprintln!("panel: failed to create window: {e}"),
     };
     #[cfg(feature = "fixtures")]

@@ -19,7 +19,7 @@
         "resizable": true,
         "decorations": false,
         "backgroundColor": "#02070d",
-        "visible": true,
+        "visible": false,
         "skipTaskbar": true,
         "dragDropEnabled": false,
         "create": false

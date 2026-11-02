@@ -41,3 +41,12 @@ Relato: tela branca antes da abertura, composição diferente da referência C e
 Correção: título e status usam `--sans`; espaçamento externo volta a 8% como na referência, removendo o limite de 96 px; geometria e identidade recebem camadas explícitas, sem a sombra de texto adicionada na primeira implementação. Fundo `#02070d` definido na configuração da janela/webview nativa e no HTML inicial, antes do carregamento dos módulos JS/CSS, para cobrir o intervalo anterior à montagem do Svelte.
 
 Verificação: medição no WebKitGTK confirmou fontes iguais e fundo escuro após carregamento; `npm run check`, 367 testes UI, `npm run build` e `cargo check` passaram. A ausência do flash desde o primeiro frame nativo ainda requer reabrir o app recompilado; a medição de DOM após carregamento não comprova esse intervalo.
+
+
+### Primeira apresentação com a identidade
+
+Após o usuário confirmar que ainda via apenas o fundo antes da identidade, a composição estática passou ao HTML inicial, com estilo compartilhado em `src/opening.css`. O Svelte remove essa composição ao montar a abertura real, sem duplicar o nome; a composição inicial não inventa atividades ou animações antes de restaurar as preferências.
+
+A janela nativa é criada invisível e apresentada no término do carregamento da página. Pedidos repetidos enquanto a página carrega não a mostram antecipadamente. O relógio existente aguarda apresentação visível para contar o mínimo.
+
+Validação: 368 testes UI (incluindo regressão da substituição da composição inicial), check sem erros/avisos, build e `cargo check` passaram. A avaliação visual do primeiro frame requer execução do app nativo recompilado.
