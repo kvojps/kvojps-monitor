@@ -2,6 +2,8 @@
 
 Revisão inicial em 02/11/2026. **Este documento não é uma aprovação de publicação.**
 
+Decisão posterior do mantenedor: não enviar solicitação ao Support. Não há retorno de suporte aguardado como etapa de fechamento. O acesso residual por SHA permanece uma limitação conhecida; seguem pendentes os documentos e capturas finais da v1 e sua revisão. Os registros anteriores de suporte abaixo preservam o estado observado à época.
+
 Estado mais recente: a [segunda sanitização](segunda-sanitizacao.md) corrigiu os achados textuais e expurgou as duas imagens históricas. A `main` pública e um clone novo foram conferidos; o expurgo físico local foi confirmado. O GitHub ainda responde ao SHA anterior, portanto o expurgo do servidor e a revisão final da v1 continuam pendentes. Os relatórios e inventários abaixo preservam o diagnóstico das bases anteriores.
 
 Atualização da revisão histórica: ver [revisao-historica.md](revisao-historica.md) e [revisao-textual.md](revisao-textual.md). A inspeção das 88 imagens e dos cinco binários de dados encontrou duas capturas históricas com identificadores de sessão/projeto ainda visíveis. A revisão semântica foi ampliada aos 1.633 blobs textuais e encontrou atividade privada do GitHub associável entre pesquisa, fixture e exemplos derivados. Os inventários registram a cobertura; ambos os achados bloqueiam a aprovação do histórico. Os limites descritos abaixo pertencem à revisão inicial e são complementados pelos relatórios posteriores.

@@ -1,5 +1,7 @@
 # Segunda sanitização do histórico
 
+Decisão posterior do mantenedor (02/11/2026): não enviar solicitação ao Support. O texto privado abaixo fica somente como registro, sem envio previsto nem retorno aguardado. O acesso residual por SHA continua documentado; o expurgo completo do servidor não foi comprovado. O fechamento restante do ticket depende dos documentos e capturas finais da v1 e da respectiva revisão.
+
 Em 02/11/2026, o mantenedor autorizou executar a limpeza consolidada dos achados da [revisão textual](revisao-textual.md) e da [revisão histórica](revisao-historica.md), incluindo expurgo histórico, atualização da única referência pública e verificação por clone novo.
 
 ## Correções preparadas
