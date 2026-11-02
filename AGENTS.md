@@ -20,9 +20,15 @@ O app lê dados sensíveis do usuário; trate estas regras como invioláveis e c
 - `~/.claude/settings.json` e `~/.codex/hooks.json` só mudam após clique explícito do usuário, de forma aditiva e reversível, preservando o que outros apps instalaram.
 - O token do Claude é lido só em memória e nunca renovado pelo app.
 
+## Dados versionados e capturas
+
+O repositório é público: fixtures, pesquisas, `.scratch/`, imagens, skills e histórico também são material publicado. Capturas reais devem preservar o contrato da fonte com identificadores e conteúdo privado substituídos por exemplos antes de entrar na árvore Git, no terminal compartilhado ou em relatórios.
+
+Ao capturar dados, adicionar evidências, fazer commit ou preparar push, siga obrigatoriamente [docs/agents/sanitizacao.md](docs/agents/sanitizacao.md). Revise também endereços de rede, nomes de projetos/sessões e metadados Git; ausência de tokens não basta para aprovar a publicação.
+
 ## Testes
 
-Um único seam no núcleo: toda E/S (processos, HTTP, sistema de arquivos, D-Bus, keyring, notificador, relógio) passa por portas injetáveis, alimentadas nos testes com saídas reais gravadas como fixtures. A UI é testada a partir de fixtures de snapshot. Detalhes em "Testing Decisions" da spec.
+Um único seam no núcleo: toda E/S (processos, HTTP, sistema de arquivos, D-Bus, keyring, notificador, relógio) passa por portas injetáveis, alimentadas nos testes com saídas reais gravadas e sanitizadas como fixtures. A UI é testada a partir de fixtures de snapshot. Detalhes em "Testing Decisions" da spec.
 
 ## Git
 

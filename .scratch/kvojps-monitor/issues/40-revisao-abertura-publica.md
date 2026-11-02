@@ -15,6 +15,7 @@
 
 ## Comments
 
+
 - 2026-11-02 — Aprovado pelo mantenedor na preparação da abertura pública e lançamento da v1. Este ticket não afirma que exista vazamento; formaliza a revisão do material que será publicado. A implementação dos documentos pode ocorrer em paralelo à revisão inicial.
 
 - 2026-11-02 — Revisão inicial registrada em [validation/40/README.md](../validation/40/README.md), com base na `main` em `447c220`. Abertura bloqueada por dados reais em fixtures/histórico, cobertura semântica/visual histórica restante e dependências 22/23/41/42. Escopo previsto: somente `main`, nenhuma tag; inventário remoto ainda pendente. Sem reescrita de histórico, revogação ou alteração de visibilidade. Revisão final permanece aberta; decisões sobre exposição/expurgo exigem mantenedor.
@@ -22,3 +23,5 @@
 - 2026-11-02 — Mantenedor autorizou sanitizar os dados identificados e removê-los também do histórico Git. Consulta ao GitHub revelou repositório já público, com somente `main` publicada. Execução e limitações registradas em [validation/40/sanitizacao.md](../validation/40/sanitizacao.md). Esta autorização substitui a restrição anterior apenas para o expurgo solicitado; não autoriza publicar branches de protótipo nem mudar visibilidade. Revisão final da v1 continua pendente.
 
 - 2026-11-02 — Sanitização dos dados identificados aplicada também às referências locais e à `main` pública, com verificação independente por clone novo. Reflogs/objetos antigos expurgados localmente; 376 testes UI e 308 Rust aprovados. O GitHub ainda responde a SHA antigo: pendência de expurgo do servidor pelo Support, com texto preparado na validação. Status `needs-info` mantido para esse retorno e para a revisão final da v1; não declarar remoção completa do servidor.
+
+- 2026-11-02 — Mantenedor solicitou registrar prevenção de novas exposições. `AGENTS.md` passa a exigir sanitização antes de versionar e leitura de `docs/agents/sanitizacao.md` para capturas, evidências, commits e pushes. O procedimento cobre identificadores pessoais/de rede, imagens, binários e metadados Git; distingue instrução documental de bloqueio automatizado e risco de privacidade de credencial utilizável.
