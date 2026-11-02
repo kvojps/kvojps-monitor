@@ -2,10 +2,12 @@
 
 Type: grilling
 Labels: wayfinder:grilling
-Blocked by: 01, 02, 03
+Blocked by: 01, 02, 03, 05
 Parent: [Aprimorar a identidade tech do Painel](../map.md)
 
 ## Question
+
+Também depende de [Quais eventos reais alimentam a Faixa de bordo?](05-eventos-de-bordo.md), para incorporar o contrato operacional sem pressupor eventos inexistentes.
 
 As escolhas de assinatura, comunicação operacional e movimento funcionam juntas, preservando o Painel atual? Validar a composição integrada e definir a proposta final de alteração da spec, critérios de aceite e limites de implementação, incluindo acessibilidade, desempenho, operações concorrentes e dados indisponíveis. Registrar as divergências aprovadas neste ticket antes de atualizar a spec. Identificar somente então o trabalho de implementação necessário.
 

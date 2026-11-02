@@ -19,11 +19,11 @@ Definir melhorias incrementais do visual atual do Painel: assinatura KVOJPS, men
 ## Decisions so far
 
 - [Como integrar a assinatura KVOJPS ao visual atual?](issues/01-assinatura-kvojps.md): aprovada C — Assinatura na faixa, com KVOJPS na faixa superior e linha de ações livre, também no tema claro e em largura reduzida.
+- [Como mostrar operações reais com mensagens de bordo?](issues/02-mensagens-de-bordo.md): aprovada A — Faixa de bordo, operações reais agrupadas por fonte, resultado por 4 segundos, sem histórico e anúncios não interruptivos apenas para mudanças relevantes.
 
 ## Not yet specified
 
 - Ajustes adicionais de acabamento que a comparação com os protótipos revelar, sem redesenhar o Painel.
-- Eventuais lacunas de eventos no núcleo, a detalhar após escolher o comportamento da comunicação operacional.
 
 ## Out of scope
 
