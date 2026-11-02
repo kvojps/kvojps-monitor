@@ -3,7 +3,33 @@ use crate::persistence::{Event, LogRecord, Persistence, Volatile};
 use crate::ports::{Clock, Http, HttpError, Processes};
 use crate::snapshot::Snapshot;
 use chrono::{DateTime, Datelike, Days, NaiveDate, Utc};
+use serde::Serialize;
 use serde_json::{json, Value};
+
+/// Transient operational metadata, serialized only into live snapshots.
+#[derive(Clone, Serialize)]
+struct Operation {
+    id: u64,
+    origin: OperationOrigin,
+    state: OperationState,
+}
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum OperationOrigin {
+    User,
+    Automatic,
+    Resume,
+}
+#[derive(Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum OperationState {
+    Running,
+    Succeeded,
+    Failed,
+    Recovered,
+    Paused,
+    Unavailable,
+}
 
 pub struct Github<P, H, R> {
     keyring: Box<dyn crate::ports::Keyring>,
@@ -23,6 +49,10 @@ pub struct Github<P, H, R> {
     failure_since: Option<u64>,
     lifecycle: Option<crate::lifecycle::Status>,
     refresh_pending: bool,
+    operation: Option<Operation>,
+    operation_id: u64,
+    resume_pending: bool,
+    operation_failed: bool,
     /// Contribution days of earlier years, fetched only when the streak reaches them; immutable.
     past_days: Vec<(NaiveDate, u64)>,
     past_fetches: usize,
@@ -30,6 +60,10 @@ pub struct Github<P, H, R> {
 impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     pub fn new(processes: P, http: H, clock: R) -> Self {
         Self {
+            operation: None,
+            operation_id: 0,
+            resume_pending: false,
+            operation_failed: false,
             lifecycle: None,
             refresh_pending: false,
             past_days: Vec::new(),
@@ -139,7 +173,15 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
             self.manual_at = None;
             self.retry_at = 0;
         }
+        let was_paused = self.paused();
+        let previous = self.lifecycle;
         self.lifecycle = Some(status);
+        if self.paused() && !was_paused {
+            self.new_operation(OperationOrigin::Automatic, OperationState::Paused);
+        }
+        if previous.is_some_and(|old| old.generation != status.generation) || was_paused {
+            self.resume_pending = true;
+        }
     }
     fn paused(&self) -> bool {
         self.lifecycle
@@ -147,6 +189,9 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
     }
     pub fn snapshot(&self, refreshing: bool) -> Snapshot {
         let mut data = self.data.clone();
+        if let Some(operation) = &self.operation {
+            data["operation"] = json!(operation);
+        }
         data["refreshing"] = json!(refreshing && !self.paused());
         if self.paused() {
             data["paused"] = json!(true);
@@ -212,11 +257,44 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
                         .attempt_at
                         .is_none_or(|t| now.saturating_sub(t) >= 30_000)))
     }
-    /// Use the same clock for collection decisions, windows and calendar updates.
-    pub fn step(&mut self, visible: bool, manual: bool) -> Option<Snapshot> {
+    fn new_operation(&mut self, origin: OperationOrigin, state: OperationState) {
+        self.operation_id += 1;
+        self.operation = Some(Operation {
+            id: self.operation_id,
+            origin,
+            state,
+        });
+    }
+    fn finish_operation(&mut self, state: OperationState) {
+        if let Some(operation) = &mut self.operation {
+            operation.state = state;
+        }
+    }
+    /// Publish the real start before the synchronous HTTP work; identity is independent of time.
+    pub fn begin(&mut self, visible: bool, manual: bool) -> Option<Snapshot> {
         if !self.should_collect(visible, manual) {
             return None;
         }
+        if !self
+            .operation
+            .as_ref()
+            .is_some_and(|op| op.state == OperationState::Running)
+        {
+            let origin = if manual {
+                OperationOrigin::User
+            } else if self.resume_pending {
+                OperationOrigin::Resume
+            } else {
+                OperationOrigin::Automatic
+            };
+            self.new_operation(origin, OperationState::Running);
+            self.resume_pending = false;
+        }
+        Some(self.snapshot(true))
+    }
+    /// Use the same clock for collection decisions, windows and calendar updates.
+    pub fn step(&mut self, visible: bool, manual: bool) -> Option<Snapshot> {
+        self.begin(visible, manual)?;
         let force = manual && self.manual();
         self.refresh(force || self.refresh_pending)
     }
@@ -227,6 +305,13 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
         let now = self.clock.now();
         if now < self.retry_at {
             return None;
+        }
+        if !self
+            .operation
+            .as_ref()
+            .is_some_and(|op| op.state == OperationState::Running)
+        {
+            self.new_operation(OperationOrigin::Automatic, OperationState::Running);
         }
         self.refresh_pending = false;
         self.attempt_at = Some(now);
@@ -243,6 +328,8 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
                 http_status: None,
                 duration_ms: self.clock.now().saturating_sub(now),
             });
+            self.finish_operation(OperationState::Unavailable);
+            self.operation_failed = true;
             return Some(self.snapshot(false));
         };
         let credential = credential_id(token.trim());
@@ -291,6 +378,18 @@ impl<P: Processes, H: Http, R: Clock> Github<P, H, R> {
                 self.data["state"] = json!(if self.failures >= 3 { "error" } else { "stale" });
             }
         }
+        let success = self.data["state"] == "ready";
+        let outcome = if success {
+            if self.operation_failed {
+                OperationState::Recovered
+            } else {
+                OperationState::Succeeded
+            }
+        } else {
+            OperationState::Failed
+        };
+        self.finish_operation(outcome);
+        self.operation_failed = !success;
         let snapshot = self.snapshot(false);
         let event = match self.data["state"].as_str() {
             Some("ready") => {
@@ -556,8 +655,8 @@ pub fn start(app: tauri::AppHandle) {
             }
             let visible = crate::collection::is_visible(&app, Module::Github);
             // Publish previous data before blocking on HTTP.
-            if github.should_collect(visible, manual) {
-                crate::snapshot::publish(&app, github.snapshot(true));
+            if let Some(snapshot) = github.begin(visible, manual) {
+                crate::snapshot::publish(&app, snapshot);
             }
             if let Some(snapshot) = github.step(visible, manual) {
                 crate::snapshot::publish(&app, snapshot);
@@ -1187,6 +1286,7 @@ mod persistence_tests {
         let cache_text = std::fs::read_to_string(cache.path().join("github.json")).unwrap();
         let log_text = std::fs::read_to_string(logs.path().join("info.log")).unwrap();
         for text in [&cache_text, &log_text] {
+            assert!(!text.contains("operation"));
             assert!(!text.contains("private-token"));
             assert!(!text.contains("Atualiza documentação"));
         }
@@ -1227,3 +1327,82 @@ mod lifecycle_tests {
 
 #[cfg(test)]
 mod credentials_tests;
+
+#[cfg(test)]
+mod operation_tests {
+    use super::*;
+    use crate::ports::fakes::FakeClock;
+
+    #[test]
+    fn pause_and_recovery_have_real_results_and_new_identities_without_advancing_time() {
+        use std::sync::{Arc, Mutex};
+        struct Credential;
+        impl Processes for Credential {
+            fn execute(&self, _: &str, _: &[&str]) -> Result<String, ()> {
+                Ok("SENTINEL_TOKEN".into())
+            }
+        }
+        struct Api(Arc<Mutex<bool>>);
+        impl Http for Api {
+            fn graphql(&self, token: &str, body: &Value) -> Result<Value, HttpError> {
+                if *self.0.lock().unwrap() {
+                    Err(HttpError::default())
+                } else {
+                    super::scenarios::Api { empty: false }.graphql(token, body)
+                }
+            }
+        }
+        let clock = FakeClock::at(1793448000000);
+        let fail = Arc::new(Mutex::new(true));
+        let mut github = Github::new(Credential, Api(fail.clone()), clock.clone());
+        let failure = github.step(true, false).unwrap();
+        assert_eq!(
+            failure.data["operation"],
+            json!({"id":1,"origin":"automatic","state":"failed"})
+        );
+        github.lifecycle(crate::lifecycle::Status::default());
+        assert_eq!(
+            github.snapshot(false).data["operation"],
+            json!({"id":2,"origin":"automatic","state":"paused"})
+        );
+        assert!(github.begin(true, true).is_none());
+        assert!(github.step(true, true).is_none());
+        github.lifecycle(crate::lifecycle::Status {
+            online: true,
+            generation: 1,
+            ready_at: clock.now(),
+        });
+        *fail.lock().unwrap() = false;
+        let start = github.begin(true, false).unwrap();
+        assert_eq!(
+            start.data["operation"],
+            json!({"id":3,"origin":"resume","state":"running"})
+        );
+        let result = github.step(true, false).unwrap();
+        assert_eq!(
+            result.data["operation"],
+            json!({"id":3,"origin":"resume","state":"recovered"})
+        );
+        assert!(!result.data["operation"].to_string().contains("SENTINEL"));
+        assert!(github.step(true, false).is_none());
+    }
+
+    #[test]
+    fn requested_refresh_publishes_correlated_start_and_real_result() {
+        let mut github = Github::new(super::tests::Gh, super::tests::Http, FakeClock::at(1000));
+        let start = github.begin(true, true).unwrap();
+        assert_eq!(
+            start.data["operation"],
+            json!({"id":1,"origin":"user","state":"running"})
+        );
+        let result = github.step(true, true).unwrap();
+        assert_eq!(
+            result.data["operation"],
+            json!({"id":1,"origin":"user","state":"unavailable"})
+        );
+        assert_eq!(
+            github.snapshot(false).data["operation"],
+            result.data["operation"]
+        );
+    }
+}

@@ -2086,6 +2086,11 @@
     "when": 1793448000000
   },
   "login": "exemplo",
+  "operation": {
+    "id": 2,
+    "origin": "automatic",
+    "state": "recovered"
+  },
   "refreshing": false,
   "state": "ready",
   "streak": 60

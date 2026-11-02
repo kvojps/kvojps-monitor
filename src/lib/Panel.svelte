@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from "svelte";
   import { MODULES, type AgentsData, type AiData, type GithubData, type TrelloData, type NetworkData, type SystemData, type Module, type Core, type Snapshot } from "./core";
+  import OperationsStrip from "./OperationsStrip.svelte";
   import AgentsModule from "./agents/AgentsModule.svelte";
   import AiModule from "./ai/AiModule.svelte";
   import { BASE_DIAL, dialSize } from "./instrumentFill";
@@ -261,7 +262,7 @@
 
 <div class="panel">
   <header class="toolbar">
-    <div class="bridge" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="bridge"><span></span><span></span><span></span><div class="signature"><strong>KVOJPS</strong></div></div>
     <div class="utility">
       <button class="settings" aria-current={area === "settings" ? "page" : undefined} onclick={() => openSettings()}><span aria-hidden="true">⚙</span> {t.settings.title}</button>
     </div>
@@ -285,6 +286,7 @@
       <Settings bind:this={settings} {core} {snapshots} {welcome} {appearance} back={backToPanel} />
     {/if}
   </div>
+  <OperationsStrip {snapshots} ready={appearanceRestored} />
 </div>
 
 <style>
@@ -299,10 +301,12 @@
   }
 
   .toolbar { flex: none; }
-  .bridge { display: flex; gap: 7px; height: 6px; margin-bottom: 5px; }
+  .bridge { position: relative; display: flex; gap: 7px; height: 6px; margin-bottom: 5px; }
+  .signature { position: absolute; top: -6px; left: 22px; height: 16px; padding: 0 10px; background: var(--bg); transform: skew(-12deg); }
+  .signature strong { display: block; font: 600 11px monospace; letter-spacing: .2em; transform: skew(12deg); color: var(--accent); }
   .bridge span { background: var(--band-lavender); flex: 2; border-radius: 15px 0 0 0; }
   .bridge span:nth-child(2) { background: var(--band-cyan); flex: 5; border-radius: 0; }
-  .bridge span:last-child { background: var(--band-amber); flex: 1; border-radius: 0 12px 12px 0; }
+  .bridge span:nth-of-type(3) { background: var(--band-amber); flex: 1; border-radius: 0 12px 12px 0; }
   .utility { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px; min-height: 24px; }
   .settings { display: flex; align-items: center; gap: 7px; font-size: 13px; }
   .settings span { font-size: 16px; line-height: 1; }

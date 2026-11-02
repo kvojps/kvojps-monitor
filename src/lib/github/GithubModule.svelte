@@ -125,6 +125,9 @@
 {#if absence}
   <AbsentArea {absence} />
 {:else}
+  {#if missing}
+    <small class="line alert">{t.github.missingSource}{" · "}<button class="link" onclick={configure}>{t.absent.configure}</button></small>
+  {/if}
   {#if invalid}
     <small class="line alert"><span aria-hidden="true">{"⚠ "}</span>{t.github.invalidCredential}{" · "}<button class="link" onclick={configure}>{t.github.reconnect}</button></small>
   {/if}

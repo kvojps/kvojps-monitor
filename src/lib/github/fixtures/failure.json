@@ -2088,6 +2088,11 @@
   },
   "lastSuccessAt": 1793448000000,
   "login": "exemplo",
+  "operation": {
+    "id": 4,
+    "origin": "automatic",
+    "state": "failed"
+  },
   "refreshing": false,
   "state": "error",
   "streak": 60

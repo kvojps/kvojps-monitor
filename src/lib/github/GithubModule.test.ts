@@ -292,3 +292,12 @@ describe("fixed composition without a reading", () => {
     expect(status.compareDocumentPosition(area(container)!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+it("keeps missing credentials explicit with cached activity and a configuration action", async () => {
+  const configure = vi.fn();
+  render(GithubModule, { data: { ...data(full), state: "missingGh" }, refresh: vi.fn(), configure });
+  expect(screen.getByText(/GitHub não conectado/)).toBeInTheDocument();
+  expect(screen.getByText("1.608")).toBeInTheDocument();
+  await fireEvent.click(screen.getByRole("button", { name: "Configurar" }));
+  expect(configure).toHaveBeenCalledOnce();
+});

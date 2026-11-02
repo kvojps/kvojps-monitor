@@ -3,6 +3,11 @@
   "failureSince": 1793448000000,
   "featured": null,
   "lastSuccessAt": null,
+  "operation": {
+    "id": 3,
+    "origin": "automatic",
+    "state": "failed"
+  },
   "refreshing": false,
   "state": "error"
 }

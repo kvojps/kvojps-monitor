@@ -5,6 +5,13 @@ import { listen } from "@tauri-apps/api/event";
 export const MODULES = ["ai", "agents", "github", "trello", "network", "system"] as const;
 export type Module = (typeof MODULES)[number];
 
+/** Transient metadata only; never cached or used as a data timestamp. */
+export interface Operation {
+  id: number;
+  origin: "user" | "automatic" | "resume";
+  state: "running" | "succeeded" | "failed" | "recovered" | "paused" | "unavailable" | "cancelled" | "attention";
+}
+
 export interface Snapshot {
   module: Module;
   /** Last update in epoch milliseconds; null until data exists. */

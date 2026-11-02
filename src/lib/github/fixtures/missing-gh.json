@@ -1,6 +1,11 @@
 {
   "calendar": null,
   "featured": null,
+  "operation": {
+    "id": 1,
+    "origin": "automatic",
+    "state": "unavailable"
+  },
   "refreshing": false,
   "state": "missingGh"
 }

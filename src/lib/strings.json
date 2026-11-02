@@ -415,5 +415,19 @@
     "tryAgain": "Tentar de novo",
     "configure": "Configurar",
     "reconnect": "Reconectar"
+  },
+  "operations": {
+    "rest": "Bordo em repouso",
+    "resume": "Retomando atualização…",
+    "messages": {
+      "running": "Estabelecendo enlace…",
+      "succeeded": "Telemetria atualizada.",
+      "failed": "Falha ao atualizar. Confira o Módulo.",
+      "recovered": "Atualização restabelecida.",
+      "paused": "Atualização pausada. Confira o Módulo.",
+      "unavailable": "Atualização indisponível. Confira o Módulo.",
+      "cancelled": "Operação cancelada.",
+      "attention": "Atenção. Confira o Módulo."
+    }
   }
 }

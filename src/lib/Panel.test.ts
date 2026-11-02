@@ -744,3 +744,25 @@ it("opening the network apps detail does not change what the core collects", asy
   expect(vi.mocked(core.reportVisibleModules).mock.calls.length).toBe(reported);
   expect(runSpeedTest).not.toHaveBeenCalled();
 });
+
+it("keeps GitHub failure details and keyboard focus after the strip result expires", async () => {
+  vi.useFakeTimers();
+  try {
+    const { core, publish } = fakeCore({ snapshots: [{ module: "github", updatedAt: 1, data: githubFull }] });
+    render(Panel, { core });
+    await act(() => Promise.resolve());
+    const github = section("GitHub");
+    github.focus();
+    const { default: failure } = await import("./github/fixtures/failure.json");
+    await publish({ module: "github", updatedAt: 1, data: { ...failure, operation: { id: 2, origin: "user", state: "failed" } } });
+    expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("GitHub · Falha ao atualizar");
+    expect(github).toHaveFocus();
+    await act(() => vi.advanceTimersByTime(4000));
+    expect(screen.getByLabelText("Faixa de bordo")).toHaveTextContent("Bordo em repouso");
+    expect(within(github).getByRole("button", { name: "Atualizar GitHub" })).toBeEnabled();
+    expect(github).toHaveTextContent("Falha ao atualizar");
+    expect(github).toHaveFocus();
+  } finally {
+    vi.useRealTimers();
+  }
+});
