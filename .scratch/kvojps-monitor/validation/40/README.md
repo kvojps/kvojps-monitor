@@ -2,6 +2,8 @@
 
 Revisão inicial em 02/11/2026. **Este documento não é uma aprovação de publicação.**
 
+Atualização da revisão histórica: ver [revisao-historica.md](revisao-historica.md) e [revisao-textual.md](revisao-textual.md). A inspeção das 88 imagens e dos cinco binários de dados encontrou duas capturas históricas com identificadores de sessão/projeto ainda visíveis. A revisão semântica foi ampliada aos 1.633 blobs textuais e encontrou atividade privada do GitHub associável entre pesquisa, fixture e exemplos derivados. Os inventários registram a cobertura; ambos os achados bloqueiam a aprovação do histórico. Os limites descritos abaixo pertencem à revisão inicial e são complementados pelos relatórios posteriores.
+
 Atualização: o mantenedor autorizou a limpeza e a consulta ao GitHub revelou que o repositório já estava público. O registro abaixo preserva as constatações iniciais; o estado posterior e a sanitização ficam em [sanitizacao.md](sanitizacao.md).
 
 ## Escopo de publicação
