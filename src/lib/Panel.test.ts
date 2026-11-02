@@ -279,7 +279,7 @@ it("sends Trello key and token from Settings to the core", async () => {
   await userEvent.type(within(trello).getByLabelText("Token"), "private-token");
   await userEvent.click(within(trello).getByRole("button", { name: "Validar e salvar" }));
   expect(connectTrello).toHaveBeenCalledWith("0123abcd", "private-token");
-  expect(await within(trello).findByText("Conectado como exemplo")).toBeInTheDocument();
+  expect(await within(trello).findByText("Conta exemplo · escolha um quadro")).toBeInTheDocument();
 });
 
 it("opens at Agents for a notification target without changing the last anchor", async () => {

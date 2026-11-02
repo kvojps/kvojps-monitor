@@ -228,11 +228,17 @@
     "tokenLabel": "Token",
     "save": "Validar e salvar",
     "validating": "Validando…",
-    "connected": "Conectado como {login}",
-    "boardStep": "3. Escolha o quadro.",
+    "boardStep": "Escolha o quadro exibido no Painel.",
     "boardLabel": "Quadro",
     "noBoards": "Nenhum quadro aberto nesta conta",
     "disconnect": "Desconectar",
+    "settings": {
+      "connected": "Conta {login} · quadro {board}",
+      "boardOnly": "Quadro {board}",
+      "chooseBoard": "Conta {login} · escolha um quadro",
+      "notConnected": "Não conectado",
+      "changeBoard": "Trocar quadro"
+    },
     "credentialErrors": {
       "invalidCredential": "Key ou token inválido",
       "offline": "Sem conexão, tente de novo",
