@@ -4,10 +4,16 @@
 
 **Blocked by:** 01 (Peças compartilhadas e Rede como seção própria)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Via `gh`: só a linha de estado e "Usar token próprio"; sem campo de token visível
-- [ ] Token próprio: estado exibido uma única vez e "Trocar token"
-- [ ] Sem credencial: formulário aberto com a instrução
-- [ ] Salvar valida antes de gravar; falha não salva e mostra o erro junto do campo; sucesso recolhe
-- [ ] Testes de seção por fixture para os três estados e para o recolhimento após salvar
+- [x] Via `gh`: só a linha de estado e "Usar token próprio"; sem campo de token visível
+- [x] Token próprio: estado exibido uma única vez e "Trocar token"
+- [x] Sem credencial: formulário aberto com a instrução
+- [x] Salvar valida antes de gravar; falha não salva e mostra o erro junto do campo; sucesso recolhe
+- [x] Testes de seção por fixture para os três estados e para o recolhimento após salvar
+
+**Notas da implementação:**
+- Sem snapshot, a linha mostra "Verificando…" e o formulário fica recolhido.
+- Sem credencial no snapshot, a linha mostra "Não conectado" (tom de atenção); com credencial inválida, "Credencial do GitHub inválida" (tom de atenção, como no Painel). Nos dois, o formulário vem aberto com a instrução do `gh` e sem botão para abri-lo.
+- Depois de salvar, a seção mostra "Token próprio · login" com o login devolvido pela validação até chegar o próximo snapshot, que passa a valer.
+- A mensagem "Conectado como login" e o texto "Rodar `gh auth login`" saíram: o estado aparece só na linha de estado e a instrução já explica o `gh`.

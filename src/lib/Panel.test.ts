@@ -262,7 +262,7 @@ it("sends a pasted GitHub token from Settings to the core", async () => {
   const settings = screen.getByRole("region", { name: "GitHub" });
   await userEvent.click(within(settings).getByRole("button", { name: "Validar e salvar" }));
   expect(saveGithubToken).toHaveBeenCalledWith("private-token");
-  expect(await screen.findByText("Conectado como exemplo")).toBeInTheDocument();
+  expect(await screen.findByText("Token próprio · exemplo")).toBeInTheDocument();
 });
 
 it("sends Trello key and token from Settings to the core", async () => {

@@ -1,41 +1,75 @@
 <script lang="ts">
   import type { GithubData } from "../core";
+  import FieldError from "../settings/FieldError.svelte";
+  import StatusLine, { type Tone } from "../settings/StatusLine.svelte";
   import { t, interpolate } from "../strings";
   let { data, save }: { data?: GithubData; save: (token: string) => Promise<string> } = $props();
+
+  type Credential = NonNullable<GithubData["credential"]>;
+
+  const uid = $props.id();
   let token = $state("");
   let busy = $state(false);
-  let message = $state("");
-  let failed = $state(false);
+  let error = $state("");
+  /** The user opened the token form with "Usar token próprio" or "Trocar token". */
+  let formRequested = $state(false);
+  /** Credential just saved here and the snapshot it replaced; it holds until the next snapshot arrives. */
+  let pendingSave = $state.raw<{ credential: Credential; snapshotAtSave: GithubData | undefined }>();
+
+  const justSaved = $derived(pendingSave?.snapshotAtSave === data ? pendingSave?.credential : undefined);
+  const credential = $derived(justSaved ?? data?.credential);
+  /** What keeps the section from a working credential; the last two leave the form open, with the gh instruction. */
+  const problem = $derived.by((): "checking" | "invalid" | "missing" | undefined => {
+    if (justSaved) return undefined;
+    if (!data) return "checking";
+    if (data.state === "invalidCredential") return "invalid";
+    if (!data.credential || data.state === "missingGh") return "missing";
+  });
+  const needsCredential = $derived(problem === "invalid" || problem === "missing");
+  const formOpen = $derived(needsCredential || formRequested);
+
+  const line = $derived.by((): { tone: Tone; text: string } => {
+    if (problem === "checking") return { tone: "neutral", text: t.settings.welcome.checking };
+    if (problem === "invalid") return { tone: "warn", text: t.github.invalidCredential };
+    if (problem === "missing" || !credential) return { tone: "warn", text: t.github.settings.notConnected };
+    const text = credential.source === "gh" ? t.github.settings.viaGh : t.github.settings.ownToken;
+    return { tone: "ok", text: interpolate(text, { login: credential.login }) };
+  });
+
   async function submit(event: SubmitEvent) {
     event.preventDefault();
     if (busy) return;
     busy = true;
-    message = "";
-    failed = false;
+    error = "";
     const candidate = token;
     token = "";
     try {
       const login = await save(candidate);
-      message = interpolate(t.github.connected, { login });
-    } catch (error) {
-      failed = true;
-      message = t.github.credentialErrors[error as keyof typeof t.github.credentialErrors] ?? t.github.credentialErrors.offline;
+      pendingSave = { credential: { source: "token", login }, snapshotAtSave: data };
+      formRequested = false;
+    } catch (code) {
+      error = t.github.credentialErrors[code as keyof typeof t.github.credentialErrors] ?? t.github.credentialErrors.offline;
     } finally { busy = false; }
   }
 </script>
-<section aria-label={t.modules.github}>
-  <h3>{t.modules.github}</h3>
-  {#if data?.credential}
-    <p>{data.credential.source === "gh" ? interpolate(t.github.viaGh, { login: data.credential.login }) : t.github.ownToken}</p>
-    {#if data.credential.source === "token"}<p>{interpolate(t.github.connected, { login: data.credential.login })}</p>{/if}
+
+<section aria-labelledby="{uid}-title">
+  <h3 id="{uid}-title">{t.modules.github}</h3>
+  <StatusLine tone={line.tone} text={line.text} />
+  {#if formOpen}
+    {#if needsCredential}<p class="hint">{t.github.instruction}</p>{/if}
+    <form onsubmit={submit}>
+      <label for="{uid}-token">{t.github.tokenLabel}</label>
+      <input id="{uid}-token" type="password" autocomplete="off" bind:value={token}
+        disabled={busy} aria-describedby={error ? `${uid}-error` : undefined} aria-invalid={!!error} />
+      <button type="submit" disabled={busy || !token.trim()}>{busy ? t.github.validating : t.github.saveToken}</button>
+      {#if error}<FieldError id="{uid}-error" message={error} />{/if}
+    </form>
+  {:else if credential}
+    <button onclick={() => (formRequested = true)}>{credential.source === "gh" ? t.github.settings.useOwnToken : t.github.settings.replaceToken}</button>
   {/if}
-  <p>{t.github.login}</p>
-  <p>{t.github.instruction}</p>
-  <form onsubmit={submit}>
-    <label for="github-token">{t.github.tokenLabel}</label>
-    <input id="github-token" type="password" autocomplete="off" bind:value={token}
-      disabled={busy} aria-describedby={message ? "github-token-message" : undefined} aria-invalid={failed} />
-    <button type="submit" disabled={busy || !token.trim()}>{busy ? t.github.validating : t.github.saveToken}</button>
-    {#if message}<p id="github-token-message" role={failed ? "alert" : "status"}>{message}</p>{/if}
-  </form>
 </section>
+
+<style>
+  .hint { color: var(--muted); }
+</style>
