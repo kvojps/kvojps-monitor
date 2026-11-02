@@ -20,3 +20,15 @@
 - [Definir prontidão e ciclo de abertura do Painel](../../panel-opening/issues/01-opening-readiness.md).
 - [Validar sequência visual cinematográfica de abertura](../../panel-opening/issues/02-opening-visual.md).
 - [Abertura cinematográfica do Painel](../../panel-opening/map.md).
+
+## Comments
+
+### 02/11/2026 — rodada de validação parcial
+
+Resultados e limitações em [validation/37/README.md](../validation/37/README.md).
+Check sem erros/avisos, 368 testes UI, 305 unitários Rust e 3 de integração
+aprovados; build UI e build nativo debug com fixtures aprovados. A captura
+Tauri/WebKitGTK em Wayland com D-Bus isolado falhou com
+`metrics script did not answer`, sem PNG nem métricas. Não houve aceite nativo,
+medição de desempenho ou correção de produção. Todos os itens continuam abertos
+e o status permanece `ready-for-human`. Tickets 25 e 33 não foram alterados.
