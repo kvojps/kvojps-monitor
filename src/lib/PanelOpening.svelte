@@ -129,21 +129,21 @@
   .concealed { visibility: hidden; }
   .opening {
     position: fixed; inset: 0; z-index: 10; box-sizing: border-box;
-    display: flex; align-items: flex-end; padding: clamp(20px, 8vw, 96px);
+    display: flex; align-items: flex-end; padding: 8%;
     overflow: auto; isolation: isolate; background: #02070d; color: #d8f5ff;
     transition: opacity 240ms ease;
   }
   .fading { opacity: 0; }
-  .geometry { position: absolute; inset: 12%; z-index: -1; pointer-events: none;
+  .geometry { position: absolute; inset: 12%; z-index: 0; pointer-events: none;
     border: 1px solid #24465b; transform: perspective(500px) rotateX(25deg); }
   .geometry i { position: absolute; display: block; width: 1px; height: 100%; left: 25%;
     background: #4ce5ff; box-shadow: 0 0 18px #4ce5ff88; animation: illuminate 1.8s ease-in-out infinite alternate; }
   .geometry i:nth-child(2) { left: 75%; }
   .geometry i:nth-child(3) { width: 100%; height: 1px; left: 0; top: 28%; background: #b9a0e8; }
   .geometry i:nth-child(4) { width: 100%; height: 1px; left: 0; top: 65%; }
-  .identity { min-width: 0; max-width: 100%; margin-top: auto; text-shadow: 0 2px 8px #02070d; }
-  h1 { font: 300 clamp(1.5rem, 4vw, 3.25rem) system-ui; letter-spacing: .2em; overflow-wrap: anywhere; margin: 14px 0; }
-  p { min-height: 1.5em; color: #bbd2df; font: 1rem/1.5 system-ui; }
+  .identity { position: relative; z-index: 1; min-width: 0; max-width: 100%; }
+  h1 { font: 300 clamp(1.5rem, 4vw, 3.25rem) var(--sans); letter-spacing: .2em; overflow-wrap: anywhere; margin: 14px 0; }
+  p { min-height: 1.5em; color: #bbd2df; font: .875rem/1.5 var(--sans); }
   .actions { display: flex; flex-wrap: wrap; gap: 12px; }
   button { background: #253344; color: #edf9ff; border: 1px solid #7690a4; padding: 8px 12px; border-radius: 6px; font: inherit; cursor: pointer; }
   button:focus-visible { outline: 2px solid #4ce5ff; outline-offset: 3px; }

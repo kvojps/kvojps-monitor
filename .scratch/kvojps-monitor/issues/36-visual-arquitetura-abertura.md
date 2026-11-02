@@ -32,3 +32,12 @@ A passagem de 240 ms começa após prontidão e após os primeiros 960 ms de apr
 Validação: `npm run check` sem erros/avisos; 367 testes de UI, incluindo 14 da abertura com fixtures (ciclo, recuperação, falha, temas, redução manual e do sistema, decoração); `npm run build`; suíte Rust com 305 testes unitários e 3 de integração. Os testes de socket exigiram execução fora do sandbox. A validação visual integrada e de desempenho nativo permanece no ticket de validação nativa, conforme o escopo.
 
 Revisão em dois eixos pela skill code-review, base `4f8cb99d8fba528a29ad700dab46c3eb1fff11b0`: Standards sem violações documentadas; sugestão de centralizar cancelamento aplicada. Spec identificou desaparecimento prematuro com redução de movimento; corrigido mantendo opacidade até a revelação.
+
+
+### Correção após avaliação do usuário
+
+Relato: tela branca antes da abertura, composição diferente da referência C e fonte diferente da usada pelo app. A medição no WebKitGTK reproduziu a diferença: título em `system-ui` versus corpo em `"Ubuntu Sans", Ubuntu, Inter, system-ui, sans-serif`.
+
+Correção: título e status usam `--sans`; espaçamento externo volta a 8% como na referência, removendo o limite de 96 px; geometria e identidade recebem camadas explícitas, sem a sombra de texto adicionada na primeira implementação. Fundo `#02070d` definido na configuração da janela/webview nativa e no HTML inicial, antes do carregamento dos módulos JS/CSS, para cobrir o intervalo anterior à montagem do Svelte.
+
+Verificação: medição no WebKitGTK confirmou fontes iguais e fundo escuro após carregamento; `npm run check`, 367 testes UI, `npm run build` e `cargo check` passaram. A ausência do flash desde o primeiro frame nativo ainda requer reabrir o app recompilado; a medição de DOM após carregamento não comprova esse intervalo.
