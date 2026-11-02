@@ -241,23 +241,45 @@ Um app pessoal de bandeja para Ubuntu/GNOME/Wayland, gratuito e totalmente local
 
 ## Visual do Painel
 
-Aprovado pelo usuário em 2026-10-31 e conferido no app nativo. Substitui o visual original da v1 (Painel ~440×600 com trilho de ícones, um Módulo por vez, acento verde-água) e a fase intermediária "cinematográfica" (janela de 95% da área útil em três Estações). Fontes, coleta, privacidade, credenciais, notificações e regras de negócio continuam as das seções acima.
+Aprovado pelo usuário em 2026-10-31 e conferido no app nativo. Substitui o visual original da v1 (Painel ~440×600 com trilho de ícones, um Módulo por vez, acento verde-água) e a fase intermediária "cinematográfica" (janela de 95% da área útil em três Estações). Revisão incremental aprovada em 01/11/2026, adotada no [ticket 26](issues/26-adotar-revisao-visual.md): assinatura KVOJPS, Faixa de bordo e Órbita contínua. Fontes, coleta, privacidade, credenciais, notificações e regras de negócio continuam as das seções acima.
 
 ### Fonte da verdade
 
-- **Protótipo B — Núcleo lateral** é a referência de design e conteúdo: `src/lib/compact-prototype/` (`npm run prototype:compact`, `?variant=B`) e a captura aprovada [`docs/assets/painel-b.png`](../../docs/assets/painel-b.png). Esta spec manda só em comportamento, dados, estados que o B não demonstra e guardrails.
-- Regra: **no estado normal, nada que o B não mostra.** Resumos são escritos com a marcação e o CSS do B como molde, ligando dados reais; não acrescentar subtítulos de fonte/horário, selos, caixas extras ou textos explicativos.
+- **Protótipo B — Núcleo lateral** é a referência de design e conteúdo: `src/lib/compact-prototype/` (`npm run prototype:compact`, `?variant=B`) e a captura aprovada [`docs/assets/painel-b.png`](../../docs/assets/painel-b.png). Esta spec manda em comportamento, dados, estados que o B não demonstra, guardrails e nas exceções visuais explicitamente aprovadas abaixo.
+- Regra: **no estado normal, nada que o B não mostra**, salvo a assinatura KVOJPS, a Faixa de bordo, o movimento aprovados e as divergências já documentadas nesta spec. Resumos são escritos com a marcação e o CSS do B como molde, ligando dados reais; não acrescentar subtítulos de fonte/horário, selos, caixas extras ou textos explicativos.
 - Textos fixos do protótipo viram dados reais no mesmo formato e posição (tipo de conexão, "Qualidade: X", "Segurança: Y", estado da bateria, "Teste · HH:MM", cores reais das etiquetas do Trello). Ficam fora do produto: "Demonstração · leituras independentes", rodapé de depuração, controle flutuante, "Detalhe ilustrativo" e retornos simulados.
 - O centro do anel de Agentes diz "Em andamento" (Estado da sessão), não "Trabalhando".
 
 ### Janela e composição
 
 - Aproximadamente **1100 × 700 lógicos**, respeitando área útil e escala; sem maximizar nem tela cheia. No Wayland o tao entrega 52 px a menos por eixo; o Painel compensa a diferença medida.
-- Sem título geral nem navegação por Módulos. Linha do topo com ações gerais e Configurações; lado esquerdo vazio.
+- Sem título geral nem navegação por Módulos. Assinatura KVOJPS estática integrada à faixa superior, conforme C — Assinatura na faixa; linha de ações gerais e Configurações com lado esquerdo livre. Preservar a grade B, seus instrumentos e a hierarquia das métricas. A marca não representa estado nem atividade. Manter o tratamento nos temas claro e escuro e em largura reduzida, com contraste e encaixe validados.
 - Grade B: coluna esquerda com o cartão **IA e Agentes** (um cartão visual; os Módulos continuam independentes em dados, estados, snapshots e Âncora); nas outras duas colunas, GitHub e Rede em cima, Trello e Sistema embaixo. A grade vai até o fim do Painel.
 - **Instrumentos que crescem**: a sobra de altura vai para os anéis da IA e de Agentes (94–180 px; número a ⅙ do anel), barras do GitHub, tráfego da Rede, linhas do Trello e medidores do Sistema; blocos em sequência, sem vãos. A sobra do cartão IA e Agentes vai para a legenda de Agentes.
 - Sem rolagem em 1100 × 700 e 1000 × 700 com as fixtures do B. Se área útil, texto ampliado ou conteúdo maior impedirem, reorganizar e rolar (referência: duas colunas até 950 px, uma até 650 px), sem cortar conteúdo, reduzir fonte automaticamente nem esconder alertas.
 - Configurações é área separada, com retorno ao Painel e todos os fluxos da v1, mais tema (escuro/claro/sistema) e redução de animações.
+
+### Faixa de bordo
+
+Faixa global compacta conforme A — Faixa de bordo, com mensagens escritas em pt-BR sobre operações e transições reais. Preservar estados, explicações e ações nos Módulos. Sem áudio nem histórico visível.
+
+Manter indicação de operação enquanto ela estiver realmente em andamento; mostrar o resultado real por 4 segundos. Operações rápidas podem mostrar diretamente o resultado. Temporizadores controlam somente permanência visual, nunca progresso ou conclusão. Cancelamento tem resultado próprio, distinto de sucesso.
+
+Agrupar operações por fonte, com um resumo por Módulo e sem carrossel. Prioridade: falha, pausa e atenção antes de atividade e sucesso. Limitar a faixa ao espaço disponível; mostrar mensagens prioritárias e um resumo como “+3 Módulos” para os demais, sem expandir a grade. Os detalhes e as ações de todos os Módulos continuam acessíveis.
+
+Atualizações solicitadas pelo usuário e retomadas após pausa mostram início em IA, GitHub e Trello; sucessos automáticos ficam silenciosos, falhas e recuperações reais aparecem. Distinguir o Provedor de IA consultado antes de agrupar. Incluir início e resultado reais de teste de velocidade e movimentação de cards, sem identificar cards ou listas.
+
+Em Agentes, comunicar transições para Aguardando você, Turno concluído, Com falha e Encerrada, agrupando mudanças simultâneas; Em andamento permanece no Módulo. Turno concluído não afirma sucesso. Em Rede, comunicar mudanças de conexão, VPN e categoria de Qualidade e Segurança, sem mensagens por amostra ou sondagem; não inferir troca de rede de snapshots que apenas continuam conectados. Em Sistema, comunicar entrada e saída dos alertas existentes de temperatura, disco e bateria, sem criar limites novos. Ausência normal de sensor ou bateria não é falha.
+
+Reabrir o Painel estabelece a referência atual, sem reapresentar estados existentes como eventos novos. Snapshot repetido não é nova operação; fim de `refreshing` isolado não comprova sucesso. Não inferir resultado de operação cancelada ou descartada por mudança de conexão ou suspensão.
+
+Nunca apresentar indisponibilidade como sucesso ou valor zero. Depois dos 4 segundos na faixa, manter no Módulo a explicação e a ação correspondentes enquanto a condição persistir.
+
+Anúncios acessíveis agrupados e não interruptivos para resultados solicitados pelo usuário, falhas, recuperações e mudanças relevantes acima. Inícios automáticos são silenciosos para leitores de tela, inclusive retomadas indicadas visualmente. Não anunciar amostras ou estados repetidos. Esses anúncios não alteram as notificações do sistema; alertas de Sistema continuam restritos ao Painel.
+
+Mensagens contêm apenas fonte, evento e estado operacional. Excluir credenciais e conteúdo de prompts, respostas, commits e cards; em Agentes, excluir também nome de sessão, projeto, branch e motivo textual de espera. Não persistir histórico operacional nem acrescentar conteúdo sensível a logs, cache ou notificações.
+
+Referências: [Como mostrar operações reais com mensagens de bordo?](../painel-tech/issues/02-mensagens-de-bordo.md#answer), [Quais eventos reais alimentam a Faixa de bordo?](../painel-tech/issues/05-eventos-de-bordo.md#answer) e [Como consolidar as melhorias aprovadas na spec da v1?](../painel-tech/issues/04-consolidacao.md#answer).
 
 ### Resumos
 
@@ -297,7 +319,25 @@ Ubuntu Sans (ou sem serifa local equivalente); números em monoespaçada tabular
 
 ### Movimento
 
-Só nos elementos que existem no B: anéis decorativos (48 s por volta), barra do topo e brilho de borda (4 s por trecho, ida e volta). Arcos de medição, números, textos e alertas não se movem nem piscam; decoração não indica atividade. Redução manual ou do sistema (a do sistema prevalece) interrompe a decoração e remove transições. Com o Painel oculto não há trabalho de animação. Implementação só em CSS; ver [trace](../../docs/motion-trace.md).
+Repertório A — Órbita contínua: anéis decorativos com 32 segundos por volta; faixa superior com variação suave de opacidade em ciclo de 6 segundos, mínimo de 55%; brilho em gradiente restrito às bordas de 2 px, intensidade inicial de 75%, percurso de 10 segundos por trecho, ida e volta em 20 segundos, easing suave e defasagens de −3/−6/−9 segundos entre posições dos cartões. Entrada das bordas em 180 ms e resposta de hover em 80 ms. Controles de intensidade e duração pertencem somente ao protótipo.
+
+Dados são imediatamente legíveis. Assinatura, arcos de medição, números, textos e alertas não se movem nem piscam. Decoração não indica atividade ou progresso; não acrescentar marcador animado de atividade na Faixa de bordo nem animação local de conclusão. Preservar foco e equivalente de interação por teclado.
+
+Redução manual ou do sistema interrompe animações e transições e remove o brilho itinerante; redução do sistema prevalece. Não executar animações com Painel oculto ou coberto por Configurações. Preservar destruição da webview ao fechar. Implementação decorativa somente em CSS, mantendo os guardrails existentes.
+
+Referência visual: [Que movimentos tornam o Painel mais expressivo sem atrapalhar a leitura?](../painel-tech/issues/03-movimento.md#answer). A aprovação do protótipo não comprova desempenho nativo. Ver também o [protocolo de trace](../../docs/motion-trace.md).
+
+### Critérios de aceite da revisão visual
+
+- Validar a composição integrada nos temas claro e escuro, tema do sistema, largura reduzida, alvos de 1100 × 700 e 1000 × 700 e texto ampliado, preservando as regras responsivas existentes. Faixa e assinatura não escondem métricas, alertas ou ações.
+- Exercitar seis Módulos com mensagens simultâneas: prioridade e resumo de excedentes, sem carrossel, expansão da grade ou perda de acesso a detalhes. Verificar também operação rápida, longa, falha, pausa, recuperação e cancelamento.
+- Cobrir resultado por 4 segundos com relógio injetável, ausência de conclusão fabricada, snapshots repetidos, referência inicial ao reabrir, identificação de operações/provedores e resultados descartados. Não usar `updatedAt` como identidade de operação.
+- Validar indisponibilidade total e parcial sem zeros fabricados, explicações persistentes nos Módulos e independência entre fontes.
+- Verificar teclado, foco, ordem de leitura, contraste WCAG AA e anúncios agrupados com leitor de tela; mensagens não roubam foco. Metáforas mantêm fonte e resultado claros.
+- Verificar redução manual e do sistema, pausa com Painel oculto e em Configurações, e retomada sem eventos antigos reapresentados.
+- Medir no app nativo resposta visual ≤ 100 ms, 60 fps em tela de 60 Hz, CPU adicional média da decoração ≤ 2 pontos percentuais de um núcleo, ausência de animação oculta e memória, seguindo o protocolo existente em `docs/desempenho.md`. Metas permanecem obrigatórias; protótipos não substituem essa validação.
+- No núcleo, toda E/S continua pelas portas existentes, com fixtures reais e relógio falso. Na UI, usar fixtures de snapshots e transições. Cobrir explicitamente a sanitização de mensagens, logs, cache e notificações com dados sensíveis sentinela. Preservar os testes dos demais guardrails de privacidade.
+
 
 ### Critérios ainda não medidos no app nativo
 
@@ -352,3 +392,11 @@ Resumo dos tickets de planejamento apagados em 2026-11-01 (recuperáveis no git,
 - **Release** — repo público MIT, release em rascunho publicado à mão, `SHA256SUMS` + attestations, sem GPG; só aviso diário de nova versão, sem auto-update.
 - **Visual** — o primeiro protótipo (trilho, um Módulo por vez) deu lugar ao Painel cinematográfico (três Estações em 95 % da tela), depois ao Painel compacto (todos os resumos sem rolagem em ~1100 × 700). A primeira implementação compacta podou os Módulos cinematográficos e saiu com excessos; a correção foi reescrever cada resumo a partir do protótipo B, que virou a fonte da verdade visual. Cada Módulo foi aprovado pelo usuário no app nativo.
 - **Modo de fixtures nativo** — fixtures injetadas no nível do snapshot (não em portas brutas), porque as fixtures do B são snapshots da UI; feature Cargo `fixtures`, proibida em `--release`. Ver [`docs/desenvolvimento.md`](../../docs/desenvolvimento.md).
+
+### Revisão incremental do visual (01/11/2026)
+
+A [proposta aprovada](../painel-tech/proposta-revisao-spec.md) foi incorporada no ticket 26. Decisões de origem e referências dos protótipos permanecem no [mapa Aprimorar a identidade tech do Painel](../painel-tech/map.md) e nas respostas de [assinatura](../painel-tech/issues/01-assinatura-kvojps.md#answer), [mensagens](../painel-tech/issues/02-mensagens-de-bordo.md#answer), [movimento](../painel-tech/issues/03-movimento.md#answer), [eventos reais](../painel-tech/issues/05-eventos-de-bordo.md#answer) e [consolidação](../painel-tech/issues/04-consolidacao.md#answer).
+
+Implementação em fatias: [27 — assinatura, faixa e GitHub](issues/27-faixa-bordo-github.md), [28 — IA](issues/28-faixa-bordo-ia.md), [29 — Trello](issues/29-faixa-bordo-trello.md), [30 — Rede](issues/30-faixa-bordo-rede.md), [31 — Agentes e Sistema](issues/31-faixa-bordo-agentes-sistema.md), [32 — Órbita contínua](issues/32-orbita-continua.md) e [33 — validação integrada e nativa](issues/33-validacao-painel-integrado.md). As dependências são as registradas nesses tickets; o ticket 33 reaproveita as verificações pertinentes do ticket 25 sem encerrá-lo.
+
+A revisão preserva grade, fontes de dados, privilégios, coleta em segundo plano, cadências, estados canônicos, notificações e configurações existentes. Controles de intensidade e duração continuam exclusivos dos protótipos. Ajustes de encaixe e contraste são verificados na implementação; mudanças que contrariem as escolhas aprovadas voltam ao usuário antes de execução. A adoção documental não comprova implementação nem validação nativa.
