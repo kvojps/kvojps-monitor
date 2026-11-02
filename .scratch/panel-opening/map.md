@@ -21,9 +21,11 @@ Definir a experiência de abertura do Painel e seus critérios de comportamento,
 
 - [Definir prontidão e ciclo de abertura do Painel](issues/01-opening-readiness.md): preparo local sem bloqueio de rede, mínimo de 1,2 segundo, espera limitada a 5 segundos, recuperação de falhas e alternativa estática para movimento reduzido.
 
+- [Validar sequência visual cinematográfica de abertura](issues/02-opening-visual.md): Arquitetura (C) aprovada, com identidade “kvojps monitor”, malha luminosa em perspectiva e composição inferior esquerda.
+
 ## Not yet specified
 
-Nenhuma área adicional identificada nesta rodada. Reavaliar após a discussão de prontidão e a reação ao protótipo.
+Nenhuma decisão pendente. Destino alcançado: contrato de comportamento e direção visual definidos para orientar a revisão da spec e a implementação posterior.
 
 ## Out of scope
 
