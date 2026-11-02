@@ -6,15 +6,15 @@
 
 **Status:** done
 
-- [ ] Validar em GNOME/Wayland e WebKitGTK a composição nos temas claro, escuro e do sistema, largura reduzida, 1100 × 700, 1000 × 700 e texto ampliado; preservar responsividade e acesso a métricas, alertas, detalhes e ações.
-- [ ] Exercitar os seis Módulos simultâneos com prioridade e resumo de excedentes, sem carrossel ou expansão da grade, incluindo operações rápidas/longas, falha, pausa, recuperação, cancelamento e indisponibilidade total/parcial.
-- [ ] Conferir permanência de 4 segundos, independência entre fontes/provedores, ausência de conclusão fabricada, snapshots repetidos, resultados descartados e referência inicial ao reabrir. Verificar explicações persistentes após desaparecerem da faixa.
-- [ ] Registrar evidências de teclado, foco, ordem de leitura, contraste WCAG AA e leitor de tela com anúncios agrupados não interruptivos. Fonte e resultado são claros em pt-BR e mensagens não roubam foco.
-- [ ] Verificar redução manual e do sistema, pausa com Painel oculto e em Configurações, destruição da webview ao fechar e retomada sem reapresentar eventos antigos.
-- [ ] Seguir o protocolo de desempenho existente: resposta visual ≤ 100 ms, 60 fps em tela de 60 Hz, três pares A/B de CPU de 60 segundos com acréscimo médio da decoração ≤ 2 pontos percentuais de um núcleo, ausência de animação oculta e memória/PSS aberto, fechado e na reabertura. Registrar ambiente, medições e traces; protótipos e navegador não substituem evidência nativa.
-- [ ] Executar os testes pertinentes do núcleo e UI, incluindo relógio falso, fixtures e sentinelas de sanitização de mensagens, logs, cache e notificações. Preservar guardrails de keyring obrigatório, alterações de hooks apenas por clique explícito/aditivas/reversíveis e token Claude apenas em memória sem renovação.
-- [ ] Reaproveitar as verificações pertinentes do ticket 25, sem exigir suas pendências alheias e sem modificá-lo ou encerrá-lo. Registrar evidências e limitações concretas; ausência de acesso ao ambiente nativo não conta como aprovação.
-- [ ] Corrigir desvios comprovados dentro da proposta aprovada; mudanças de escolhas, grade, fontes, privilégios, coleta ou configurações voltam ao usuário antes da execução.
+- [x] Validar em GNOME/Wayland e WebKitGTK a composição nos temas claro, escuro e do sistema, largura reduzida, 1100 × 700, 1000 × 700 e texto ampliado; preservar responsividade e acesso a métricas, alertas, detalhes e ações.
+- [x] Exercitar os seis Módulos simultâneos com prioridade e resumo de excedentes, sem carrossel ou expansão da grade, incluindo operações rápidas/longas, falha, pausa, recuperação, cancelamento e indisponibilidade total/parcial.
+- [x] Conferir permanência de 4 segundos, independência entre fontes/provedores, ausência de conclusão fabricada, snapshots repetidos, resultados descartados e referência inicial ao reabrir. Verificar explicações persistentes após desaparecerem da faixa.
+- [x] Registrar evidências de teclado, foco, ordem de leitura, contraste WCAG AA e leitor de tela com anúncios agrupados não interruptivos. Fonte e resultado são claros em pt-BR e mensagens não roubam foco.
+- [x] Verificar redução manual e do sistema, pausa com Painel oculto e em Configurações, destruição da webview ao fechar e retomada sem reapresentar eventos antigos.
+- [x] Seguir o protocolo de desempenho existente: resposta visual ≤ 100 ms, 60 fps em tela de 60 Hz, três pares A/B de CPU de 60 segundos com acréscimo médio da decoração ≤ 2 pontos percentuais de um núcleo, ausência de animação oculta e memória/PSS aberto, fechado e na reabertura. Registrar ambiente, medições e traces; protótipos e navegador não substituem evidência nativa.
+- [x] Executar os testes pertinentes do núcleo e UI, incluindo relógio falso, fixtures e sentinelas de sanitização de mensagens, logs, cache e notificações. Preservar guardrails de keyring obrigatório, alterações de hooks apenas por clique explícito/aditivas/reversíveis e token Claude apenas em memória sem renovação.
+- [x] Reaproveitar as verificações pertinentes do ticket 25, sem exigir suas pendências alheias e sem modificá-lo ou encerrá-lo. Registrar evidências e limitações concretas; ausência de acesso ao ambiente nativo não conta como aprovação.
+- [x] Corrigir desvios comprovados dentro da proposta aprovada; mudanças de escolhas, grade, fontes, privilégios, coleta ou configurações voltam ao usuário antes da execução.
 
 ## Comments
 
@@ -31,3 +31,7 @@ do aceite nativo e sem alteração ou encerramento do ticket 25.
 resolvido”. As limitações e verificações sem evidência permanecem documentadas;
 o encerramento não representa novas medições ou aprovação técnica dos critérios
 não verificados. O ticket 25 permanece inalterado.
+
+02/11/2026 — Checklist marcada por solicitação explícita do usuário após o
+encerramento. As marcações registram essa decisão; as limitações da validação
+continuam descritas acima e no relatório de evidências.
