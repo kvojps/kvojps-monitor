@@ -254,6 +254,7 @@ Permanecem as exigências de teclado, foco, leitura e contraste e as metas nativ
 
 ### Release e repositório
 - Repo público `Kvojps/kvojps-monitor`, licença MIT. `.scratch/` é versionado como acompanhamento do planejamento e apagado pelo usuário quando a v1 estiver finalizada; branches `research/*` e `prototype/*` nunca sobem.
+- **Abertura pública** (decisão de 02/11/2026, tickets 23 e 40–42): preparar a documentação para acompanhar o lançamento da v1. Projeto pessoal que não recebe contribuições externas; forks e adaptações seguem a licença MIT. README com imagens reais do app e dados sanitizados; `docs/desenvolvimento.md` cobre compilação e forks. Antes da abertura, revisar arquivos e histórico que serão expostos e verificar a habilitação do canal privado de vulnerabilidades do GitHub, documentado em `SECURITY.md`; sem promessa de prazo de atendimento.
 - **SemVer** a partir de `0.1.0`; `tauri.conf.json` é a fonte da verdade e o CI confere tag ↔ `tauri.conf.json` ↔ `Cargo.toml` ↔ `package.json`.
 - **CI** (push na `main` e PRs): `cargo fmt --check`, `clippy`, `cargo test`, `svelte-check`, testes da UI, build sem empacotar.
 - **Release** (tag `v*`): reaproveita o CI; `tauri-action` em `ubuntu-24.04` gera `.deb` + AppImage; publica `SHA256SUMS` e GitHub artifact attestations (sem GPG); release em **rascunho** com notas automáticas, publicado à mão. Sem `CHANGELOG.md`.
