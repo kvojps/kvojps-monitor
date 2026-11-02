@@ -243,7 +243,10 @@ mod tests {
         )
         .unwrap();
         assert!(enabled(&DiskStorage(d.path().into())));
-        assert_eq!(line_exec(d.path()), "Exec=\"/home/example/Apps/k.AppImage\"");
+        assert_eq!(
+            line_exec(d.path()),
+            "Exec=\"/home/example/Apps/k.AppImage\""
+        );
 
         // Turning it off twice is not an error.
         set(&DiskStorage(d.path().into()), &deb(), false).unwrap();

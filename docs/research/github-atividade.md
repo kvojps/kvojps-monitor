@@ -209,3 +209,5 @@ Limites do fine-grained relevantes [S4]: cada token acessa recursos de **um úni
 2. **(b) repo destaque:** use a **opção 2** (`viewer.repositories` por `PUSHED_AT` + `history(author:{id}, since:)`). Ela funciona hoje com o escopo `repo`, custa 1 ponto e entrega numa única query os commits na janela, os commits totais e a data/hora do último commit. Cache de 10 a 15 min.
 3. **Opcional:** se o destaque precisar contar PRs, issues e reviews, peça ao usuário para rodar `gh auth refresh -h github.com -s read:user` e troque para a opção 1, mantendo a 2 como fallback quando `restrictedContributionsCount > 0` e a lista vier vazia.
 4. **Evite** fine-grained PAT neste caso: o comportamento com `contributionsCollection` privado não está documentado, e a restrição a um único dono atrapalha. Evite também a REST Events (30 dias, latência de até 6 h). Custo total: zero.
+
+Nota de privacidade (ticket 40): o nome do projeto privado foi substituído por um exemplo. Não usar os nomes de exemplo para localizar repositórios reais.

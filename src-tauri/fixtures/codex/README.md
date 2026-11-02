@@ -17,3 +17,5 @@ Raiz falsa de `~/.codex`. Contém só eventos `token_count` reais (contagens de 
 As fixtures de UI em `src/lib/ai/fixtures/` são publicadas pelo núcleo e conferidas nos testes. Para regravá-las: `UPDATE_FIXTURES=1 cargo test --manifest-path src-tauri/Cargo.toml ai`.
 
 O cache em disco guarda plano, fonte, idade e janelas; nunca e-mail, IDs de conta ou conteúdo de rollouts.
+
+Os UUIDs presentes nos nomes dos rollouts foram substituídos por identificadores sintéticos na revisão do ticket 40; os horários e contadores não identificam mais uma sessão pelo seu UUID original.

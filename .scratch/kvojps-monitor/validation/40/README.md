@@ -1,6 +1,8 @@
 # Revisão antes da abertura pública
 
-Revisão inicial em 02/11/2026. **Abertura bloqueada; este documento não é uma aprovação de publicação.**
+Revisão inicial em 02/11/2026. **Este documento não é uma aprovação de publicação.**
+
+Atualização: o mantenedor autorizou a limpeza e a consulta ao GitHub revelou que o repositório já estava público. O registro abaixo preserva as constatações iniciais; o estado posterior e a sanitização ficam em [sanitizacao.md](sanitizacao.md).
 
 ## Escopo de publicação
 

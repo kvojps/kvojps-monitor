@@ -19,3 +19,5 @@ A janela é avançada com relógio falso; não há esperas reais.
 
 Formato de referência: [sock_diag(7)](https://man7.org/linux/man-pages/man7/sock_diag.7.html)
 e os cabeçalhos Linux `inet_diag.h`, `tcp.h` e `netlink.h`.
+
+Após a revisão do ticket 40, portas, PID netlink, interface, cookie, UID, cgroup e inode são sintéticos e consistentes com `owner.json`. `status.txt` é uma projeção mínima sintética dos campos usados pelo teste; `comm.txt` e o caminho do executável também são exemplos. O helper de captura aplica a mesma sanitização antes de gravar. Os contadores `tcp_info` e o formato netlink continuam derivados da captura de loopback.

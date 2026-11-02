@@ -11,3 +11,5 @@ Os testes de hooks usam variantes sintéticas explícitas do contrato de stdin d
 As variantes incluem conteúdo sentinela para verificar que somente metadados
 atravessam o socket; nenhum hook foi instalado nas configurações reais durante
 os testes. A reconciliação com polling usa as capturas desta pasta.
+
+Caminho, projeto, nome de sessão e identificadores foram substituídos por exemplos após a revisão de privacidade do ticket 40. Os snapshots de UI e as expectativas dos testes usam os mesmos exemplos.
