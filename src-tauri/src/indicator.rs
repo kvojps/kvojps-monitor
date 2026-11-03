@@ -18,6 +18,18 @@ pub struct Indicator {
     pub state: IndicatorState,
 }
 
+impl Indicator {
+    fn open_panel(&self) {
+        // Read inside the ksni callback: its activation token is event-local.
+        // GTK must receive it on the UI thread, before the window is presented.
+        let token = ksni::current_xdg_activation_token();
+        let app = self.app.clone();
+        let _ = self.app.run_on_main_thread(move || {
+            panel::open_with_activation_token(&app, token.as_deref());
+        });
+    }
+}
+
 impl Tray for Indicator {
     fn id(&self) -> String {
         env!("CARGO_PKG_NAME").into()
@@ -49,17 +61,17 @@ impl Tray for Indicator {
     }
 
     fn activate(&mut self, _x: i32, _y: i32) {
-        panel::open(&self.app);
+        self.open_panel();
     }
 
     fn secondary_activate(&mut self, _x: i32, _y: i32) {
-        panel::open(&self.app);
+        self.open_panel();
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
         vec![StandardItem {
             label: STRINGS.indicator.open_panel.clone(),
-            activate: Box::new(|this: &mut Self| panel::open(&this.app)),
+            activate: Box::new(|this: &mut Self| this.open_panel()),
             ..Default::default()
         }
         .into()]

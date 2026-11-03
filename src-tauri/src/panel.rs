@@ -30,9 +30,16 @@ impl Margin {
 }
 
 pub fn open(app: &AppHandle) {
+    open_with_activation_token(app, None);
+}
+
+/// Indicator activation runs on the GTK thread so the compositor's token can be
+/// assigned before showing or focusing either a new or an existing window.
+pub fn open_with_activation_token(app: &AppHandle, token: Option<&str>) {
     app.state::<Mutex<AppState>>().lock().unwrap().open_panel();
     collection::visibility_changed(app);
     if let Some(window) = app.get_webview_window(LABEL) {
+        set_activation_token(&window, token);
         fit(&window);
         // A repeated request during page loading must not expose an empty webview.
         if window.is_visible().unwrap_or(false) {
@@ -72,11 +79,21 @@ pub fn open(app: &AppHandle) {
     }
     match builder.build() {
         Ok(window) => {
+            set_activation_token(&window, token);
             learn_margin(&window);
             fit(&window);
             let _ = window.set_focus();
         }
         Err(e) => eprintln!("panel: failed to create window: {e}"),
+    }
+}
+
+fn set_activation_token(window: &WebviewWindow, token: Option<&str>) {
+    use gtk::prelude::*;
+    if let Some(token) = token {
+        if let Ok(native) = window.gtk_window() {
+            native.set_startup_id(token);
+        }
     }
 }
 

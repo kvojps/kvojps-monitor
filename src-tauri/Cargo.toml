@@ -1,6 +1,6 @@
 [package]
 name = "kvojps-monitor"
-version = "0.1.0"
+version = "0.1.1"
 description = "Indicador de bandeja que reúne IA, Agentes, GitHub, Trello, rede e sistema"
 authors = ["Kvojps"]
 license = "MIT"
