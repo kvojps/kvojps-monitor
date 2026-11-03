@@ -1,6 +1,6 @@
 # Cursor de espera ao abrir o Painel pelo Indicador
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 
 ## Sintoma e escopo confirmado
@@ -77,4 +77,17 @@ Revisão pré-publicação: os arquivos alterados são código, script de diagn�
 manifestos de versão, lockfiles e este ticket. O diff foi revisado integralmente;
 não há imagens, fixtures ou binários novos selecionados para Git. Identidades
 de autor e committer usam noreply do GitHub. A branch é `main` e, antes deste
-trabalho, não havia commits locais pendentes de envio. Publicação 0.1.1 pendente.
+trabalho, não havia commits locais pendentes de envio.
+
+## Publicação
+
+- Correção no commit `494d269`, tag `v0.1.1`.
+- [Workflow de release](https://github.com/kvojps/kvojps-monitor/actions/runs/41553249997)
+  concluído com sucesso: CI completo, `.deb`, AppImage, checksums, emissão e
+  verificação dos atestados de proveniência.
+- [Release 0.1.1 publicada](https://github.com/kvojps/kvojps-monitor/releases/tag/v0.1.1),
+  marcada como versão mais recente.
+- Após o teste nativo, a entrada de inicialização automática do próprio app
+  foi restaurada para o executável instalado, sem referência ao diretório
+  temporário. O teste não substituiu o pacote instalado; a atualização
+  permanente utiliza o `.deb` oficial publicado.
